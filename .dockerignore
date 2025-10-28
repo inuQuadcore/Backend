@@ -1,0 +1,17 @@
+.gradle
+build/
+!build/libs/*.jar
+
+src/
+bin/
+
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+
+tmp/
+logs/
+*.log
+*.tmp

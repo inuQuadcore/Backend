@@ -35,6 +35,11 @@ jobs:
       - name: Skip Docker Push on PR
         if: github.event_name == 'pull_request'
         run: echo "코드 정적 분석을 위해 Docker Hub 푸시를 건너뜁니다."
+      
+      # docker cashe 기능을 사용하기 위해 빌더를 명시적으로 생성  
+      - name: Set up Docker Buildx
+        if: github.event_name == 'push' 
+        uses: docker/setup-buildx-action@v3
 
       # main 브랜치에 Push 된 경우에만 Docker Hub에 Login
       - name: Docker Login

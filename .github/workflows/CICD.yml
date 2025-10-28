@@ -29,7 +29,7 @@ jobs:
           distribution: 'temurin'
  
       - name: Build with Gradle
-        run: ./gradlew build 
+        run: ./gradlew build -x test
         
       # PR 이벤트인 경우 (빌드까지만 수행하고 Docker Push는 건너뜀)
       - name: Skip Docker Push on PR

@@ -8,10 +8,7 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
-  profiles:
-    active: test
 
 logging:
   level:
     org.hibernate.SQL: DEBUG
-    org.springframework.web: INFO

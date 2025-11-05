@@ -10,7 +10,7 @@ on:
       - main
     
 
-  
+
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
@@ -29,7 +29,7 @@ jobs:
           distribution: 'temurin'
  
       - name: Build with Gradle
-        run: ./gradlew 
+        run: ./gradlew build
         
       # PR 이벤트인 경우 (빌드까지만 수행하고 Docker Push는 건너뜀)
       - name: Skip Docker Push on PR
@@ -59,6 +59,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
-      - name: Clean up Gradle build artifacts
-        if: always()
-        run: ./gradlew clean

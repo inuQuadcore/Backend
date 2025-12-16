@@ -1,7 +1,9 @@
 package com.everybuddy.domain.user.entity;
 
+import com.everybuddy.domain.auth.dto.RegisterRequestDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -20,6 +22,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
+    @Column(nullable = false, unique = true)
+    private String loginId;
+
     @Column(nullable = false)
     private String name;
 
@@ -36,7 +41,6 @@ public class User {
 
     private String profile;
 
-    @Column(nullable = false)
     private String hobby;
 
     @Column(nullable = false)
@@ -45,4 +49,34 @@ public class User {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Gender gender;
+
+    @Builder
+    private User(String loginId, String name, String password, Country country,
+                 Language language, Gender gender, String profile, String hobby, LocalDate birthday) {
+        this.loginId = loginId;
+        this.name = name;
+        this.password = password;
+        this.country = country;
+        this.language = language;
+        this.gender = gender;
+        this.profile = profile;
+        this.hobby = hobby;
+        this.birthday = birthday;
+    }
+
+    public static User from(RegisterRequestDto dto) {
+        return User.builder()
+                .loginId(dto.getId())
+                .name(dto.getName())
+                .password(dto.getPassword())
+                .country(dto.getCountry())
+                .language(Language.ENGLISH) // 기본값, 추후 변경 가능
+                .gender(dto.getGender())
+                .birthday(dto.getBirthday())
+                .build();
+    }
 }

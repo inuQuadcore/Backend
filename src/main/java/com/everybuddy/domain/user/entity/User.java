@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,11 +69,11 @@ public class User {
         this.birthday = birthday;
     }
 
-    public static User from(RegisterRequestDto dto) {
+    public static User from(RegisterRequestDto dto, PasswordEncoder passwordEncoder) {
         return User.builder()
                 .loginId(dto.getId())
                 .name(dto.getName())
-                .password(dto.getPassword())
+                .password(passwordEncoder.encode(dto.getPassword()))  // 비밀번호 암호화
                 .country(dto.getCountry())
                 .language(Language.ENGLISH) // 기본값, 추후 변경 가능
                 .gender(dto.getGender())

@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Getter
 public class RegisterRequestDto {
-    private String id;
+    private String loginId;
 
     private String password;
 

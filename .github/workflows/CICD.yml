@@ -80,7 +80,7 @@ jobs:
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             ./deploy.sh
       
-      # 배포 완료 후 애플리케이션 정상 동작 확인      
+      # 배포 완료 후 애플리케이션 정상 동작 확인.      
       - name: Health Check
         run: |
           sleep 20

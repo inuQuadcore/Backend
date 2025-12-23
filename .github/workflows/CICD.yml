@@ -61,7 +61,7 @@ jobs:
           
   deploy: 
     needs: build_and_push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'  
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'  
     runs-on: ubuntu-latest
     
     steps:

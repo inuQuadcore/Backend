@@ -4,10 +4,10 @@ name: EveryBuddy server CI & CD
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
     branches:
-      - main
+      - dev
     
 
 

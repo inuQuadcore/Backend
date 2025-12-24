@@ -38,3 +38,5 @@ out/
 
 application-local.yml
 application.yml
+.mcp.json
+.claude

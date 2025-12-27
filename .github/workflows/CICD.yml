@@ -80,9 +80,4 @@ jobs:
               -p 8080:8080 \
               --restart unless-stopped \
               ${{ secrets.DOCKER_USERNAME }}/everybuddy:latest
-            docker image prune -f
-
-      - name: Health Check
-        run: |
-          sleep 20
-          curl -f http://${{ secrets.EC2_HOST }}:8080/actuator/health        
+            docker image prune -f       

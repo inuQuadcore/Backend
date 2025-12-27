@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
     DataSourceAutoConfiguration.class,
     HibernateJpaAutoConfiguration.class
 })
-@EnableJpaAuditing
+// @EnableJpaAuditing
 public class EverybuddyApplication {
 
 	public static void main(String[] args) {

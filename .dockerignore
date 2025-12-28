@@ -1,17 +1,77 @@
+# 빌드 관련
 .gradle
+gradle/
+gradlew
+gradlew.bat
 build/
 !build/libs/*.jar
-
-src/
+out/
+target/
 bin/
 
+# 소스 코드 (JAR에 이미 포함됨)
+src/
+
+# Git 관련
 .git
 .gitignore
+.gitattributes
+.github
+
+# IDE 설정
 .idea
 .vscode
 *.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings
+.metadata
 
-tmp/
+# 민감한 정보 파일
+application-local.yml
+application-dev.yml
+**/application-local.yml
+**/application-dev.yml
+firebase/
+*firebase*.json
+.env
+.env.*
+*.env
+credentials.json
+secrets.yml
+*.pem
+*.key
+*.p12
+*.jks
+
+# 문서 및 테스트
+README.md
+*.md
+HELP.md
+docs/
+test/
+tests/
+
+# 로그 및 임시 파일
 logs/
+tmp/
+temp/
 *.log
 *.tmp
+*.bak
+*.swp
+*~
+
+# OS 관련
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# MCP 및 기타 개발 도구
+.mcp.json
+.claude
+docker-compose.yml
+Dockerfile
+.dockerignore

@@ -69,15 +69,15 @@ public class User {
         this.birthday = birthday;
     }
 
-    public static User from(RegisterRequestDto dto, PasswordEncoder passwordEncoder) {
+    public static User from(RegisterRequestDto registerRequestDto, PasswordEncoder passwordEncoder) {
         return User.builder()
-                .loginId(dto.getId())
-                .name(dto.getName())
-                .password(passwordEncoder.encode(dto.getPassword()))  // 비밀번호 암호화
-                .country(dto.getCountry())
+                .loginId(registerRequestDto.getLoginId())
+                .name(registerRequestDto.getName())
+                .password(passwordEncoder.encode(registerRequestDto.getPassword()))  // 비밀번호 암호화
+                .country(registerRequestDto.getCountry())
                 .language(Language.ENGLISH) // 기본값, 추후 변경 가능
-                .gender(dto.getGender())
-                .birthday(dto.getBirthday())
+                .gender(registerRequestDto.getGender())
+                .birthday(registerRequestDto.getBirthday())
                 .build();
     }
 }

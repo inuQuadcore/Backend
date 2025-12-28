@@ -17,6 +17,10 @@ public class UserDetailsImpl implements UserDetails {
 
     private final User user;
 
+    public Long getUserId() {
+        return user.getUserId();
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();

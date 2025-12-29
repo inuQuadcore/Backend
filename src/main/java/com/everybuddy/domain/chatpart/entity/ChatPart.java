@@ -5,6 +5,7 @@ import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -34,6 +35,7 @@ public class ChatPart {
     @JoinColumn(name = "last_read_message_id")
     private Message lastReadMessage;
 
+    // 읽기를 realtimeDB를 이용하는거면, 얘는 어떻게 최신화할지 생각해보자
     private LocalDateTime lastReadAt;
 
     private LocalDateTime exitChatRoomAt;
@@ -41,5 +43,22 @@ public class ChatPart {
     private LocalDateTime enterChatRoomAt;
 
     // isActive로 이름 지으면 Getter 이름 매핑과정에서 문제생김
-    private boolean active = true;
+    private boolean active;
+
+    @Builder
+    private ChatPart(User user, ChatRoom chatRoom, LocalDateTime enterChatRoomAt, boolean active) {
+        this.user = user;
+        this.chatRoom = chatRoom;
+        this.enterChatRoomAt = enterChatRoomAt;
+        this.active = active;
+    }
+
+    public static ChatPart create(User user, ChatRoom chatRoom) {
+        return ChatPart.builder()
+                .user(user)
+                .chatRoom(chatRoom)
+                .enterChatRoomAt(LocalDateTime.now())
+                .active(true)
+                .build();
+    }
 }

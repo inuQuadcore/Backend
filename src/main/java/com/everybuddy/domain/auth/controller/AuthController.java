@@ -30,14 +30,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto){
         LoginResponseDto loginResponseDto = authService.login(loginRequestDto);
-        return ResponseEntity.status(HttpStatus.OK).body(loginResponseDto);
+        return ResponseEntity.ok(loginResponseDto);
     }
 
     @GetMapping("/firebase-token")
     public ResponseEntity<FirebaseTokenResponse> getFirebaseToken(
             @AuthenticationPrincipal UserDetailsImpl userDetails) throws FirebaseAuthException {
 
-        String firebaseToken = firebaseTokenService.createFirebaseToken(userDetails.getUserId());
-        return ResponseEntity.ok(new FirebaseTokenResponse(firebaseToken));
+        FirebaseTokenResponse firebaseToken = firebaseTokenService.createFirebaseToken(userDetails.getUserId());
+        return ResponseEntity.ok(firebaseToken);
     }
 }

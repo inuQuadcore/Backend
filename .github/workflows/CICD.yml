@@ -4,10 +4,10 @@ name: EveryBuddy server CI & CD
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
     branches:
-      - main
+      - dev
     
 
 
@@ -59,3 +59,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
+  deploy: 
+    needs: build_and_push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'  
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/everybuddy:latest
+            docker stop everybuddy-backend 2>/dev/null || true
+            docker rm everybuddy-backend 2>/dev/null || true
+            docker run -d \
+              --name everybuddy-backend \
+              -p 8080:8080 \
+              --restart unless-stopped \
+              ${{ secrets.DOCKER_USERNAME }}/everybuddy:latest
+            docker image prune -f       

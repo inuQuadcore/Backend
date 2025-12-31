@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.time.LocalDate;
 
 @Getter
-public class RegisterRequestDto {
+public class RegisterRequest {
     private String loginId;
 
     private String password;

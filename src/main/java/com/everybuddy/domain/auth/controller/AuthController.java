@@ -1,9 +1,9 @@
 package com.everybuddy.domain.auth.controller;
 
 import com.everybuddy.domain.auth.dto.FirebaseTokenResponse;
-import com.everybuddy.domain.auth.dto.LoginRequestDto;
-import com.everybuddy.domain.auth.dto.LoginResponseDto;
-import com.everybuddy.domain.auth.dto.RegisterRequestDto;
+import com.everybuddy.domain.auth.dto.LoginRequest;
+import com.everybuddy.domain.auth.dto.LoginResponse;
+import com.everybuddy.domain.auth.dto.RegisterRequest;
 import com.everybuddy.domain.auth.service.AuthService;
 import com.everybuddy.domain.auth.service.FirebaseTokenService;
 import com.everybuddy.global.security.UserDetailsImpl;
@@ -22,14 +22,14 @@ public class AuthController {
     private final FirebaseTokenService firebaseTokenService;
 
     @PostMapping("/register")
-    public ResponseEntity<Void> createUser(@RequestBody RegisterRequestDto registerRequestDto){
+    public ResponseEntity<Void> createUser(@RequestBody RegisterRequest registerRequestDto){
         authService.createUser(registerRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto){
-        LoginResponseDto loginResponseDto = authService.login(loginRequestDto);
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequestDto){
+        LoginResponse loginResponseDto = authService.login(loginRequestDto);
         return ResponseEntity.ok(loginResponseDto);
     }
 

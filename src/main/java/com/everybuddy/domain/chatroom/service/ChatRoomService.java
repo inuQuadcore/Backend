@@ -6,6 +6,7 @@ import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
+import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.google.firebase.database.DatabaseReference;
@@ -27,6 +28,7 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatPartRepository chatPartRepository;
     private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
     private final FirebaseDatabase firebaseDatabase;
 
     @Transactional
@@ -118,12 +120,26 @@ public class ChatRoomService {
             List<ChatPart> myChatParts,
             Map<Long, List<Long>> participantsMap) {
 
-        return myChatParts.stream()
-                .map(chatPart -> ChatRoomResponse.from(
-                        chatPart.getChatRoom(),
-                        participantsMap.get(chatPart.getChatRoom().getChatRoomId())
-                ))
-                .toList();
+        List<ChatRoomResponse> responses = new ArrayList<>();
+
+        for (ChatPart chatPart : myChatParts) {
+            Long chatRoomId = chatPart.getChatRoom().getChatRoomId();
+            Long lastReadMessageId = chatPart.getLastReadMessage() != null
+                    ? chatPart.getLastReadMessage().getMessageId()
+                    : null;
+
+            Long unreadCount = messageRepository.countUnreadMessages(chatRoomId, lastReadMessageId);
+
+            ChatRoomResponse response = ChatRoomResponse.from(
+                    chatPart.getChatRoom(),
+                    participantsMap.get(chatRoomId),
+                    unreadCount
+            );
+
+            responses.add(response);
+        }
+
+        return responses;
     }
 
     private void saveParticipantsToFirebase(Long chatRoomId, List<Long> participantIds) {

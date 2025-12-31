@@ -15,6 +15,7 @@ public class ChatRoomResponse {
     private String roomName;
     private LocalDateTime createdAt;
     private List<Long> participantIds;
+    private Long unreadCount;
 
     public static ChatRoomResponse from(ChatRoom chatRoom, List<Long> participantIds) {
         return ChatRoomResponse.builder()
@@ -22,6 +23,16 @@ public class ChatRoomResponse {
                 .roomName(chatRoom.getRoomName())
                 .createdAt(chatRoom.getCreatedAt())
                 .participantIds(participantIds)
+                .build();
+    }
+
+    public static ChatRoomResponse from(ChatRoom chatRoom, List<Long> participantIds, Long unreadCount) {
+        return ChatRoomResponse.builder()
+                .chatRoomId(chatRoom.getChatRoomId())
+                .roomName(chatRoom.getRoomName())
+                .createdAt(chatRoom.getCreatedAt())
+                .participantIds(participantIds)
+                .unreadCount(unreadCount)
                 .build();
     }
 }

@@ -1,6 +1,6 @@
 package com.everybuddy.domain.user.entity;
 
-import com.everybuddy.domain.auth.dto.RegisterRequestDto;
+import com.everybuddy.domain.auth.dto.RegisterRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -69,7 +69,7 @@ public class User {
         this.birthday = birthday;
     }
 
-    public static User from(RegisterRequestDto registerRequestDto, PasswordEncoder passwordEncoder) {
+    public static User from(RegisterRequest registerRequestDto, PasswordEncoder passwordEncoder) {
         return User.builder()
                 .loginId(registerRequestDto.getLoginId())
                 .name(registerRequestDto.getName())

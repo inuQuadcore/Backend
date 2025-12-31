@@ -20,6 +20,11 @@ public interface ChatPartRepository extends JpaRepository<ChatPart, Long> {
             "WHERE cp.chatRoom.chatRoomId IN :chatRoomIds")
     List<ChatPart> findByChatRoomIdsWithUser(@Param("chatRoomIds") List<Long> chatRoomIds);
 
+    @Query("SELECT cp FROM ChatPart cp " +
+            "JOIN FETCH cp.user " +
+            "WHERE cp.chatRoom.chatRoomId = :chatRoomId AND cp.active = true")
+    List<ChatPart> findByChatRoomIdWithUser(@Param("chatRoomId") Long chatRoomId);
+
     @Query("SELECT CASE WHEN COUNT(cp) > 0 THEN true ELSE false END " +
             "FROM ChatPart cp " +
             "WHERE cp.user.userId = :userId AND cp.chatRoom.chatRoomId = :chatRoomId AND cp.active = true")

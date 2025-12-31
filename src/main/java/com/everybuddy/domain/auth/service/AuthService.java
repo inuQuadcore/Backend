@@ -25,19 +25,19 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public void createUser(RegisterRequest registerRequestDto) {
-        User user = User.from(registerRequestDto, passwordEncoder);
+    public void createUser(RegisterRequest registerRequest) {
+        User user = User.from(registerRequest, passwordEncoder);
         userRepository.save(user);
     }
 
-    public LoginResponse login(LoginRequest loginRequestDto) {
+    public LoginResponse login(LoginRequest loginRequest) {
         // 사용자 조회
-        String loginId = loginRequestDto.getLoginId();
+        String loginId = loginRequest.getLoginId();
         User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + loginId));
 
         // 비밀번호 검증
-        if (!passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("비밀번호가 일치하지 않습니다");
         }
 

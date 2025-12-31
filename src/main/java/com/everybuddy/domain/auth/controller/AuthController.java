@@ -22,15 +22,15 @@ public class AuthController {
     private final FirebaseTokenService firebaseTokenService;
 
     @PostMapping("/register")
-    public ResponseEntity<Void> createUser(@RequestBody RegisterRequest registerRequestDto){
-        authService.createUser(registerRequestDto);
+    public ResponseEntity<Void> createUser(@RequestBody RegisterRequest registerRequest){
+        authService.createUser(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequestDto){
-        LoginResponse loginResponseDto = authService.login(loginRequestDto);
-        return ResponseEntity.ok(loginResponseDto);
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest){
+        LoginResponse loginResponse = authService.login(loginRequest);
+        return ResponseEntity.ok(loginResponse);
     }
 
     @GetMapping("/firebase-token")

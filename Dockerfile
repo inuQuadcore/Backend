@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------------------
 
 # Use a lightweight JRE-only image based on Alpine Linux for smallest size
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 # Set the working directory inside the container
 WORKDIR /app

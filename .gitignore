@@ -40,3 +40,4 @@ application-local.yml
 application.yml
 .mcp.json
 .claude
+/src/main/resources/firebase

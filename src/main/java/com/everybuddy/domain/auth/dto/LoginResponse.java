@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-public class LoginResponseDto {
+public class LoginResponse {
     private final String accessToken;
 
     private final String tokenType = "Bearer";
@@ -12,13 +12,13 @@ public class LoginResponseDto {
     private final Long expireIn;
 
     @Builder
-    private LoginResponseDto(String accessToken, String tokenType, Long expireIn) {
+    private LoginResponse(String accessToken, String tokenType, Long expireIn) {
         this.accessToken = accessToken;
         this.expireIn = expireIn;
     }
 
-    public static LoginResponseDto of(String accessToken, Long expireInMillis) {
-        return LoginResponseDto.builder()
+    public static LoginResponse of(String accessToken, Long expireInMillis) {
+        return LoginResponse.builder()
                 .accessToken(accessToken)
                 .expireIn(expireInMillis / 1000)  // 밀리초 → 초 변환
                 .build();

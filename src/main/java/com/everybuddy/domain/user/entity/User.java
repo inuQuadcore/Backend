@@ -1,6 +1,6 @@
 package com.everybuddy.domain.user.entity;
 
-import com.everybuddy.domain.auth.dto.RegisterRequestDto;
+import com.everybuddy.domain.auth.dto.RegisterRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -69,15 +69,15 @@ public class User {
         this.birthday = birthday;
     }
 
-    public static User from(RegisterRequestDto registerRequestDto, PasswordEncoder passwordEncoder) {
+    public static User from(RegisterRequest registerRequest, PasswordEncoder passwordEncoder) {
         return User.builder()
-                .loginId(registerRequestDto.getLoginId())
-                .name(registerRequestDto.getName())
-                .password(passwordEncoder.encode(registerRequestDto.getPassword()))  // 비밀번호 암호화
-                .country(registerRequestDto.getCountry())
+                .loginId(registerRequest.getLoginId())
+                .name(registerRequest.getName())
+                .password(passwordEncoder.encode(registerRequest.getPassword()))  // 비밀번호 암호화
+                .country(registerRequest.getCountry())
                 .language(Language.ENGLISH) // 기본값, 추후 변경 가능
-                .gender(registerRequestDto.getGender())
-                .birthday(registerRequestDto.getBirthday())
+                .gender(registerRequest.getGender())
+                .birthday(registerRequest.getBirthday())
                 .build();
     }
 }

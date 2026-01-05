@@ -33,17 +33,17 @@ public class MessageService {
     private final FirebaseDatabase firebaseDatabase;
 
     @Transactional
-    public void sendMessage(Long userId, ChatMessageRequest request) {
+    public void sendMessage(Long userId, ChatMessageRequest chatMessageRequest) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        ChatRoom chatRoom = chatRoomRepository.findById(request.getChatRoomId())
+        ChatRoom chatRoom = chatRoomRepository.findById(chatMessageRequest.getChatRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("ChatRoom not found"));
 
-        if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, request.getChatRoomId()))
+        if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, chatMessageRequest.getChatRoomId()))
             throw new IllegalArgumentException("User is not in ChatRoom");
 
-        Message message = Message.create(chatRoom, user, request);
+        Message message = Message.create(chatRoom, user, chatMessageRequest);
 
         messageRepository.save(message);
 
@@ -73,6 +73,20 @@ public class MessageService {
         // RealtimeDB 업데이트
         updateFirebaseAsDeleted(message);
         updateChatRoomMetadataAsDeleted(message);
+    }
+
+    @Transactional
+    public void markAsRead(Long userId, Long chatRoomId, Long messageId) {
+        // 채팅방 참여자 확인 및 조회
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("User is not in ChatRoom"));
+
+        Message message = messageRepository
+                .findByIdAndChatRoomId(messageId, chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found in this ChatRoom"));
+
+        // 마지막 읽은 메시지 업데이트
+        chatPart.updateLastReadMessage(message);
     }
 
 

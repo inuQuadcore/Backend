@@ -19,13 +19,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     Long countUnreadMessages(@Param("chatRoomId") Long chatRoomId,
                              @Param("lastReadMessageId") Long lastReadMessageId);
 
-    @Query("SELECT m FROM Message m " +
-            "WHERE m.chatRoom = :chatRoom " +
-            "AND m.deletedAt IS NULL " +
-            "ORDER BY m.messageId DESC " +
-            "LIMIT 1")
-    Optional<Message> findLastUnDeletedMessage(@Param("chatRoom") ChatRoom chatRoom);
-
     @Query("SELECT m.messageId FROM Message m " +
             "WHERE m.chatRoom = :chatRoom " +
             "ORDER BY m.messageId DESC " +
@@ -36,4 +29,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             "WHERE m.deletedAt IS NOT NULL " +
             "AND m.deletedAt < :threshold")
     List<Message> findMessagesDeletedBefore(@Param("threshold") LocalDateTime threshold);
+
+    @Query("SELECT m FROM Message m " +
+            "WHERE m.messageId = :messageId " +
+            "AND m.chatRoom.chatRoomId = :chatRoomId")
+    Optional<Message> findByIdAndChatRoomId(@Param("messageId") Long messageId,
+                                            @Param("chatRoomId") Long chatRoomId);
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatPartRepository extends JpaRepository<ChatPart, Long> {
 
@@ -28,4 +29,8 @@ public interface ChatPartRepository extends JpaRepository<ChatPart, Long> {
             "FROM ChatPart cp " +
             "WHERE cp.user.userId = :userId AND cp.chatRoom.chatRoomId = :chatRoomId AND cp.active = true")
     boolean existsByUserIdAndChatRoomId(@Param("userId") Long userId, @Param("chatRoomId") Long chatRoomId);
+
+    @Query("SELECT cp FROM ChatPart cp " +
+            "WHERE cp.user.userId = :userId AND cp.chatRoom.chatRoomId = :chatRoomId AND cp.active = true")
+    Optional<ChatPart> findByUserIdAndChatRoomId(@Param("userId") Long userId, @Param("chatRoomId") Long chatRoomId);
 }

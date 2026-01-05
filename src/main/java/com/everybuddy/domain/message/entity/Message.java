@@ -41,12 +41,23 @@ public class Message {
     @Column(nullable = false, updatable = false)
     private LocalDateTime sendAt;
 
+    @Column(nullable = true)
+    private LocalDateTime deletedAt;
+
     @Builder
     private Message(ChatRoom chatRoom, User user, MessageType messageType, String content) {
         this.chatRoom = chatRoom;
         this.user = user;
         this.messageType = messageType;
         this.content = content;
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 
     public static Message create(ChatRoom chatRoom, User user, ChatMessageRequest chatMessageRequest) {

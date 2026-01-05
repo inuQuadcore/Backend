@@ -23,4 +23,13 @@ public class MessageController {
         messageService.sendMessage(userDetails.getUserId(), request);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<Void> deleteMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long messageId) {
+
+        messageService.deleteMessage(userDetails.getUserId(), messageId);
+        return ResponseEntity.noContent().build();
+    }
 }

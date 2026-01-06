@@ -29,8 +29,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         if (jwtException != null) {
             errorCode = jwtException.getErrorCode();
-        } else if (authException instanceof JwtAuthException jwtEx) {
-            errorCode = jwtEx.getErrorCode();
         }
         response.setStatus(errorCode.getHttpStatus().value());
 

@@ -2,11 +2,11 @@ package com.everybuddy.global.security;
 
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
-// TODO: ErrorCode와 JwtAuthException 클래스 생성 후 주석 해제
-// import com.everybuddy.global.exception.ErrorCode;
-// import com.everybuddy.global.security.exception.JwtAuthException;
+import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.security.exception.JwtAuthException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -80,10 +80,20 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token);
             return true;
-        } catch (JwtException e) {
-            throw new RuntimeException("JWT validation failed: " + e.getMessage(), e);
+        } catch (SignatureException e) {
+            throw new JwtAuthException(ErrorCode.JWT_SIGNATURE);
+            // jwt 구조가 잘못된 경우
+        } catch (MalformedJwtException e) {
+            throw new JwtAuthException(ErrorCode.JWT_MALFORMED);
+            // 토큰 만료
+        } catch (ExpiredJwtException e) {
+            throw new JwtAuthException(ErrorCode.JWT_ACCESS_TOKEN_EXPIRED);
+            // 서버에서 지정한 형식의 토큰이 아닌 경우 (Ex - 암호화 알고리즘이 다른 경우
+        } catch (UnsupportedJwtException e) {
+            throw new JwtAuthException(ErrorCode.JWT_UNSUPPORTED);
+            // 토큰이 유효하지 않은 경우 (null, 빈 문자열 등)
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("JWT token is invalid", e);
+            throw new JwtAuthException(ErrorCode.JWT_NOT_VALID);
         }
     }
 

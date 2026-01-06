@@ -1,0 +1,56 @@
+package com.everybuddy.global.security.exception;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.exception.ErrorResponse;
+import com.everybuddy.global.util.CustomLogger;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+
+// 401, 필터체인에서 인증 불가일 때 예외를 다루는 핸들러
+@Component
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    @Override
+    public void commence(HttpServletRequest request,
+                         HttpServletResponse response,
+                         AuthenticationException authException) throws IOException {
+
+        ErrorCode errorCode = ErrorCode.JWT_ENTRY_POINT;
+
+        // request에서 JwtAuthException 꺼내기
+        JwtAuthException jwtException = (JwtAuthException) request.getAttribute("jwtException");
+
+        if (jwtException != null) {
+            errorCode = jwtException.getErrorCode();
+        } else if (authException instanceof JwtAuthException jwtEx) {
+            errorCode = jwtEx.getErrorCode();
+        }
+        response.setStatus(errorCode.getHttpStatus().value());
+
+        // 로깅처리
+        CustomLogger.warnLog("인증 실패 - ErrorCode: " + errorCode.name(), errorCode);
+
+        // 응답의 콘텐츠 타입을 JSON 형식으로 지정
+        response.setContentType("application/json;charset=UTF-8");
+
+        // Java 객체를 JSON으로 바꿔주는 도구
+        ObjectMapper objectMapper = new ObjectMapper();
+        // 아래 객체를 직렬화
+        String json = objectMapper.writeValueAsString(
+                ErrorResponse.builder()
+                        .code(errorCode.getCode())
+                        .name(errorCode.name())
+                        .message(errorCode.getMessage())
+                        .build()
+        );
+        // JSON을 HTTP 응답 본문에 작성
+        response.getWriter().write(json);
+    }
+}

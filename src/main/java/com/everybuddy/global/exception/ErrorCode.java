@@ -9,6 +9,11 @@ import lombok.RequiredArgsConstructor;
 public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 유저를 찾을 수 없습니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, 400, "잘못된 입력입니다."),
+    CHATROOM_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 채팅방을 찾을 수 없습니다."),
+    USER_NOT_IN_CHATROOM(HttpStatus.FORBIDDEN, 403, "해당 채팅방에 접근할 권한이 없습니다."),
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 메시지를 찾을 수 없습니다."),
+    MESSAGE_ALREADY_DELETED(HttpStatus.CONFLICT, 409, "이미 삭제된 메시지입니다."),
+    NOT_MESSAGE_OF_USER(HttpStatus.FORBIDDEN, 403, "자신의 메시지만 삭제할 수 있습니다."),
 
     //파일 업로드 관련
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일을 업로드할 수 없습니다."),

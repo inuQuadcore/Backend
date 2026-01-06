@@ -5,6 +5,8 @@ import com.everybuddy.domain.auth.dto.LoginResponse;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.security.JwtTokenProvider;
 import com.everybuddy.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -34,11 +36,11 @@ public class AuthService {
         // 사용자 조회
         String loginId = loginRequest.getLoginId();
         User user = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + loginId));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 비밀번호 검증
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("비밀번호가 일치하지 않습니다");
+            throw new CustomException(ErrorCode.BAD_CREDENTIALS);
         }
 
         // UserDetails 생성

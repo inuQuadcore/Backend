@@ -1,4 +1,4 @@
-package com.everybuddy.global.scheduler;
+package com.everybuddy.global.util;
 
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.repository.MessageRepository;

@@ -3,6 +3,8 @@ package com.everybuddy.domain.message.entity;
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.user.entity.User;
+import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.util.EnumConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -61,10 +63,13 @@ public class Message {
     }
 
     public static Message create(ChatRoom chatRoom, User user, ChatMessageRequest chatMessageRequest) {
+        // String → Enum 변환
+        MessageType messageType = EnumConverter.stringToEnum(chatMessageRequest.getMessageType(), MessageType.class, ErrorCode.INVALID_INPUT_VALUE);
+
         return Message.builder()
                 .chatRoom(chatRoom)
                 .user(user)
-                .messageType(chatMessageRequest.getMessageType())
+                .messageType(messageType)
                 .content(chatMessageRequest.getContent())
                 .build();
     }

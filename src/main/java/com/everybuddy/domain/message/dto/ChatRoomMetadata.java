@@ -8,14 +8,16 @@ import java.time.ZoneId;
 
 @Getter
 public class ChatRoomMetadata {
+    private final Long lastMessageId;
     private final String lastMessage;
     private final Long lastMessageTime;
     private final Long lastMessageSenderId;
     private final String lastMessageSenderName;
 
     @Builder
-    private ChatRoomMetadata(String lastMessage, Long lastMessageTime,
+    private ChatRoomMetadata(Long lastMessageId, String lastMessage, Long lastMessageTime,
                              Long lastMessageSenderId, String lastMessageSenderName) {
+        this.lastMessageId = lastMessageId;
         this.lastMessage = lastMessage;
         this.lastMessageTime = lastMessageTime;
         this.lastMessageSenderId = lastMessageSenderId;
@@ -24,6 +26,7 @@ public class ChatRoomMetadata {
 
     public static ChatRoomMetadata from(Message message) {
         return ChatRoomMetadata.builder()
+                .lastMessageId(message.getMessageId())
                 .lastMessage(message.getContent())
                 .lastMessageTime(message.getSendAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
                 .lastMessageSenderId(message.getUser().getUserId())

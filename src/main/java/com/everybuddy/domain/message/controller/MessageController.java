@@ -23,4 +23,23 @@ public class MessageController {
         messageService.sendMessage(userDetails.getUserId(), request);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<Void> deleteMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long messageId) {
+
+        messageService.deleteMessage(userDetails.getUserId(), messageId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/read")
+    public ResponseEntity<Void> markAsRead(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam Long chatRoomId,
+            @RequestParam Long messageId) {
+
+        messageService.markAsRead(userDetails.getUserId(), chatRoomId, messageId);
+        return ResponseEntity.noContent().build();
+    }
 }

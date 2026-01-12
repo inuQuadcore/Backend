@@ -72,17 +72,25 @@ public interface MessageApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "404", description = "채팅방을 찾을 수 없음",
+                    responseCode = "404", description = "사용자 또는 채팅방을 찾을 수 없음",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject("""
-                    {
-                        "code": 404,
-                        "name": "CHATROOM_NOT_FOUND",
-                        "message": "해당 채팅방을 찾을 수 없습니다."
-                    }
-                    """
-                            )
+                            examples = {
+                                    @ExampleObject(name = "사용자를 찾을 수 없음", value = """
+                                    {
+                                        "code": 404,
+                                        "name": "USER_NOT_FOUND",
+                                        "message": "해당 유저를 찾을 수 없습니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "채팅방을 찾을 수 없음", value = """
+                                    {
+                                        "code": 404,
+                                        "name": "CHATROOM_NOT_FOUND",
+                                        "message": "해당 채팅방을 찾을 수 없습니다."
+                                    }
+                                    """)
+                            }
                     )
             )
     })
@@ -188,14 +196,14 @@ public interface MessageApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "404", description = "채팅방 또는 메시지를 찾을 수 없음",
+                    responseCode = "404", description = "메시지를 찾을 수 없음",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject("""
                     {
                         "code": 404,
-                        "name": "CHATROOM_NOT_FOUND",
-                        "message": "해당 채팅방을 찾을 수 없습니다."
+                        "name": "MESSAGE_NOT_FOUND",
+                        "message": "해당 메시지를 찾을 수 없습니다."
                     }
                     """
                             )
@@ -205,6 +213,6 @@ public interface MessageApiSpecification {
     ResponseEntity<Void> markAsRead(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Parameter(description = "채팅방 ID", required = true) @RequestParam Long chatRoomId,
-            @Parameter(description = "읽음 처리할 마지막 메시지 ID", required = true) @RequestParam Long messageId
+            @Parameter(description = "읽음 처리할 마지막 메시지 ID", required = true) @PathVariable Long messageId
     );
 }

@@ -24,7 +24,7 @@ public interface ChatRoomApiSpecification {
     @Operation(summary = "채팅방 생성", description = "새로운 채팅방을 생성하고 참여자를 초대합니다.")
     @ApiResponses({
             @ApiResponse(
-                    responseCode = "200", description = "채팅방 생성 성공",
+                    responseCode = "201", description = "채팅방 생성 성공",
                     content = @Content(
                             schema = @Schema(implementation = ChatRoomResponse.class),
                             examples = @ExampleObject("""

@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Tag(name = "인증 API", description = "회원가입·로그인·Firebase 토큰 발급")
 public interface AuthApiSpecification {
 
+    @SecurityRequirements(value = {})
     @Operation(summary = "회원가입", description = "신규 회원 가입")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "회원가입 성공"),
@@ -56,6 +58,7 @@ public interface AuthApiSpecification {
     })
     ResponseEntity<Void> createUser(@Valid @RequestBody RegisterRequest registerRequest);
 
+    @SecurityRequirements(value = {})
     @Operation(summary = "로그인", description = "로그인 및 JWT 토큰 발급")
     @ApiResponses({
             @ApiResponse(
@@ -67,7 +70,7 @@ public interface AuthApiSpecification {
                         "userId": 123,
                         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                         "tokenType": "Bearer",
-                        "expireIn": 3600
+                        "expireIn": 86400
                     }
                     """
                             )

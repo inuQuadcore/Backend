@@ -68,6 +68,6 @@ public class AuthService {
         // 토큰 유효기간 (초 단위로 변환)
         Long expiresIn = jwtTokenProvider.getTokenValidityInMilliseconds() / 1000;
 
-        return LoginResponse.of(token, expiresIn);
+        return LoginResponse.of(user.getUserId(), token, expiresIn);
     }
 }

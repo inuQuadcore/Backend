@@ -7,6 +7,7 @@ import com.everybuddy.domain.auth.dto.RegisterRequest;
 import com.everybuddy.domain.auth.service.AuthService;
 import com.everybuddy.domain.auth.service.FirebaseTokenService;
 import com.everybuddy.global.security.UserDetailsImpl;
+import com.everybuddy.global.swagger.AuthApiSpecification;
 import com.google.firebase.auth.FirebaseAuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("api/v1/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApiSpecification {
     private final AuthService authService;
     private final FirebaseTokenService firebaseTokenService;
 

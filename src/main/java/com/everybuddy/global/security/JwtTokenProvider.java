@@ -39,14 +39,14 @@ public class JwtTokenProvider {
     }
 
     //토큰 생성
-    public String createToken(Authentication authentication) {
+    public String createToken(String loginId) {
         //토큰 만료시간 설정
         long now = new Date().getTime();
         Date validate = new Date(now + this.tokenValidityInMilliseconds);
 
         //토큰 생성
         return Jwts.builder()
-                .subject(authentication.getName())
+                .subject(loginId)
                 .expiration(validate)
                 .signWith(key)
                 .compact();

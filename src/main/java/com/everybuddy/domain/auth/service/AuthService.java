@@ -25,7 +25,7 @@ public class AuthService {
     public void createUser(RegisterRequest registerRequest) {
 
         // 추후 이메일로 변경 예정
-        if (userRepository.existByLoginId(registerRequest.getLoginId())){
+        if (userRepository.existsByLoginId(registerRequest.getLoginId())){
             throw new CustomException(ErrorCode.DUPLICATED_USER);
         }
 

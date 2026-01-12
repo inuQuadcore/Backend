@@ -22,43 +22,34 @@ public class LoggingAspect {
 
     @Around("controllerLayer()")
     public Object logController(ProceedingJoinPoint joinPoint) throws Throwable {
-        String methodName = joinPoint.getSignature().toShortString();
-        String userId = getCurrentUserId();
-
-        log.info("[컨트롤러 호출] {} - 사용자: {}", methodName, userId);
-
-        long startTime = System.currentTimeMillis();
-
-        try {
-            Object result = joinPoint.proceed();
-            long executionTime = System.currentTimeMillis() - startTime;
-            log.info("[컨트롤러 완료] {} - 실행시간: {}ms", methodName, executionTime);
-            return result;
-        } catch (Exception e) {
-            long executionTime = System.currentTimeMillis() - startTime;
-            log.error("[컨트롤러 실패] {} - 실행시간: {}ms, 예외: {}",
-                methodName, executionTime, e.getMessage());
-            throw e;
-        }
+        return logExecution(joinPoint, "컨트롤러", getCurrentUserId());
     }
 
     @Around("serviceLayer()")
     public Object logService(ProceedingJoinPoint joinPoint) throws Throwable {
+        return logExecution(joinPoint, "서비스", null);
+    }
+
+    private Object logExecution(ProceedingJoinPoint joinPoint, String layer, String userId) throws Throwable {
         String methodName = joinPoint.getSignature().toShortString();
 
-        log.info("[서비스 호출] {}", methodName);
+        if (userId != null) {
+            log.info("[{} 호출] {} - 사용자: {}", layer, methodName, userId);
+        } else {
+            log.info("[{} 호출] {}", layer, methodName);
+        }
 
         long startTime = System.currentTimeMillis();
 
         try {
             Object result = joinPoint.proceed();
             long executionTime = System.currentTimeMillis() - startTime;
-            log.info("[서비스 완료] {} - 실행시간: {}ms", methodName, executionTime);
+            log.info("[{} 완료] {} - 실행시간: {}ms", layer, methodName, executionTime);
             return result;
         } catch (Exception e) {
             long executionTime = System.currentTimeMillis() - startTime;
-            log.error("[서비스 실패] {} - 실행시간: {}ms, 예외: {}",
-                methodName, executionTime, e.getMessage());
+            log.error("[{} 실패] {} - 실행시간: {}ms, 예외: {}",
+                layer, methodName, executionTime, e.getMessage());
             throw e;
         }
     }

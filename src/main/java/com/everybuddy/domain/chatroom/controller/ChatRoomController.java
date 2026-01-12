@@ -4,6 +4,7 @@ import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.service.ChatRoomService;
 import com.everybuddy.global.security.UserDetailsImpl;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,7 +22,7 @@ public class ChatRoomController {
     @PostMapping
     public ResponseEntity<ChatRoomResponse> createChatRoom(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestBody CreateChatRoomRequest request) {
+            @Valid @RequestBody CreateChatRoomRequest request) {
 
         ChatRoomResponse response = chatRoomService.createChatRoom(userDetails.getUserId(), request);
         return ResponseEntity.ok(response);

@@ -1,6 +1,9 @@
 package com.everybuddy.domain.user.entity;
 
 import com.everybuddy.domain.auth.dto.RegisterRequest;
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.util.EnumConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -12,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 
 @Entity
 @Getter
@@ -70,14 +74,26 @@ public class User {
     }
 
     public static User from(RegisterRequest registerRequest, PasswordEncoder passwordEncoder) {
+        // String → Enum 변환
+        Country country = EnumConverter.stringToEnum(registerRequest.getCountry(), Country.class, ErrorCode.INVALID_INPUT_VALUE);
+        Gender gender = EnumConverter.stringToEnum(registerRequest.getGender(), Gender.class, ErrorCode.INVALID_INPUT_VALUE);
+
+        // String → LocalDate 변환
+        LocalDate birthday;
+        try {
+            birthday = LocalDate.parse(registerRequest.getBirthday());
+        } catch (DateTimeParseException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
         return User.builder()
                 .loginId(registerRequest.getLoginId())
                 .name(registerRequest.getName())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))  // 비밀번호 암호화
-                .country(registerRequest.getCountry())
+                .country(country)
                 .language(Language.ENGLISH) // 기본값, 추후 변경 가능
-                .gender(registerRequest.getGender())
-                .birthday(registerRequest.getBirthday())
+                .gender(gender)
+                .birthday(birthday)
                 .build();
     }
 }

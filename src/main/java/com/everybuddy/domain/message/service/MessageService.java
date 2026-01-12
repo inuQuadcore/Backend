@@ -11,6 +11,8 @@ import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
@@ -35,13 +37,13 @@ public class MessageService {
     @Transactional
     public void sendMessage(Long userId, ChatMessageRequest chatMessageRequest) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         ChatRoom chatRoom = chatRoomRepository.findById(chatMessageRequest.getChatRoomId())
-                .orElseThrow(() -> new IllegalArgumentException("ChatRoom not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
 
         if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, chatMessageRequest.getChatRoomId()))
-            throw new IllegalArgumentException("User is not in ChatRoom");
+            throw new CustomException(ErrorCode.USER_NOT_IN_CHATROOM);
 
         Message message = Message.create(chatRoom, user, chatMessageRequest);
 
@@ -58,14 +60,14 @@ public class MessageService {
     @Transactional
     public void deleteMessage(Long userId, Long messageId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
 
         if (!message.getUser().getUserId().equals(userId)) {
-            throw new IllegalArgumentException("You can only delete your own messages");
+            throw new CustomException(ErrorCode.NOT_MESSAGE_OF_USER);
         }
 
         if (message.isDeleted()) {
-            throw new IllegalArgumentException("Message already deleted");
+            throw new CustomException(ErrorCode.MESSAGE_ALREADY_DELETED);
         }
 
         message.softDelete();
@@ -79,11 +81,11 @@ public class MessageService {
     public void markAsRead(Long userId, Long chatRoomId, Long messageId) {
         // 채팅방 참여자 확인 및 조회
         ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("User is not in ChatRoom"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_IN_CHATROOM));
 
         Message message = messageRepository
                 .findByIdAndChatRoomId(messageId, chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("Message not found in this ChatRoom"));
+                .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
 
         // 마지막 읽은 메시지 업데이트
         chatPart.updateLastReadMessage(message);

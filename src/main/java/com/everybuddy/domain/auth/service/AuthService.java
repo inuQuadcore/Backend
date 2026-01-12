@@ -28,6 +28,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public void createUser(RegisterRequest registerRequest) {
+
+        // 추후 이메일로 변경 예정
+        if (userRepository.existByLoginId(registerRequest.getLoginId())){
+            throw new CustomException(ErrorCode.DUPLICATED_USER);
+        }
+
         User user = User.from(registerRequest, passwordEncoder);
         userRepository.save(user);
     }

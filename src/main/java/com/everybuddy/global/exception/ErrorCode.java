@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 유저를 찾을 수 없습니다."),
+    DUPLICATED_USER(HttpStatus.CONFLICT, 409, "이미 존재하는 유저입니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, 400, "잘못된 입력입니다."),
     CHATROOM_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 채팅방을 찾을 수 없습니다."),
     USER_NOT_IN_CHATROOM(HttpStatus.FORBIDDEN, 403, "해당 채팅방에 접근할 권한이 없습니다."),

@@ -67,7 +67,7 @@ public class JwtTokenProvider {
                 .orElseThrow(() -> new UsernameNotFoundException(loginId));
 
         //UserDetails 생성
-        UserDetailsImpl userDetails = UserDetailsImpl.of(user);
+        UserDetailsImpl userDetails = UserDetailsImpl.create(user.getLoginId(), user.getUserId());
 
         return new UsernamePasswordAuthenticationToken(userDetails, token, userDetails.getAuthorities());
     }

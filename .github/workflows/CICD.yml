@@ -75,6 +75,23 @@ jobs:
           source: "docker-compose.yml"
           target: "~/everybuddy"
 
+      - name: Create Firebase credentials file
+        env:
+          FIREBASE_ADMIN_KEY: ${{ secrets.FIREBASE_ADMIN_KEY }}
+        run: |
+          cat << 'EOF' > firebase-adminsdk.json
+          $FIREBASE_ADMIN_KEY
+          EOF
+
+      - name: Copy Firebase credentials to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "firebase-adminsdk.json"
+          target: "~/everybuddy"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         env:
@@ -85,20 +102,30 @@ jobs:
           AWS_S3_ACCESS_KEY: ${{ secrets.AWS_S3_ACCESS_KEY }}
           AWS_S3_SECRET_KEY: ${{ secrets.AWS_S3_SECRET_KEY }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_VALIDITY: ${{ secrets.JWT_VALIDITY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_FILE_PATH: ${{ secrets.FIREBASE_FILE_PATH }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DOCKER_USERNAME,MYSQL_ROOT_PASSWORD,MYSQL_USER,MYSQL_PASSWORD,AWS_S3_ACCESS_KEY,AWS_S3_SECRET_KEY,AWS_S3_BUCKET_NAME
+          envs: DOCKER_USERNAME,MYSQL_ROOT_PASSWORD,MYSQL_USER,MYSQL_PASSWORD,AWS_S3_ACCESS_KEY,AWS_S3_SECRET_KEY,AWS_S3_BUCKET_NAME,JWT_SECRET,JWT_VALIDITY,FIREBASE_PROJECT_ID,FIREBASE_DATABASE_URL,FIREBASE_FILE_PATH
           script: |
             cd ~/everybuddy
             export DOCKER_USERNAME=$DOCKER_USERNAME
             export MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
             export MYSQL_USER=$MYSQL_USER
             export MYSQL_PASSWORD=$MYSQL_PASSWORD
-            export AWS_S3_ACCESS_KEY=$AWS_S3_ACCESS_KEY             
-            export AWS_S3_SECRET_KEY=$AWS_S3_SECRET_KEY              
-            export AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME            
+            export AWS_S3_ACCESS_KEY=$AWS_S3_ACCESS_KEY
+            export AWS_S3_SECRET_KEY=$AWS_S3_SECRET_KEY
+            export AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME
+            export JWT_SECRET=$JWT_SECRET
+            export JWT_VALIDITY=$JWT_VALIDITY
+            export FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
+            export FIREBASE_DATABASE_URL=$FIREBASE_DATABASE_URL
+            export FIREBASE_FILE_PATH=$FIREBASE_FILE_PATH
 
             docker pull $DOCKER_USERNAME/everybuddy:latest
             docker-compose down

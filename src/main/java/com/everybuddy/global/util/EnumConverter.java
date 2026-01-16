@@ -5,7 +5,10 @@ import com.everybuddy.global.exception.ErrorCode;
 
 public class EnumConverter {
 
+    private EnumConverter() {}
+
     public static <T extends Enum<T>> T stringToEnum(String value, Class<T> enumClass, ErrorCode errorCode) {
+
         T[] enumConstants = enumClass.getEnumConstants();
 
         for (T enumConstant : enumConstants) {

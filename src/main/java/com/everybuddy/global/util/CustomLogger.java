@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CustomLogger {
+    private CustomLogger() {}
+
     // ERROR 레벨 로그
     public static ResponseEntity<ErrorResponse> errorLog(String message, ErrorCode errorCode, Exception e) {
         log.error("{}", message, e);

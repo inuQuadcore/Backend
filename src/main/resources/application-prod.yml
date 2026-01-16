@@ -33,3 +33,15 @@ logging:
   level:
     com.everybuddy: info
     org.hibernate.SQL: debug
+
+jwt:
+  secret: ${JWT_SECRET}
+  tokenValidityInMilliseconds: ${JWT_VALIDITY}
+
+firebase:
+  project:
+    id: ${FIREBASE_PROJECT_ID}
+  database:
+    url: ${FIREBASE_DATABASE_URL}
+  credentials:
+    path: ${FIREBASE_FILE_PATH}

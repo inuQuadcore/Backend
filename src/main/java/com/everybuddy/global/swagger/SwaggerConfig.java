@@ -18,7 +18,8 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("로컬 서버")
+                        new Server().url("http://localhost:8080").description("로컬 서버"),
+                        new Server().url("http://13.229.182.169:8080").description("개발 서버")
                 ))
                 .components(new Components()
                         // JWT 보안 스키마 추가

@@ -4,6 +4,7 @@ import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.service.ChatRoomService;
 import com.everybuddy.global.security.UserDetailsImpl;
+import com.everybuddy.global.swagger.ChatRoomApiSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/chatrooms")
 @RequiredArgsConstructor
-public class ChatRoomController {
+public class ChatRoomController implements ChatRoomApiSpecification {
 
     private final ChatRoomService chatRoomService;
 

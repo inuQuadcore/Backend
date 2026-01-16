@@ -3,6 +3,7 @@ package com.everybuddy.domain.message.controller;
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.message.service.MessageService;
 import com.everybuddy.global.security.UserDetailsImpl;
+import com.everybuddy.global.swagger.MessageApiSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/messages")
 @RequiredArgsConstructor
-public class MessageController {
+public class MessageController implements MessageApiSpecification {
 
     private final MessageService messageService;
 

@@ -128,6 +128,6 @@ jobs:
             export FIREBASE_FILE_PATH=$FIREBASE_FILE_PATH
 
             docker pull $DOCKER_USERNAME/everybuddy:latest
-            docker-compose down
-            docker-compose up -d
+            docker compose down
+            docker compose up -d
             docker image prune -f

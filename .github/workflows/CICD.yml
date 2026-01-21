@@ -79,7 +79,7 @@ jobs:
         env:
           FIREBASE_ADMIN_KEY: ${{ secrets.FIREBASE_ADMIN_KEY }}
         run: |
-          cat << 'EOF' > firebase-adminsdk.json
+          cat << EOF > firebase-adminsdk.json
           $FIREBASE_ADMIN_KEY
           EOF
 

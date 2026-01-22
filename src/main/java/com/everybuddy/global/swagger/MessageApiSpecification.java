@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "메시지 API", description = "채팅 메시지 전송·삭제·읽음 처리 기능")
 public interface MessageApiSpecification {
@@ -164,7 +163,7 @@ public interface MessageApiSpecification {
             @Parameter(description = "삭제할 메시지 ID", required = true) @PathVariable Long messageId
     );
 
-    @Operation(summary = "메시지 읽음 처리", description = "특정 채팅방의 특정 메시지까지 읽음 처리합니다.")
+    @Operation(summary = "메시지 읽음 처리", description = "특정 메시지까지 읽음 처리합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "읽음 처리 성공"),
             @ApiResponse(
@@ -212,7 +211,6 @@ public interface MessageApiSpecification {
     })
     ResponseEntity<Void> markAsRead(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @Parameter(description = "채팅방 ID", required = true) @RequestParam Long chatRoomId,
             @Parameter(description = "읽음 처리할 마지막 메시지 ID", required = true) @PathVariable Long messageId
     );
 }

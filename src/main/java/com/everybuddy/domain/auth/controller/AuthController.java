@@ -11,13 +11,12 @@ import com.everybuddy.global.swagger.AuthApiSpecification;
 import com.google.firebase.auth.FirebaseAuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api/v1/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController implements AuthApiSpecification {
     private final AuthService authService;
@@ -26,7 +25,7 @@ public class AuthController implements AuthApiSpecification {
     @PostMapping("/register")
     public ResponseEntity<Void> createUser(@Valid @RequestBody RegisterRequest registerRequest){
         authService.createUser(registerRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")
@@ -35,7 +34,7 @@ public class AuthController implements AuthApiSpecification {
         return ResponseEntity.ok(loginResponse);
     }
 
-    @GetMapping("/firebase-token")
+    @GetMapping("/firebaseToken")
     public ResponseEntity<FirebaseTokenResponse> getFirebaseToken(
             @AuthenticationPrincipal UserDetailsImpl userDetails) throws FirebaseAuthException {
 

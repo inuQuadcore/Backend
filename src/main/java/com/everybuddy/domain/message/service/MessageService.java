@@ -78,14 +78,15 @@ public class MessageService {
     }
 
     @Transactional
-    public void markAsRead(Long userId, Long chatRoomId, Long messageId) {
+    public void markAsRead(Long userId, Long messageId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
+
+        Long chatRoomId = message.getChatRoom().getChatRoomId();
+
         // 채팅방 참여자 확인 및 조회
         ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_IN_CHATROOM));
-
-        Message message = messageRepository
-                .findByIdAndChatRoomId(messageId, chatRoomId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
 
         // 마지막 읽은 메시지 업데이트
         chatPart.updateLastReadMessage(message);

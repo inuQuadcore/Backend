@@ -55,3 +55,5 @@ management:
     export:
       prometheus:
         enabled: true
+swagger:
+  server-url: ${SERVER_URL}

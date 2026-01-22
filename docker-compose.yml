@@ -34,9 +34,9 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/everybuddy?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/everybuddy?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true      
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       AWS_S3_ACCESS_KEY: ${AWS_S3_ACCESS_KEY}
       AWS_S3_SECRET_KEY: ${AWS_S3_SECRET_KEY}
       AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME}
@@ -44,7 +44,8 @@ services:
       JWT_VALIDITY: ${JWT_VALIDITY}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
       FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL}
-      FIREBASE_FILE_PATH: ${FIREBASE_FILE_PATH}
+      FIREBASE_FILE_PATH: ${FIREBASE_FILE_PATH}                 # 순수 볼륨 매핑용
+      FIREBASE_CREDENTIALS_PATH: "file:${FIREBASE_FILE_PATH}"   # Spring이 파일을 인식할 수 있도록 환경 변수를 분리
     volumes:
       - ./firebase-adminsdk.json:${FIREBASE_FILE_PATH}:ro
     depends_on:

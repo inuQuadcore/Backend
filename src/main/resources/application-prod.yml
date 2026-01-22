@@ -45,3 +45,13 @@ firebase:
     url: ${FIREBASE_DATABASE_URL}
   credentials:
     path: ${FIREBASE_FILE_PATH}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus  # prometheus 추가
+  metrics:
+    export:
+      prometheus:
+        enabled: true

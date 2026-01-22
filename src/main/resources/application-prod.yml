@@ -45,3 +45,6 @@ firebase:
     url: ${FIREBASE_DATABASE_URL}
   credentials:
     path: ${FIREBASE_FILE_PATH}
+
+swagger:
+  server-url: ${SERVER_URL}

@@ -35,13 +35,12 @@ public class MessageController implements MessageApiSpecification {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/read")
+    @PostMapping("/{messageId}/read")
     public ResponseEntity<Void> markAsRead(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam Long chatRoomId,
-            @RequestParam Long messageId) {
+            @PathVariable Long messageId) {
 
-        messageService.markAsRead(userDetails.getUserId(), chatRoomId, messageId);
+        messageService.markAsRead(userDetails.getUserId(), messageId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -46,6 +46,7 @@ services:
       FIREBASE_DATABASE_URL: ${FIREBASE_DATABASE_URL}
       FIREBASE_FILE_PATH: ${FIREBASE_FILE_PATH}                 # 순수 볼륨 매핑용
       FIREBASE_CREDENTIALS_PATH: "file:${FIREBASE_FILE_PATH}"   # Spring이 파일을 인식할 수 있도록 환경 변수를 분리
+      SERVER_URL: ${SERVER_URL}
     volumes:
       - ./firebase-adminsdk.json:${FIREBASE_FILE_PATH}:ro
     depends_on:

@@ -21,7 +21,7 @@ public class Media {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long mediaId;
 
-    @Column(nullable = false, unique = true, length = 500)
+    @Column(nullable = false, unique = true, length = 100)
     private String fileKey;
 
     @Column(nullable = false)
@@ -32,9 +32,6 @@ public class Media {
 
     @Column(nullable = false)
     private String contentType;
-
-    @Column(nullable = false)
-    private Boolean deleted;
 
     private LocalDateTime deletedAt;
 
@@ -60,6 +57,10 @@ public class Media {
     }
 
     public void softDelete(){
-        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted(){
+        return this.deletedAt != null;
     }
 }

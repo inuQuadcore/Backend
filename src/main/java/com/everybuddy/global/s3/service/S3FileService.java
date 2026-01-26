@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -76,6 +77,34 @@ public class S3FileService {
         } catch (S3Exception e) {
             log.error("Failed to delete file: {}", key, e);
             throw new RuntimeException("Failed to delete file", e);
+        }
+    }
+
+    /**
+     * 여러 파일 일괄 삭제
+     * @param keys S3 객체 키 리스트
+     */
+    public void deleteFiles(List<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+
+        try {
+            List<ObjectIdentifier> objectIdentifiers = keys.stream()
+                    .map(key -> ObjectIdentifier.builder().key(key).build())
+                    .toList();
+
+            DeleteObjectsRequest deleteObjectsRequest = DeleteObjectsRequest.builder()
+                    .bucket(bucketName)
+                    .delete(Delete.builder().objects(objectIdentifiers).build())
+                    .build();
+
+            s3Client.deleteObjects(deleteObjectsRequest);
+            log.info("Files deleted successfully: count={}", keys.size());
+
+        } catch (S3Exception e) {
+            log.error("Failed to delete files: count={}", keys.size(), e);
+            throw new RuntimeException("Failed to delete files", e);
         }
     }
 

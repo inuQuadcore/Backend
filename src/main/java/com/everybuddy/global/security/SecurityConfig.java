@@ -1,5 +1,6 @@
 package com.everybuddy.global.security;
 
+import com.everybuddy.global.security.exception.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    // private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,6 +39,9 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**").permitAll() // Swagger API 문서 허용
                         .anyRequest().permitAll()
                 )
+//                .exceptionHandling(exception -> exception
+//                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+//                )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtTokenFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);

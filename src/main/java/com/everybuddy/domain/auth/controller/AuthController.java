@@ -7,33 +7,34 @@ import com.everybuddy.domain.auth.dto.RegisterRequest;
 import com.everybuddy.domain.auth.service.AuthService;
 import com.everybuddy.domain.auth.service.FirebaseTokenService;
 import com.everybuddy.global.security.UserDetailsImpl;
+import com.everybuddy.global.swagger.AuthApiSpecification;
 import com.google.firebase.auth.FirebaseAuthException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api/v1/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApiSpecification {
     private final AuthService authService;
     private final FirebaseTokenService firebaseTokenService;
 
     @PostMapping("/register")
-    public ResponseEntity<Void> createUser(@RequestBody RegisterRequest registerRequest){
+    public ResponseEntity<Void> createUser(@Valid @RequestBody RegisterRequest registerRequest){
         authService.createUser(registerRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest){
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest){
         LoginResponse loginResponse = authService.login(loginRequest);
         return ResponseEntity.ok(loginResponse);
     }
 
-    @GetMapping("/firebase-token")
+    @GetMapping("/firebaseToken")
     public ResponseEntity<FirebaseTokenResponse> getFirebaseToken(
             @AuthenticationPrincipal UserDetailsImpl userDetails) throws FirebaseAuthException {
 

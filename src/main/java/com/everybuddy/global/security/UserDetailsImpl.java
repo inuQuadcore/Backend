@@ -1,25 +1,18 @@
 package com.everybuddy.global.security;
 
-import com.everybuddy.domain.user.entity.User;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 @Getter
-@RequiredArgsConstructor
 public class UserDetailsImpl implements UserDetails {
 
-    private final User user;
-
-    public Long getUserId() {
-        return user.getUserId();
-    }
+    private final String loginId;
+    private final Long userId;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -33,7 +26,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.user.getLoginId();
+        return this.loginId;
     }
 
     @Override
@@ -56,7 +49,16 @@ public class UserDetailsImpl implements UserDetails {
         return true;
     }
 
-    public static UserDetailsImpl of(User user) {
-        return new UserDetailsImpl(user);
+    @Builder
+    private UserDetailsImpl(String loginId, Long userId) {
+        this.loginId = loginId;
+        this.userId = userId;
+    }
+
+    public static UserDetailsImpl create(String loginId, Long userId) {
+        return UserDetailsImpl.builder()
+                .loginId(loginId)
+                .userId(userId)
+                .build();
     }
 }

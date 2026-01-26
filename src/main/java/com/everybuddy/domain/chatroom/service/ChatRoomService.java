@@ -9,6 +9,8 @@ import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +39,7 @@ public class ChatRoomService {
         chatRoomRepository.save(chatRoom);
 
         User user = userRepository.findById(creatorId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 성능 개선 필요
         List<Long> allParticipantIds = addAllParticipants(user, chatRoom, request.getParticipantIds());

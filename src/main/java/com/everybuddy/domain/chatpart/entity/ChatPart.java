@@ -61,4 +61,9 @@ public class ChatPart {
                 .active(true)
                 .build();
     }
+
+    public void updateLastReadMessage(Message message) {
+        this.lastReadMessage = message;
+        this.lastReadAt = LocalDateTime.now();
+    }
 }

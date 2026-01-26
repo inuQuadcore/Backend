@@ -33,3 +33,27 @@ logging:
   level:
     com.everybuddy: info
     org.hibernate.SQL: debug
+
+jwt:
+  secret: ${JWT_SECRET}
+  tokenValidityInMilliseconds: ${JWT_VALIDITY}
+
+firebase:
+  project:
+    id: ${FIREBASE_PROJECT_ID}
+  database:
+    url: ${FIREBASE_DATABASE_URL}
+  credentials:
+    path: ${FIREBASE_FILE_PATH}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus  # prometheus 추가
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+swagger:
+  server-url: ${SERVER_URL}

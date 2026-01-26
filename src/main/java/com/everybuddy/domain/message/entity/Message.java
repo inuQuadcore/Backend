@@ -3,6 +3,8 @@ package com.everybuddy.domain.message.entity;
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.user.entity.User;
+import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.util.EnumConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -41,6 +43,9 @@ public class Message {
     @Column(nullable = false, updatable = false)
     private LocalDateTime sendAt;
 
+    @Column(nullable = true)
+    private LocalDateTime deletedAt;
+
     @Builder
     private Message(ChatRoom chatRoom, User user, MessageType messageType, String content) {
         this.chatRoom = chatRoom;
@@ -49,11 +54,22 @@ public class Message {
         this.content = content;
     }
 
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
     public static Message create(ChatRoom chatRoom, User user, ChatMessageRequest chatMessageRequest) {
+        // String → Enum 변환
+        MessageType messageType = EnumConverter.stringToEnum(chatMessageRequest.getMessageType(), MessageType.class, ErrorCode.INVALID_INPUT_VALUE);
+
         return Message.builder()
                 .chatRoom(chatRoom)
                 .user(user)
-                .messageType(chatMessageRequest.getMessageType())
+                .messageType(messageType)
                 .content(chatMessageRequest.getContent())
                 .build();
     }

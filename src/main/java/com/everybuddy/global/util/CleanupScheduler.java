@@ -28,8 +28,7 @@ public class CleanupScheduler {
 
     /**
      * 매일 새벽 3시에 삭제된 데이터 정리
-     * - 1년 지난 삭제된 메시지
-     * - 30일 지난 삭제된 미디어 파일 (S3 + DB)
+     * - 1년 지난 데이터들
      */
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
@@ -58,9 +57,9 @@ public class CleanupScheduler {
     }
 
     private void cleanupOldMedia() {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
 
-        List<Media> mediaToDelete = mediaRepository.findByDeletedAtBefore(thirtyDaysAgo);
+        List<Media> mediaToDelete = mediaRepository.findByDeletedAtBefore(oneYearAgo);
 
         if (mediaToDelete.isEmpty()) {
             return;
@@ -81,7 +80,7 @@ public class CleanupScheduler {
             log.info("파일 삭제 완료: 개수 = {}", mediaToDelete.size());
 
         } catch (S3Exception e) {
-            log.error("S3 파일 일괄 삭제 실패", e);
+            log.error("S3 파일 일괄 삭제 실패: {}", e.getMessage(), e);
         } catch (DataAccessException e) {
             log.error("DB에서 미디어 일괄 삭제 실패", e);
         }

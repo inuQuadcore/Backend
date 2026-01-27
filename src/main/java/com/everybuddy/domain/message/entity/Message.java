@@ -2,6 +2,7 @@ package com.everybuddy.domain.message.entity;
 
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
+import com.everybuddy.domain.media.entity.Media;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.util.EnumConverter;
@@ -34,6 +35,10 @@ public class Message {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "media_id")
+    private Media media;
+
     @Enumerated(EnumType.STRING)
     private MessageType messageType;
 
@@ -43,13 +48,13 @@ public class Message {
     @Column(nullable = false, updatable = false)
     private LocalDateTime sendAt;
 
-    @Column(nullable = true)
     private LocalDateTime deletedAt;
 
     @Builder
-    private Message(ChatRoom chatRoom, User user, MessageType messageType, String content) {
+    private Message(ChatRoom chatRoom, User user, Media media, MessageType messageType, String content) {
         this.chatRoom = chatRoom;
         this.user = user;
+        this.media = media;
         this.messageType = messageType;
         this.content = content;
     }

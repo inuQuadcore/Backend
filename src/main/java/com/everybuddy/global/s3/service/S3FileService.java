@@ -48,33 +48,6 @@ public class S3FileService implements StorageService {
     }
 
     /**
-     * 실제 S3 업로드 로직 (HTTP 요청용)
-     */
-    private String upload(MultipartFile file, String directory) {
-        String fileName = generateFileName(file.getOriginalFilename());
-        String key = directory + "/" + fileName;
-
-        try {
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .contentType(file.getContentType())
-                    .contentLength(file.getSize())
-                    .build();
-
-            s3Client.putObject(putObjectRequest,
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-
-            return key;
-
-        } catch (S3Exception | SdkClientException e) {
-            throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
-        }
-    }
-
-    /**
      * 파일 삭제
      * @param key S3 객체 키
      */
@@ -248,5 +221,32 @@ public class S3FileService implements StorageService {
      */
     private boolean isChatFileExtension(String extension) {
         return List.of("jpg", "jpeg", "png", "gif", "webp", "mp4", "mov", "avi", "webm").contains(extension);
+    }
+
+    /**
+     * 실제 S3 업로드 로직 (HTTP 요청용)
+     */
+    private String upload(MultipartFile file, String directory) {
+        String fileName = generateFileName(file.getOriginalFilename());
+        String key = directory + "/" + fileName;
+
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build();
+
+            s3Client.putObject(putObjectRequest,
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+            return key;
+
+        } catch (S3Exception | SdkClientException e) {
+            throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 }

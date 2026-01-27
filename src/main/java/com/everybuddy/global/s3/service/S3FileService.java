@@ -1,42 +1,56 @@
 package com.everybuddy.global.s3.service;
 
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class S3FileService {
+public class S3FileService implements StorageService {
 
     private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
 
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucketName;
 
-    /**
-     * 파일 업로드
-     * @param file 업로드할 파일
-     * @param directory S3 내 디렉토리 (예: "profiles", "chat-images")
-     * @return 업로드된 파일의 S3 키
-     */
-    public String uploadFile(MultipartFile file, String directory) {
-        validateFile(file);
+    @Value("${spring.cloud.aws.region.static}")
+    private String region;
 
+    /**
+     * 프로필 이미지 업로드 (이미지만 허용, 5MB 제한)
+     */
+    @Override
+    public String uploadProfileImage(MultipartFile file, String directory) {
+        validateProfileImage(file);
+        return upload(file, directory);
+    }
+
+    /**
+     * 채팅 파일 업로드 (이미지, 비디오 허용, 50MB 제한)
+     */
+    @Override
+    public String uploadChatFile(MultipartFile file, String directory) {
+        validateChatFile(file);
+        return upload(file, directory);
+    }
+
+    /**
+     * 실제 S3 업로드 로직 (HTTP 요청용)
+     */
+    private String upload(MultipartFile file, String directory) {
         String fileName = generateFileName(file.getOriginalFilename());
         String key = directory + "/" + fileName;
 
@@ -51,12 +65,12 @@ public class S3FileService {
             s3Client.putObject(putObjectRequest,
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            log.info("File uploaded successfully: {}", key);
             return key;
 
+        } catch (S3Exception | SdkClientException e) {
+            throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
         } catch (IOException e) {
-            log.error("Failed to upload file: {}", fileName, e);
-            throw new RuntimeException("Failed to upload file", e);
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
     }
 
@@ -64,6 +78,7 @@ public class S3FileService {
      * 파일 삭제
      * @param key S3 객체 키
      */
+    @Override
     public void deleteFile(String key) {
         try {
             DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
@@ -72,11 +87,9 @@ public class S3FileService {
                     .build();
 
             s3Client.deleteObject(deleteObjectRequest);
-            log.info("File deleted successfully: {}", key);
 
-        } catch (S3Exception e) {
-            log.error("Failed to delete file: {}", key, e);
-            throw new RuntimeException("Failed to delete file", e);
+        } catch (S3Exception | SdkClientException e) {
+            throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
         }
     }
 
@@ -84,6 +97,7 @@ public class S3FileService {
      * 여러 파일 일괄 삭제
      * @param keys S3 객체 키 리스트
      */
+    @Override
     public void deleteFiles(List<String> keys) {
         if (keys == null || keys.isEmpty()) {
             return;
@@ -100,40 +114,20 @@ public class S3FileService {
                     .build();
 
             s3Client.deleteObjects(deleteObjectsRequest);
-            log.info("Files deleted successfully: count={}", keys.size());
 
-        } catch (S3Exception e) {
-            log.error("Failed to delete files: count={}", keys.size(), e);
-            throw new RuntimeException("Failed to delete files", e);
+        } catch (S3Exception | SdkClientException e){
+            throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
         }
     }
 
     /**
-     * Presigned URL 생성 (임시 다운로드 링크)
-     * @param key S3 객체 키
-     * @param expirationMinutes 만료 시간 (분)
-     * @return Presigned URL
+     * 파일의 공개 URL 생성 (S3 직접 접근)
+     * @param fileKey 파일 키
+     * @return S3 공개 URL
      */
-    public String generatePresignedUrl(String key, int expirationMinutes) {
-        try {
-            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .build();
-
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofMinutes(expirationMinutes))
-                    .getObjectRequest(getObjectRequest)
-                    .build();
-
-            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-            
-            return presignedRequest.url().toString();
-
-        } catch (S3Exception e) {
-            log.error("Failed to generate presigned URL for: {}", key, e);
-            throw new RuntimeException("Failed to generate presigned URL", e);
-        }
+    @Override
+    public String getPublicUrl(String fileKey) {
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileKey);
     }
 
     /**
@@ -141,6 +135,7 @@ public class S3FileService {
      * @param key S3 객체 키
      * @return 존재 여부
      */
+    @Override
     public boolean fileExists(String key) {
         try {
             HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
@@ -157,42 +152,6 @@ public class S3FileService {
     }
 
     /**
-     * 파일 유효성 검사
-     */
-    private void validateFile(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
-        }
-
-        // 파일 크기 검사 (10MB)
-        long maxSize = 10 * 1024 * 1024;
-        if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of 10MB");
-        }
-
-        // 파일 확장자 검사
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !isAllowedExtension(originalFilename)) {
-            throw new IllegalArgumentException("File type not allowed");
-        }
-    }
-
-    /**
-     * 허용된 확장자인지 확인
-     */
-    private boolean isAllowedExtension(String filename) {
-        String[] allowedExtensions = {"jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "mp4", "mov"};
-        String extension = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
-        
-        for (String allowed : allowedExtensions) {
-            if (allowed.equals(extension)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * 고유한 파일명 생성
      */
     private String generateFileName(String originalFilename) {
@@ -200,6 +159,94 @@ public class S3FileService {
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
-        return UUID.randomUUID().toString() + extension;
+        return UUID.randomUUID() + extension;
+    }
+
+    /**
+     * 프로필 이미지 검증 (이미지만, 5MB)
+     */
+    private void validateProfileImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.EMPTY_FILE);
+        }
+
+        // 파일 크기 검사 (5MB)
+        long maxSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
+        }
+
+        // 파일 확장자 검사
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            throw new CustomException(ErrorCode.INVALID_FILE_NAME);
+        }
+
+        String extension = extractExtension(originalFilename);
+        if (!isImageExtension(extension)) {
+            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
+        }
+
+        // MIME 타입 검증 (확장자 조작 방지)
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
+        }
+    }
+
+    /**
+     * 채팅 파일 검증 (이미지, 비디오, 50MB)
+     */
+    private void validateChatFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.EMPTY_FILE);
+        }
+
+        // 파일 크기 검사 (50MB)
+        long maxSize = 50 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
+        }
+
+        // 파일 확장자 검사
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            throw new CustomException(ErrorCode.INVALID_FILE_NAME);
+        }
+
+        String extension = extractExtension(originalFilename);
+        if (!isChatFileExtension(extension)) {
+            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
+        }
+
+        // MIME 타입 검증 (확장자 조작 방지)
+        String contentType = file.getContentType();
+        if (contentType == null || !(contentType.startsWith("image/") || contentType.startsWith("video/"))) {
+            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
+        }
+    }
+
+    /**
+     * 파일 확장자 추출
+     */
+    private String extractExtension(String filename) {
+        if (filename == null || !filename.contains(".") || filename.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_FILE_NAME);
+        }
+        return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+    }
+
+    /**
+     * 이미지 확장자 확인
+     */
+    private boolean isImageExtension(String extension) {
+        return List.of("jpg", "jpeg", "png", "gif", "webp", "heic").contains(extension);
+    }
+
+    /**
+     * 채팅 파일 확장자 확인 (이미지 + 비디오)
+     */
+    private boolean isChatFileExtension(String extension) {
+        return List.of("jpg", "jpeg", "png", "gif", "webp", "mp4", "mov", "avi", "webm").contains(extension);
     }
 }

@@ -11,12 +11,20 @@ import java.util.List;
 public interface StorageService {
 
     /**
-     * 파일 업로드
-     * @param file 업로드할 파일
-     * @param directory S3 내 디렉토리 (예: "profiles", "chat-files")
+     * 프로필 이미지 업로드
+     * @param file 업로드할 파일 (이미지만 허용)
+     * @param directory S3 내 디렉토리
      * @return 업로드된 파일의 키 (S3 key)
      */
-    String uploadFile(MultipartFile file, String directory);
+    String uploadProfileImage(MultipartFile file, String directory);
+
+    /**
+     * 채팅 파일 업로드
+     * @param file 업로드할 파일 (이미지, 비디오 허용)
+     * @param directory S3 내 디렉토리
+     * @return 업로드된 파일의 키 (S3 key)
+     */
+    String uploadChatFile(MultipartFile file, String directory);
 
     /**
      * 단일 파일 삭제

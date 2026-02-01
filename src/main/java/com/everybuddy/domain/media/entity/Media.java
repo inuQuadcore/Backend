@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -43,6 +44,10 @@ public class Media {
     @Column(nullable = false)
     private String contentType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MediaType mediaType;
+
     private LocalDateTime deletedAt;
 
     @CreatedDate
@@ -50,24 +55,45 @@ public class Media {
     private LocalDateTime createdAt;
 
     @Builder
-    private Media(User uploader, ChatRoom chatRoom, String fileKey, String originalFilename, Long fileSize, String contentType) {
+    private Media(User uploader, ChatRoom chatRoom, String fileKey, String originalFilename, Long fileSize, String contentType, MediaType mediaType) {
         this.user = uploader;
         this.chatRoom = chatRoom;
         this.fileKey = fileKey;
         this.originalFilename = originalFilename;
         this.fileSize = fileSize;
         this.contentType = contentType;
+        this.mediaType = mediaType;
     }
 
-    public static Media from(User uploader, ChatRoom chatRoom, String fileKey, String originalFilename, Long fileSize, String contentType) {
+    public static Media from(User uploader, ChatRoom chatRoom, String fileKey, MultipartFile file) {
+        String contentType = file.getContentType();
+        MediaType mediaType = determineMediaType(contentType);
+
         return Media.builder()
                 .uploader(uploader)
                 .chatRoom(chatRoom)
                 .fileKey(fileKey)
-                .originalFilename(originalFilename)
-                .fileSize(fileSize)
+                .originalFilename(file.getOriginalFilename())
+                .fileSize(file.getSize())
                 .contentType(contentType)
+                .mediaType(mediaType)
                 .build();
+    }
+
+    private static MediaType determineMediaType(String contentType) {
+        if (contentType == null) {
+            return MediaType.DOCUMENT;
+        }
+
+        if (contentType.startsWith("image/")) {
+            return MediaType.IMAGE;
+        } else if (contentType.startsWith("video/")) {
+            return MediaType.VIDEO;
+        } else if (contentType.startsWith("audio/")) {
+            return MediaType.AUDIO;
+        } else {
+            return MediaType.DOCUMENT;
+        }
     }
 
     public void softDelete(){

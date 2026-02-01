@@ -12,19 +12,19 @@ public interface StorageService {
 
     /**
      * 프로필 이미지 업로드
+     * @param userId 사용자 ID
      * @param file 업로드할 파일 (이미지만 허용)
-     * @param directory S3 내 디렉토리
-     * @return 업로드된 파일의 키 (S3 key)
+     * @return 업로드된 파일의 키 (S3 key: profiles/user-{userId}/uuid.jpg)
      */
-    String uploadProfileImage(MultipartFile file, String directory);
+    String uploadProfileImage(Long userId, MultipartFile file);
 
     /**
      * 채팅 파일 업로드
-     * @param file 업로드할 파일 (이미지, 비디오 허용)
-     * @param directory S3 내 디렉토리
-     * @return 업로드된 파일의 키 (S3 key)
+     * @param chatRoomId 채팅방 ID
+     * @param file 업로드할 파일 (이미지, 비디오, 오디오, 문서 허용)
+     * @return 업로드된 파일의 키 (S3 key: chat/room-{chatRoomId}/uuid.ext)
      */
-    String uploadChatFile(MultipartFile file, String directory);
+    String uploadChatFile(Long chatRoomId, MultipartFile file);
 
     /**
      * 단일 파일 삭제

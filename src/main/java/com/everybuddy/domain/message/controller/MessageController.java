@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/messages")
@@ -23,6 +24,16 @@ public class MessageController implements MessageApiSpecification {
             @Valid @RequestBody ChatMessageRequest request) {
 
         messageService.sendMessage(userDetails.getUserId(), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/file")
+    public ResponseEntity<Void> sendMessageWithFile(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @ModelAttribute ChatMessageRequest request,
+            @RequestPart MultipartFile file) {
+
+        messageService.sendMessage(userDetails.getUserId(), request, file);
         return ResponseEntity.noContent().build();
     }
 

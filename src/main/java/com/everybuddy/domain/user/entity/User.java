@@ -46,8 +46,6 @@ public class User {
 
     private String profile;
 
-    private String profileImageUrl;
-
     private String hobby;
 
     @Column(nullable = false)
@@ -63,7 +61,7 @@ public class User {
 
     @Builder
     private User(String loginId, String name, String password, Country country,
-                 Language language, Gender gender, String profile, String profileImageUrl, String hobby, LocalDate birthday) {
+                 Language language, Gender gender, String profile, String hobby, LocalDate birthday) {
         this.loginId = loginId;
         this.name = name;
         this.password = password;
@@ -71,7 +69,6 @@ public class User {
         this.language = language;
         this.gender = gender;
         this.profile = profile;
-        this.profileImageUrl = profileImageUrl;
         this.hobby = hobby;
         this.birthday = birthday;
     }

@@ -33,18 +33,24 @@ public class S3FileService implements StorageService {
      * 프로필 이미지 업로드 (이미지만 허용, 5MB 제한)
      */
     @Override
-    public String uploadProfileImage(MultipartFile file, String directory) {
+    public String uploadProfileImage(Long userId, MultipartFile file) {
         validateProfileImage(file);
-        return upload(file, directory);
+        String directory = "profiles/user-" + userId;
+        String fileName = generateFileName(file.getOriginalFilename());
+        String key = directory + "/" + fileName;
+        return upload(file, key);
     }
 
     /**
-     * 채팅 파일 업로드 (이미지, 비디오 허용, 50MB 제한)
+     * 채팅 파일 업로드 (이미지, 비디오, 오디오, 문서 허용, 10MB 제한)
      */
     @Override
-    public String uploadChatFile(MultipartFile file, String directory) {
+    public String uploadChatFile(Long chatRoomId, MultipartFile file) {
         validateChatFile(file);
-        return upload(file, directory);
+        String directory = "chat/room-" + chatRoomId;
+        String fileName = generateFileName(file.getOriginalFilename());
+        String key = directory + "/" + fileName;
+        return upload(file, key);
     }
 
     /**
@@ -149,12 +155,13 @@ public class S3FileService implements StorageService {
             throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
         }
 
-        // 파일 확장자 검사
+        // 파일 이름 검증
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null) {
             throw new CustomException(ErrorCode.INVALID_FILE_NAME);
         }
 
+        // 파일 확장자 검증
         String extension = extractExtension(originalFilename);
         if (!isImageExtension(extension)) {
             throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
@@ -168,25 +175,26 @@ public class S3FileService implements StorageService {
     }
 
     /**
-     * 채팅 파일 검증 (이미지, 비디오, 50MB)
+     * 채팅 파일 검증 (이미지, 비디오, 오디오, 문서, 압축, 10MB)
      */
     private void validateChatFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new CustomException(ErrorCode.EMPTY_FILE);
         }
 
-        // 파일 크기 검사 (50MB)
-        long maxSize = 50 * 1024 * 1024;
+        // 파일 크기 검사 (10MB)
+        long maxSize = 10 * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
         }
 
-        // 파일 확장자 검사
+        // 파일 이름 검증
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null) {
             throw new CustomException(ErrorCode.INVALID_FILE_NAME);
         }
 
+        // 파일 확장자 검증
         String extension = extractExtension(originalFilename);
         if (!isChatFileExtension(extension)) {
             throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
@@ -194,9 +202,36 @@ public class S3FileService implements StorageService {
 
         // MIME 타입 검증 (확장자 조작 방지)
         String contentType = file.getContentType();
-        if (contentType == null || !(contentType.startsWith("image/") || contentType.startsWith("video/"))) {
+        if (contentType == null || !isAllowedContentType(contentType)) {
             throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
         }
+    }
+
+    /**
+     * 허용된 MIME 타입 확인
+     */
+    private boolean isAllowedContentType(String contentType) {
+        return contentType.startsWith("image/")
+                || contentType.startsWith("video/")
+                || contentType.startsWith("audio/")
+                || isDocumentContentType(contentType);
+    }
+
+    /**
+     * 문서 MIME 타입 확인
+     */
+    private boolean isDocumentContentType(String contentType) {
+        return contentType.equals("application/pdf")
+                || contentType.equals("text/plain")
+                || contentType.equals("application/msword")  // .doc
+                || contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")  // .docx
+                || contentType.equals("application/vnd.ms-excel")  // .xls
+                || contentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")  // .xlsx
+                || contentType.equals("application/vnd.ms-powerpoint")  // .ppt
+                || contentType.equals("application/vnd.openxmlformats-officedocument.presentationml.presentation")  // .pptx
+                || contentType.equals("application/zip")
+                || contentType.equals("application/x-rar-compressed")
+                || contentType.equals("application/x-zip-compressed");
     }
 
     /**
@@ -217,19 +252,48 @@ public class S3FileService implements StorageService {
     }
 
     /**
-     * 채팅 파일 확장자 확인 (이미지 + 비디오)
+     * 비디오 확장자 확인
      */
-    private boolean isChatFileExtension(String extension) {
-        return List.of("jpg", "jpeg", "png", "gif", "webp", "mp4", "mov", "avi", "webm").contains(extension);
+    private boolean isVideoExtension(String extension) {
+        return List.of("mp4", "mov", "avi", "webm").contains(extension);
     }
 
     /**
-     * 실제 S3 업로드 로직 (HTTP 요청용)
+     * 오디오 확장자 확인
      */
-    private String upload(MultipartFile file, String directory) {
-        String fileName = generateFileName(file.getOriginalFilename());
-        String key = directory + "/" + fileName;
+    private boolean isAudioExtension(String extension) {
+        return List.of("mp3", "wav", "m4a", "aac").contains(extension);
+    }
 
+    /**
+     * 문서 확장자 확인
+     */
+    private boolean isDocumentExtension(String extension) {
+        return List.of("pdf", "txt", "doc", "docx", "xls", "xlsx", "ppt", "pptx").contains(extension);
+    }
+
+    /**
+     * 압축 파일 확장자 확인
+     */
+    private boolean isArchiveExtension(String extension) {
+        return List.of("zip", "rar").contains(extension);
+    }
+
+    /**
+     * 채팅 파일 확장자 확인 (이미지 + 비디오 + 오디오 + 문서 + 압축)
+     */
+    private boolean isChatFileExtension(String extension) {
+        return isImageExtension(extension)
+                || isVideoExtension(extension)
+                || isAudioExtension(extension)
+                || isDocumentExtension(extension)
+                || isArchiveExtension(extension);
+    }
+
+    /**
+     * 실제 S3 업로드 로직
+     */
+    private String upload(MultipartFile file, String key) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)

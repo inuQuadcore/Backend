@@ -1,11 +1,8 @@
 package com.everybuddy.domain.message.entity;
 
-import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.media.entity.Media;
 import com.everybuddy.domain.user.entity.User;
-import com.everybuddy.global.exception.ErrorCode;
-import com.everybuddy.global.util.EnumConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -67,15 +64,22 @@ public class Message {
         return this.deletedAt != null;
     }
 
-    public static Message create(ChatRoom chatRoom, User user, ChatMessageRequest chatMessageRequest) {
-        // String → Enum 변환
-        MessageType messageType = EnumConverter.stringToEnum(chatMessageRequest.getMessageType(), MessageType.class, ErrorCode.INVALID_INPUT_VALUE);
-
+    public static Message create(ChatRoom chatRoom, User user, MessageType messageType, String content) {
         return Message.builder()
                 .chatRoom(chatRoom)
                 .user(user)
                 .messageType(messageType)
-                .content(chatMessageRequest.getContent())
+                .content(content)
+                .build();
+    }
+
+    public static Message createWithMedia(ChatRoom chatRoom, User user, Media media, MessageType messageType) {
+        return Message.builder()
+                .chatRoom(chatRoom)
+                .user(user)
+                .media(media)
+                .messageType(messageType)
+                .content(null)
                 .build();
     }
 }

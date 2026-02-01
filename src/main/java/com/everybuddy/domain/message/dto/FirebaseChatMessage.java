@@ -1,7 +1,6 @@
 package com.everybuddy.domain.message.dto;
 
 import com.everybuddy.domain.message.entity.Message;
-import com.everybuddy.domain.message.entity.MessageType;
 import lombok.Builder;
 import lombok.Getter;
 

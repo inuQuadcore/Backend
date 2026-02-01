@@ -4,20 +4,26 @@ import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
+import com.everybuddy.domain.media.entity.Media;
+import com.everybuddy.domain.media.repository.MediaRepository;
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.message.dto.ChatRoomMetadata;
 import com.everybuddy.domain.message.dto.FirebaseChatMessage;
 import com.everybuddy.domain.message.entity.Message;
+import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.s3.service.StorageService;
+import com.everybuddy.global.util.EnumConverter;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,10 +38,23 @@ public class MessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
     private final ChatPartRepository chatPartRepository;
+    private final MediaRepository mediaRepository;
+    private final StorageService storageService;
     private final FirebaseDatabase firebaseDatabase;
 
+    /**
+     * 텍스트 메시지 전송 (기존 호환성 유지)
+     */
     @Transactional
     public void sendMessage(Long userId, ChatMessageRequest chatMessageRequest) {
+        sendMessage(userId, chatMessageRequest, null);
+    }
+
+    /**
+     * 메시지 전송 (파일 첨부 가능)
+     */
+    @Transactional
+    public void sendMessage(Long userId, ChatMessageRequest chatMessageRequest, MultipartFile file) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -45,7 +64,35 @@ public class MessageService {
         if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, chatMessageRequest.getChatRoomId()))
             throw new CustomException(ErrorCode.USER_NOT_IN_CHATROOM);
 
-        Message message = Message.create(chatRoom, user, chatMessageRequest);
+        Message message;
+        MessageType messageType = EnumConverter.stringToEnum(chatMessageRequest.getMessageType(), MessageType.class, ErrorCode.INVALID_INPUT_VALUE);
+
+        // TEXT 메시지는 content 필수
+        if (messageType == MessageType.TEXT &&
+            (chatMessageRequest.getContent() == null || chatMessageRequest.getContent().isBlank())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        // FILE 메시지는 파일 필수
+        if (messageType == MessageType.FILE && file == null) {
+            throw new CustomException(ErrorCode.EMPTY_FILE);
+        }
+
+        // 파일 첨부 메시지인 경우
+        if (messageType == MessageType.FILE && file != null) {
+            // 1. S3에 파일 업로드
+            String fileKey = storageService.uploadChatFile(chatRoom.getChatRoomId(), file);
+
+            // 2. Media 엔티티 생성 및 저장
+            Media media = Media.from(user, chatRoom, fileKey, file);
+            mediaRepository.save(media);
+
+            // 3. 파일 메시지 생성
+            message = Message.createWithMedia(chatRoom, user, media, messageType);
+        } else {
+            // TEXT 메시지 생성
+            message = Message.create(chatRoom, user, messageType, chatMessageRequest.getContent());
+        }
 
         messageRepository.save(message);
 
@@ -71,6 +118,11 @@ public class MessageService {
         }
 
         message.softDelete();
+
+        // 첨부 파일이 있다면 Media도 soft delete
+        if (message.getMedia() != null) {
+            message.getMedia().softDelete();
+        }
 
         // RealtimeDB 업데이트
         updateFirebaseAsDeleted(message);

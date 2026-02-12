@@ -177,7 +177,13 @@ public class MessageService {
                 .child(String.valueOf(message.getChatRoom().getChatRoomId()))
                 .child(String.valueOf(message.getMessageId()));
 
-        FirebaseChatMessage messageData = FirebaseChatMessage.from(message);
+        // 파일 메시지인 경우 S3 공개 URL 생성
+        String fileUrl = null;
+        if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
+            fileUrl = storageService.getPublicUrl(message.getMedia().getFileKey());
+        }
+
+        FirebaseChatMessage messageData = FirebaseChatMessage.from(message, fileUrl);
 
         messagesRef.setValueAsync(messageData);
     }

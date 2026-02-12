@@ -43,7 +43,7 @@ public class FirebaseChatMessage {
         this.mediaType = mediaType;
     }
 
-    public static FirebaseChatMessage from(Message message) {
+    public static FirebaseChatMessage from(Message message, String fileUrl) {
         FirebaseChatMessageBuilder builder = FirebaseChatMessage.builder()
                 .userId(message.getUser().getUserId())
                 .userName(message.getUser().getName())
@@ -53,7 +53,7 @@ public class FirebaseChatMessage {
 
         // FILE 메시지일 경우 파일 정보 추가
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
-            builder.fileUrl(message.getMedia().getFileKey())
+            builder.fileUrl(fileUrl)
                     .fileName(message.getMedia().getOriginalFilename())
                     .fileSize(message.getMedia().getFileSize())
                     .mediaType(message.getMedia().getMediaType().name());

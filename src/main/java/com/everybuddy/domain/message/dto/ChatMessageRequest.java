@@ -13,10 +13,6 @@ public class ChatMessageRequest {
     @NotNull(message = "메시지를 전송할 채팅방을 선택해주세요.")
     private Long chatRoomId;
 
-    @Schema(description = "메시지 타입 (TEXT, FILE)", example = "TEXT")
-    @NotBlank(message = "메시지 타입을 확인해주세요.")
-    private String messageType;
-
     @Schema(description = "메시지 내용 (파일 메시지인 경우 생략 가능)", example = "안녕하세요!")
     private String content;
 }

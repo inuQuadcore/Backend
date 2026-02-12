@@ -17,7 +17,6 @@ import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
-import com.everybuddy.global.util.EnumConverter;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
@@ -43,15 +42,7 @@ public class MessageService {
     private final FirebaseDatabase firebaseDatabase;
 
     /**
-     * 텍스트 메시지 전송 (기존 호환성 유지)
-     */
-    @Transactional
-    public void sendMessage(Long userId, ChatMessageRequest chatMessageRequest) {
-        sendMessage(userId, chatMessageRequest, null);
-    }
-
-    /**
-     * 메시지 전송 (파일 첨부 가능)
+     * 메시지 전송 (파일이 있으면 FILE 메시지, 없으면 TEXT 메시지)
      */
     @Transactional
     public void sendMessage(Long userId, ChatMessageRequest request, MultipartFile file) {
@@ -66,12 +57,8 @@ public class MessageService {
             throw new CustomException(ErrorCode.USER_NOT_IN_CHATROOM);
         }
 
-        // 2. 메시지 타입 파싱 및 검증
-        MessageType messageType = EnumConverter.stringToEnum(
-                request.getMessageType(),
-                MessageType.class,
-                ErrorCode.INVALID_INPUT_VALUE
-        );
+        // 2. 메시지 타입 자동 판단 및 검증
+        MessageType messageType = (file != null) ? MessageType.FILE : MessageType.TEXT;
         validateMessageType(messageType, request.getContent(), file);
 
         // 3. 메시지 생성 및 저장

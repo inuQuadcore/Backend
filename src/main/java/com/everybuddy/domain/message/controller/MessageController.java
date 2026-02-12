@@ -6,6 +6,7 @@ import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.MessageApiSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -18,20 +19,11 @@ public class MessageController implements MessageApiSpecification {
 
     private final MessageService messageService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> sendMessage(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @Valid @RequestBody ChatMessageRequest request) {
-
-        messageService.sendMessage(userDetails.getUserId(), request);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/file")
-    public ResponseEntity<Void> sendMessageWithFile(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @Valid @ModelAttribute ChatMessageRequest request,
-            @RequestPart MultipartFile file) {
+            @Valid @RequestPart("request") ChatMessageRequest request,
+            @RequestPart(required = false) MultipartFile file) {
 
         messageService.sendMessage(userDetails.getUserId(), request, file);
         return ResponseEntity.noContent().build();

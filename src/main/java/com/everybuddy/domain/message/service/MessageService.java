@@ -54,54 +54,32 @@ public class MessageService {
      * 메시지 전송 (파일 첨부 가능)
      */
     @Transactional
-    public void sendMessage(Long userId, ChatMessageRequest chatMessageRequest, MultipartFile file) {
+    public void sendMessage(Long userId, ChatMessageRequest request, MultipartFile file) {
+        // 1. 엔티티 조회 및 검증
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        ChatRoom chatRoom = chatRoomRepository.findById(chatMessageRequest.getChatRoomId())
+        ChatRoom chatRoom = chatRoomRepository.findById(request.getChatRoomId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
 
-        if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, chatMessageRequest.getChatRoomId()))
+        if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, request.getChatRoomId())) {
             throw new CustomException(ErrorCode.USER_NOT_IN_CHATROOM);
-
-        Message message;
-        MessageType messageType = EnumConverter.stringToEnum(chatMessageRequest.getMessageType(), MessageType.class, ErrorCode.INVALID_INPUT_VALUE);
-
-        // TEXT 메시지는 content 필수
-        if (messageType == MessageType.TEXT &&
-            (chatMessageRequest.getContent() == null || chatMessageRequest.getContent().isBlank())) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        // FILE 메시지는 파일 필수
-        if (messageType == MessageType.FILE && file == null) {
-            throw new CustomException(ErrorCode.EMPTY_FILE);
-        }
+        // 2. 메시지 타입 파싱 및 검증
+        MessageType messageType = EnumConverter.stringToEnum(
+                request.getMessageType(),
+                MessageType.class,
+                ErrorCode.INVALID_INPUT_VALUE
+        );
+        validateMessageType(messageType, request.getContent(), file);
 
-        // 파일 첨부 메시지인 경우
-        if (messageType == MessageType.FILE && file != null) {
-            // 1. S3에 파일 업로드
-            String fileKey = storageService.uploadChatFile(chatRoom.getChatRoomId(), file);
-
-            // 2. Media 엔티티 생성 및 저장
-            Media media = Media.from(user, chatRoom, fileKey, file);
-            mediaRepository.save(media);
-
-            // 3. 파일 메시지 생성
-            message = Message.createWithMedia(chatRoom, user, media, messageType);
-        } else {
-            // TEXT 메시지 생성
-            message = Message.create(chatRoom, user, messageType, chatMessageRequest.getContent());
-        }
-
+        // 3. 메시지 생성 및 저장
+        Message message = createMessage(user, chatRoom, messageType, request.getContent(), file);
         messageRepository.save(message);
 
-        saveToFirebase(message);
-
-        // 채팅방 메타데이터 업데이트
-        Long chatRoomId = message.getChatRoom().getChatRoomId();
-        List<ChatPart> chatParts = chatPartRepository.findByChatRoomIdWithUser(chatRoomId);
-        updateUserChatRoomMetadata(chatRoomId, chatParts, message);
+        // 4. 실시간 전파
+        publishMessageToFirebase(message);
     }
 
     @Transactional
@@ -144,9 +122,57 @@ public class MessageService {
         chatPart.updateLastReadMessage(message);
     }
 
+    /**
+     * 메시지 타입에 따라 요청 데이터 검증
+     */
+    private void validateMessageType(MessageType messageType, String content, MultipartFile file) {
+        if (messageType == MessageType.TEXT && (content == null || content.isBlank())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (messageType == MessageType.FILE && file == null) {
+            throw new CustomException(ErrorCode.EMPTY_FILE);
+        }
+    }
+
+    /**
+     * 메시지 타입에 따라 적절한 메시지 엔티티 생성
+     */
+    private Message createMessage(
+            User user,
+            ChatRoom chatRoom,
+            MessageType messageType,
+            String content,
+            MultipartFile file) {
+
+        if (messageType == MessageType.FILE) {
+            Media media = createMediaFromFile(user, chatRoom, file);
+            return Message.createWithMedia(chatRoom, user, media, messageType);
+        }
+        return Message.create(chatRoom, user, messageType, content);
+    }
+
+    /**
+     * 파일 업로드 후 Media 엔티티 생성
+     */
+    private Media createMediaFromFile(User user, ChatRoom chatRoom, MultipartFile file) {
+        String fileKey = storageService.uploadChatFile(chatRoom.getChatRoomId(), file);
+        Media media = Media.from(user, chatRoom, fileKey, file);
+        return mediaRepository.save(media);
+    }
+
+    /**
+     * Firebase 및 채팅방 메타데이터 업데이트
+     */
+    private void publishMessageToFirebase(Message message) {
+        saveMessageToFirebase(message);
+
+        Long chatRoomId = message.getChatRoom().getChatRoomId();
+        List<ChatPart> chatParts = chatPartRepository.findByChatRoomIdWithUser(chatRoomId);
+        updateUserChatRoomMetadata(chatRoomId, chatParts, message);
+    }
 
     // 메시지 RealtimeDB에 저장
-    private void saveToFirebase(Message message) {
+    private void saveMessageToFirebase(Message message) {
         DatabaseReference messagesRef = firebaseDatabase.getReference("messages")
                 .child(String.valueOf(message.getChatRoom().getChatRoomId()))
                 .child(String.valueOf(message.getMessageId()));

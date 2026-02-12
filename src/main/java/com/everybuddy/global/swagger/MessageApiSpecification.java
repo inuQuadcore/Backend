@@ -14,8 +14,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "메시지 API", description = "채팅 메시지 전송·삭제·읽음 처리 기능")
 public interface MessageApiSpecification {
@@ -34,8 +37,7 @@ public interface MessageApiSpecification {
                         "message": "잘못된 입력입니다.",
                         "errors": {
                             "chatRoomId": "메시지를 전송할 채팅방을 선택해주세요.",
-                            "messageType": "메시지 타입을 확인해주세요.",
-                            "content": "메시지 본문을 입력해주세요."
+                            "messageType": "메시지 타입을 확인해주세요."
                         }
                     }
                     """
@@ -96,6 +98,98 @@ public interface MessageApiSpecification {
     ResponseEntity<Void> sendMessage(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Valid @RequestBody ChatMessageRequest request
+    );
+
+    @Operation(summary = "파일과 함께 메시지 전송", description = "채팅방에 파일과 함께 메시지를 전송합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "파일 메시지 전송 성공"),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 400,
+                        "name": "INVALID_INPUT_VALUE",
+                        "message": "잘못된 입력입니다.",
+                        "errors": {
+                            "chatRoomId": "메시지를 전송할 채팅방을 선택해주세요.",
+                            "messageType": "메시지 타입을 확인해주세요."
+                        }
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403", description = "채팅방 접근 권한 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 403,
+                        "name": "USER_NOT_IN_CHATROOM",
+                        "message": "해당 채팅방에 접근할 권한이 없습니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "사용자 또는 채팅방을 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "사용자를 찾을 수 없음", value = """
+                                    {
+                                        "code": 404,
+                                        "name": "USER_NOT_FOUND",
+                                        "message": "해당 유저를 찾을 수 없습니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "채팅방을 찾을 수 없음", value = """
+                                    {
+                                        "code": 404,
+                                        "name": "CHATROOM_NOT_FOUND",
+                                        "message": "해당 채팅방을 찾을 수 없습니다."
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "413", description = "파일 크기 초과",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 413,
+                        "name": "FILE_SIZE_EXCEEDED",
+                        "message": "파일 크기가 너무 큽니다."
+                    }
+                    """
+                            )
+                    )
+            )
+    })
+    ResponseEntity<Void> sendMessageWithFile(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @ModelAttribute ChatMessageRequest request,
+            @Parameter(description = "전송할 파일", required = true) @RequestPart MultipartFile file
     );
 
     @Operation(summary = "메시지 삭제", description = "자신이 전송한 메시지를 삭제합니다.")

@@ -209,14 +209,20 @@ public class MessageService {
         }
     }
 
-    // 메시지를 삭제했을 때 RealtimeDB에는 메시지 내용만 "메시지가 삭제되었습니다"로 변경
+    // 메시지를 삭제했을 때 RealtimeDB 업데이트
     private void updateFirebaseAsDeleted(Message message) {
         DatabaseReference messageRef = firebaseDatabase.getReference("messages")
                 .child(String.valueOf(message.getChatRoom().getChatRoomId()))
                 .child(String.valueOf(message.getMessageId()));
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put("content", "메시지가 삭제되었습니다");
+        updates.put("content", "삭제된 메시지입니다");
+
+        // 파일 관련 필드 null 처리
+        updates.put("fileUrl", null);
+        updates.put("fileName", null);
+        updates.put("fileSize", null);
+        updates.put("mediaType", null);
 
         messageRef.updateChildrenAsync(updates);
     }
@@ -233,7 +239,7 @@ public class MessageService {
             List<ChatPart> chatParts = chatPartRepository.findByChatRoomIdWithUser(chatRoomId);
 
             Map<String, Object> updates = new HashMap<>();
-            updates.put("lastMessage", "메시지가 삭제되었습니다");
+            updates.put("lastMessage", "삭제된 메시지입니다");
 
             updateUserChatRoomMetadataFields(chatRoomId, chatParts, updates);
         }

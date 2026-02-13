@@ -6,8 +6,10 @@ import com.everybuddy.global.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,14 +19,33 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "메시지 API", description = "채팅 메시지 전송·삭제·읽음 처리 기능")
 public interface MessageApiSpecification {
 
-    @Operation(summary = "메시지 전송", description = "텍스트 또는 파일 메시지를 전송합니다. 파일이 포함되면 파일 메시지, 없으면 텍스트 메시지로 처리됩니다.")
+    @Operation(
+            summary = "메시지 전송",
+            description = "텍스트 또는 파일 메시지를 전송합니다. 파일이 포함되면 파일 메시지, 없으면 텍스트 메시지로 처리됩니다.",
+            requestBody = @RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            schema = @Schema(implementation = SendMessageMultipart.class),
+                            encoding = {
+                                    @Encoding(
+                                            name = "request",
+                                            contentType = MediaType.APPLICATION_JSON_VALUE
+                                    ),
+                                    @Encoding(
+                                            name = "file",
+                                            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
+                                    )
+                            }
+                    )
+            )
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "메시지 전송 성공"),
             @ApiResponse(
@@ -128,18 +149,6 @@ public interface MessageApiSpecification {
     ResponseEntity<Void> sendMessage(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Valid @RequestPart("request") ChatMessageRequest request,
-            @Parameter(
-                    description = """
-                            전송할 파일 (선택적, 파일 포함 시 파일 메시지로 처리)
-                            - 최대 크기: 10MB
-                            - 이미지: jpg, jpeg, png, gif, webp, heic
-                            - 비디오: mp4, mov, avi, webm
-                            - 오디오: mp3, wav, m4a, aac
-                            - 문서: pdf, txt, doc, docx, xls, xlsx, ppt, pptx
-                            - 압축: zip, rar
-                            """,
-                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
-            )
             @RequestPart(required = false) MultipartFile file
     );
 

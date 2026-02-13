@@ -58,7 +58,8 @@ public class MessageService {
         }
 
         // 2. 메시지 타입 자동 판단 및 검증
-        MessageType messageType = (file != null) ? MessageType.FILE : MessageType.TEXT;
+        boolean hasFile = file != null && !file.isEmpty();
+        MessageType messageType = hasFile ? MessageType.FILE : MessageType.TEXT;
         validateMessageType(messageType, request.getContent(), file);
 
         // 3. 메시지 생성 및 저장
@@ -116,7 +117,7 @@ public class MessageService {
         if (messageType == MessageType.TEXT && (content == null || content.isBlank())) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        if (messageType == MessageType.FILE && file == null) {
+        if (messageType == MessageType.FILE && (file.getSize() == 0)) {
             throw new CustomException(ErrorCode.EMPTY_FILE);
         }
     }

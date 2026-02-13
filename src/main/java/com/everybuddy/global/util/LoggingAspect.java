@@ -49,7 +49,7 @@ public class LoggingAspect {
         } catch (Exception e) {
             long executionTime = System.currentTimeMillis() - startTime;
             log.error("[{} 실패] {} - 실행시간: {}ms, 예외: {}",
-                layer, methodName, executionTime, e.getMessage());
+                layer, methodName, executionTime, e.getMessage(), e);
             throw e;
         }
     }

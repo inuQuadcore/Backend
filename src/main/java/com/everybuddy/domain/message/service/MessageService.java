@@ -50,8 +50,16 @@ public class MessageService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        if (user.isDeleted()) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
+
         ChatRoom chatRoom = chatRoomRepository.findById(request.getChatRoomId())
                 .orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
+
+        if (chatRoom.isDeleted()) {
+            throw new CustomException(ErrorCode.CHATROOM_DELETED);
+        }
 
         if (!chatPartRepository.existsByUserIdAndChatRoomId(userId, request.getChatRoomId())) {
             throw new CustomException(ErrorCode.USER_NOT_IN_CHATROOM);
@@ -114,9 +122,18 @@ public class MessageService {
      * 메시지 타입에 따라 요청 데이터 검증
      */
     private void validateMessageType(MessageType messageType, String content, MultipartFile file) {
-        if (messageType == MessageType.TEXT && (content == null || content.isBlank())) {
+        // 파일과 텍스트 동시 전송 금지 검증
+        boolean hasFile = file != null && !file.isEmpty();
+        boolean hasText = content != null && !content.isBlank();
+
+        if (hasFile && hasText) {
+            throw new CustomException(ErrorCode.CANNOT_SEND_FILE_AND_TEXT_TOGETHER);
+        }
+
+        if (messageType == MessageType.TEXT && hasText) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
+
         if (messageType == MessageType.FILE && (file.getSize() == 0)) {
             throw new CustomException(ErrorCode.EMPTY_FILE);
         }

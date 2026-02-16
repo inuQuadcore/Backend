@@ -29,6 +29,8 @@ public class ChatRoom {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    private LocalDateTime deletedAt;
+
     @Builder
     private ChatRoom(String roomName) {
         this.roomName = roomName;
@@ -38,5 +40,13 @@ public class ChatRoom {
         return ChatRoom.builder()
                 .roomName(roomName)
                 .build();
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 }

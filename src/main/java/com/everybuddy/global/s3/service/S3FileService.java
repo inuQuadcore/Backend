@@ -150,7 +150,7 @@ public class S3FileService implements StorageService {
         }
 
         // 파일 크기 검사 (5MB)
-        long maxSize = 5 * 1024 * 1024;
+        long maxSize = 5L * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
         }
@@ -183,7 +183,7 @@ public class S3FileService implements StorageService {
         }
 
         // 파일 크기 검사 (10MB)
-        long maxSize = 10 * 1024 * 1024;
+        long maxSize = 10L * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
         }

@@ -23,7 +23,7 @@ public enum ErrorCode {
     EMPTY_FILE(HttpStatus.BAD_REQUEST, 400, "빈 파일은 업로드할 수 없습니다."),
     INVALID_FILE_NAME(HttpStatus.BAD_REQUEST, 400, "유효하지 않은 파일명입니다."),
     FILE_COUNT_EXCEEDED(HttpStatus.BAD_REQUEST, 400, "업로드 가능한 파일 개수를 초과했습니다."),
-    S3_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일 업로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
+    S3_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
 
     //JWT
     JWT_ENTRY_POINT(HttpStatus.UNAUTHORIZED, 401, "로그인이 필요합니다."),

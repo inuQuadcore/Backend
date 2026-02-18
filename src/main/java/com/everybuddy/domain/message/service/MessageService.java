@@ -72,7 +72,7 @@ public class MessageService {
 
         // 3. 메시지 생성 및 저장
         Message message = createMessage(user, chatRoom, messageType, request.getContent(), file);
-        messageRepository.save(message);
+        message = messageRepository.save(message);  // 반환값 사용 (ID, sendAt 등이 채워짐)
 
         // 4. 실시간 전파
         publishMessageToFirebase(message);
@@ -130,7 +130,7 @@ public class MessageService {
             throw new CustomException(ErrorCode.CANNOT_SEND_FILE_AND_TEXT_TOGETHER);
         }
 
-        if (messageType == MessageType.TEXT && hasText) {
+        if (messageType == MessageType.TEXT && !hasText) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 

@@ -82,4 +82,28 @@ public class Message {
                 .content(null)
                 .build();
     }
+
+    /**
+     * 테스트용 정적 팩토리 메서드
+     * messageId와 sendAt을 명시적으로 설정할 수 있습니다.
+     */
+    public static Message createForTest(Long messageId, ChatRoom chatRoom, User user,
+                                       MessageType messageType, String content, LocalDateTime sendAt) {
+        Message message = create(chatRoom, user, messageType, content);
+        message.messageId = messageId;
+        message.sendAt = sendAt;
+        return message;
+    }
+
+    /**
+     * 테스트용 정적 팩토리 메서드 (Media 포함)
+     * messageId와 sendAt을 명시적으로 설정할 수 있습니다.
+     */
+    public static Message createWithMediaForTest(Long messageId, ChatRoom chatRoom, User user,
+                                                Media media, MessageType messageType, LocalDateTime sendAt) {
+        Message message = createWithMedia(chatRoom, user, media, messageType);
+        message.messageId = messageId;
+        message.sendAt = sendAt;
+        return message;
+    }
 }

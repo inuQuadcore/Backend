@@ -49,4 +49,14 @@ public class ChatRoom {
     public boolean isDeleted() {
         return this.deletedAt != null;
     }
+
+    /**
+     * 테스트용 정적 팩토리 메서드
+     * chatRoomId를 명시적으로 설정할 수 있습니다.
+     */
+    public static ChatRoom createForTest(Long chatRoomId, String roomName) {
+        ChatRoom chatRoom = ChatRoom.create(roomName);
+        chatRoom.chatRoomId = chatRoomId;
+        return chatRoom;
+    }
 }

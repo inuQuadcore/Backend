@@ -106,4 +106,23 @@ public class User {
     public boolean isDeleted() {
         return this.deletedAt != null;
     }
+
+    /**
+     * 테스트용 정적 팩토리 메서드
+     * userId를 명시적으로 설정할 수 있습니다.
+     */
+    public static User createForTest(Long userId, String loginId, String name, String password,
+                                    Country country, Language language, Gender gender, LocalDate birthday) {
+        User user = User.builder()
+                .loginId(loginId)
+                .name(name)
+                .password(password)
+                .country(country)
+                .language(language)
+                .gender(gender)
+                .birthday(birthday)
+                .build();
+        user.userId = userId;
+        return user;
+    }
 }

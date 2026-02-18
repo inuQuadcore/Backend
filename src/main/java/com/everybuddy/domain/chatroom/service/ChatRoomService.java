@@ -35,15 +35,17 @@ public class ChatRoomService {
 
     @Transactional
     public ChatRoomResponse createChatRoom(Long creatorId, CreateChatRoomRequest request) {
-        ChatRoom chatRoom = ChatRoom.create(request.getRoomName());
-        chatRoomRepository.save(chatRoom);
-
+        // 검증 먼저
         User user = userRepository.findById(creatorId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        
+
         if (user.isDeleted()) {
             throw new CustomException(ErrorCode.USER_DELETED);
         }
+
+        // 검증 통과 후 저장
+        ChatRoom chatRoom = ChatRoom.create(request.getRoomName());
+        chatRoom = chatRoomRepository.save(chatRoom);
 
         // 성능 개선 필요
         List<Long> allParticipantIds = addAllParticipants(user, chatRoom, request.getParticipantIds());

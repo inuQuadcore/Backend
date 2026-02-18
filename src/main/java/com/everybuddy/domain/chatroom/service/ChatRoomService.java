@@ -40,6 +40,10 @@ public class ChatRoomService {
 
         User user = userRepository.findById(creatorId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        
+        if (user.isDeleted()) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
 
         // 성능 개선 필요
         List<Long> allParticipantIds = addAllParticipants(user, chatRoom, request.getParticipantIds());
@@ -78,6 +82,19 @@ public class ChatRoomService {
         }
 
         List<User> participants = userRepository.findAllById(participantIds);
+
+        // 존재하지 않는 참여자 검증
+        if (participants.size() != participantIds.size()) {
+            throw new CustomException(ErrorCode.PARTICIPANT_NOT_FOUND);
+        }
+
+        // 삭제된 유저 검증
+        boolean hasDeletedUser = participants.stream()
+                .anyMatch(User::isDeleted);
+        if (hasDeletedUser) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
+
         List<ChatPart> chatParts = participants.stream()
                 .map(user -> ChatPart.create(user, chatRoom))
                 .toList();

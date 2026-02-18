@@ -35,21 +35,23 @@ public class ChatRoomService {
 
     @Transactional
     public ChatRoomResponse createChatRoom(Long creatorId, CreateChatRoomRequest request) {
-        // 검증 먼저
-        User user = userRepository.findById(creatorId)
+        // 1. 검증
+        User creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.isDeleted()) {
+        if (creator.isDeleted()) {
             throw new CustomException(ErrorCode.USER_DELETED);
         }
 
-        // 검증 통과 후 저장
+        List<User> participants = validateParticipants(request.getParticipantIds());
+
+        // 2. 저장
         ChatRoom chatRoom = ChatRoom.create(request.getRoomName());
         chatRoom = chatRoomRepository.save(chatRoom);
 
-        // 성능 개선 필요
-        List<Long> allParticipantIds = addAllParticipants(user, chatRoom, request.getParticipantIds());
+        List<Long> allParticipantIds = saveAllParticipants(creator, chatRoom, participants);
 
+        // 3. Firebase
         saveParticipantsToFirebase(chatRoom.getChatRoomId(), allParticipantIds);
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);
@@ -68,40 +70,39 @@ public class ChatRoomService {
         return buildChatRoomResponses(myChatParts, participantsMap);
     }
 
-    private List<Long> addAllParticipants(User creator, ChatRoom chatRoom, List<Long> otherParticipantIds) {
-        ChatPart creatorPart = ChatPart.create(creator, chatRoom);
-        chatPartRepository.save(creatorPart);
-
-        List<ChatPart> otherChatParts = saveOtherParticipants(chatRoom, otherParticipantIds);
-
-        return extractAllParticipantIds(creatorPart, otherChatParts);
-    }
-
-
-    private List<ChatPart> saveOtherParticipants(ChatRoom chatRoom, List<Long> participantIds) {
+    private List<User> validateParticipants(List<Long> participantIds) {
         if (participantIds == null || participantIds.isEmpty()) {
             return List.of();
         }
 
         List<User> participants = userRepository.findAllById(participantIds);
 
-        // 존재하지 않는 참여자 검증
         if (participants.size() != participantIds.size()) {
             throw new CustomException(ErrorCode.PARTICIPANT_NOT_FOUND);
         }
 
-        // 삭제된 유저 검증
         boolean hasDeletedUser = participants.stream()
                 .anyMatch(User::isDeleted);
         if (hasDeletedUser) {
             throw new CustomException(ErrorCode.USER_DELETED);
         }
 
-        List<ChatPart> chatParts = participants.stream()
-                .map(user -> ChatPart.create(user, chatRoom))
-                .toList();
+        return participants;
+    }
 
-        return chatPartRepository.saveAll(chatParts);
+    private List<Long> saveAllParticipants(User creator, ChatRoom chatRoom, List<User> participants) {
+        ChatPart creatorPart = ChatPart.create(creator, chatRoom);
+        chatPartRepository.save(creatorPart);
+
+        List<ChatPart> otherChatParts = List.of();
+        if (!participants.isEmpty()) {
+            otherChatParts = participants.stream()
+                    .map(user -> ChatPart.create(user, chatRoom))
+                    .toList();
+            chatPartRepository.saveAll(otherChatParts);
+        }
+
+        return extractAllParticipantIds(creatorPart, otherChatParts);
     }
 
     private List<Long> extractAllParticipantIds(ChatPart creatorPart, List<ChatPart> otherChatParts) {

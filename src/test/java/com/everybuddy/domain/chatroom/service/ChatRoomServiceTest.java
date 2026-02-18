@@ -86,16 +86,6 @@ class ChatRoomServiceTest {
         when(databaseReference.setValueAsync(any())).thenReturn(null);
     }
 
-    /**
-     * creator 검증 통과 후 참여자 검증에서 예외 발생하는 케이스를 위한 Mock 설정
-     * (chatRoom 저장, creator ChatPart 저장까지 진행된 후 예외 발생)
-     */
-    private void setupMocksForParticipantException() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
-        when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(chatPartRepository.save(any(ChatPart.class))).thenAnswer(invocation -> invocation.getArgument(0));
-    }
-
     private void verifyFirebaseParticipants(Long... expectedIds) {
         ArgumentCaptor<Map<String, Boolean>> captor = ArgumentCaptor.forClass(Map.class);
         verify(firebaseDatabase).getReference("chatrooms");
@@ -215,7 +205,7 @@ class ChatRoomServiceTest {
         @DisplayName("TC-2-2. participantIds에 존재하지 않는 유저 포함")
         void participantNotFound() {
             // given
-            setupMocksForParticipantException();
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 999L))).thenReturn(List.of(participant1));
 
             // when & then
@@ -224,8 +214,7 @@ class ChatRoomServiceTest {
                             CreateChatRoomRequest.of("테스트방", List.of(2L, 999L))));
 
             assertEquals(ErrorCode.PARTICIPANT_NOT_FOUND, ex.getErrorCode());
-            verify(chatRoomRepository).save(any(ChatRoom.class));
-            verify(chatPartRepository, never()).saveAll(any());
+            verify(chatRoomRepository, never()).save(any());
         }
     }
 
@@ -252,7 +241,7 @@ class ChatRoomServiceTest {
         @DisplayName("TC-3-2. participantIds에 삭제된 유저 포함")
         void deletedUserInParticipants() {
             // given
-            setupMocksForParticipantException();
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 4L))).thenReturn(List.of(participant1, deletedUser));
 
             // when & then
@@ -261,8 +250,7 @@ class ChatRoomServiceTest {
                             CreateChatRoomRequest.of("테스트방", List.of(2L, 4L))));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
-            verify(chatRoomRepository).save(any(ChatRoom.class));
-            verify(chatPartRepository, never()).saveAll(any());
+            verify(chatRoomRepository, never()).save(any());
         }
     }
 

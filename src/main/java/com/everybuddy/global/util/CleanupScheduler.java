@@ -12,7 +12,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +27,7 @@ public class CleanupScheduler {
 
     /**
      * 매일 새벽 3시에 삭제된 데이터 정리
-     * - 1년 지난 데이터들
+     * - soft delete 후 1년이 지난 데이터 물리 삭제
      */
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
@@ -39,26 +38,23 @@ public class CleanupScheduler {
 
     private void cleanupOldMessages() {
         LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+        List<Message> messagesToDelete = messageRepository.findMessagesDeletedBefore(oneYearAgo);
+
+        if (messagesToDelete.isEmpty()) {
+            return;
+        }
 
         try {
-            List<Message> messagesToDelete = messageRepository.findMessagesDeletedBefore(oneYearAgo);
-
-            if (messagesToDelete.isEmpty()){
-                return;
-            }
-
             messageRepository.deleteAll(messagesToDelete);
-
-            log.info("삭제 완료: 메시지 개수 = {}", messagesToDelete.size());
-
+            log.info("메시지 물리 삭제 완료: {}건", messagesToDelete.size());
         } catch (DataAccessException e) {
-            log.error("메시지 삭제 실패, ", e);
+            log.error("메시지 물리 삭제 실패", e);
+            throw e;
         }
     }
 
     private void cleanupOldMedia() {
         LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
-
         List<Media> mediaToDelete = mediaRepository.findByDeletedAtBefore(oneYearAgo);
 
         if (mediaToDelete.isEmpty()) {
@@ -73,16 +69,22 @@ public class CleanupScheduler {
                 .map(Media::getMediaId)
                 .toList();
 
+        // DB 먼저 삭제: 실패 시 트랜잭션 롤백으로 일관성 유지
+        try {
+            mediaRepository.deleteAllByIdInBatch(mediaIds);
+            log.info("미디어 DB 물리 삭제 완료: {}건", mediaIds.size());
+        } catch (DataAccessException e) {
+            log.error("미디어 DB 물리 삭제 실패", e);
+            throw e;
+        }
+
+        // S3 삭제: 트랜잭션 대상 아님. 실패해도 DB는 이미 커밋되므로 로그 후 종료.
+        // S3에 고아 파일이 남을 수 있으나 DB 참조가 없으므로 서비스 영향 없음.
         try {
             s3FileService.deleteFiles(fileKeys);
-            mediaRepository.deleteAllByIdInBatch(mediaIds);
-
-            log.info("파일 삭제 완료: 개수 = {}", mediaToDelete.size());
-
-        } catch (S3Exception e) {
-            log.error("S3 파일 일괄 삭제 실패: {}", e.getMessage(), e);
-        } catch (DataAccessException e) {
-            log.error("DB에서 미디어 일괄 삭제 실패", e);
+            log.info("S3 파일 삭제 완료: {}건", fileKeys.size());
+        } catch (CustomException e) {
+            log.error("S3 파일 삭제 실패 - 수동 정리 필요. keys={}", fileKeys, e);
         }
     }
 }

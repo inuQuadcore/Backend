@@ -17,9 +17,11 @@ import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
+import org.springframework.dao.DataAccessException;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessageService {
@@ -70,12 +73,18 @@ public class MessageService {
         MessageType messageType = hasFile ? MessageType.FILE : MessageType.TEXT;
         validateMessageType(messageType, request.getContent(), file);
 
-        // 3. 메시지 생성 및 저장
-        Message message = createMessage(user, chatRoom, messageType, request.getContent(), file);
-        message = messageRepository.save(message);  // 반환값 사용 (ID, sendAt 등이 채워짐)
+        // 3. S3 업로드: DB 저장보다 먼저 수행
+        //    S3 실패 시 여기서 예외 발생 → DB 저장 전이므로 보상 처리 불필요
+        String fileKey = hasFile ? storageService.uploadChatFile(chatRoom.getChatRoomId(), file) : null;
 
-        // 4. 실시간 전파
-        publishMessageToFirebase(message);
+        // 4. DB 저장: 실패 시 이미 업로드된 S3 파일 보상 삭제
+        try {
+            Message message = buildAndSaveMessage(user, chatRoom, messageType, request.getContent(), file, fileKey);
+            publishMessageToFirebase(message);
+        } catch (DataAccessException e) {
+            deleteUploadedFileQuietly(fileKey);
+            throw e;
+        }
     }
 
     @Transactional
@@ -139,30 +148,24 @@ public class MessageService {
         }
     }
 
-    /**
-     * 메시지 타입에 따라 적절한 메시지 엔티티 생성
-     */
-    private Message createMessage(
-            User user,
-            ChatRoom chatRoom,
-            MessageType messageType,
-            String content,
-            MultipartFile file) {
-
+    // S3 fileKey를 받아 DB에 저장 (S3 업로드 책임 없음)
+    private Message buildAndSaveMessage(User user, ChatRoom chatRoom, MessageType messageType,
+                                        String content, MultipartFile file, String fileKey) {
         if (messageType == MessageType.FILE) {
-            Media media = createMediaFromFile(user, chatRoom, file);
-            return Message.createWithMedia(chatRoom, user, media, messageType);
+            Media media = mediaRepository.save(Media.from(user, chatRoom, fileKey, file));
+            return messageRepository.save(Message.createWithMedia(chatRoom, user, media, messageType));
         }
-        return Message.create(chatRoom, user, messageType, content);
+        return messageRepository.save(Message.create(chatRoom, user, messageType, content));
     }
 
-    /**
-     * 파일 업로드 후 Media 엔티티 생성
-     */
-    private Media createMediaFromFile(User user, ChatRoom chatRoom, MultipartFile file) {
-        String fileKey = storageService.uploadChatFile(chatRoom.getChatRoomId(), file);
-        Media media = Media.from(user, chatRoom, fileKey, file);
-        return mediaRepository.save(media);
+    // S3 보상 삭제: DB 저장 실패 시 호출. 삭제 실패는 로그만 남기고 원래 예외를 우선함
+    private void deleteUploadedFileQuietly(String fileKey) {
+        if (fileKey == null) return;
+        try {
+            storageService.deleteFile(fileKey);
+        } catch (Exception e) {
+            log.error("S3 보상 삭제 실패 - 수동 정리 필요. key={}", fileKey, e);
+        }
     }
 
     /**

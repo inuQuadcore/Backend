@@ -18,12 +18,15 @@ import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
 import org.springframework.dao.DataAccessException;
+import com.google.api.core.ApiFuture;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
@@ -80,7 +83,17 @@ public class MessageService {
         // 4. DB 저장: 실패 시 이미 업로드된 S3 파일 보상 삭제
         try {
             Message message = buildAndSaveMessage(user, chatRoom, messageType, request.getContent(), file, fileKey);
-            publishMessageToFirebase(message);
+
+            // Firebase에 필요한 DB 데이터를 트랜잭션 내에서 미리 조회
+            Long chatRoomId = chatRoom.getChatRoomId();
+            List<ChatPart> chatParts = chatPartRepository.findByChatRoomIdWithUser(chatRoomId);
+            ChatRoomMetadata metadata = ChatRoomMetadata.from(message);
+
+            // 커밋 성공 후 Firebase 동기화
+            registerAfterCommit(() -> {
+                saveMessageToFirebase(message);
+                updateChatRoomMetadataInFirebase(chatRoomId, chatParts, buildMetadataUpdates(metadata));
+            });
         } catch (DataAccessException e) {
             deleteUploadedFileQuietly(fileKey);
             throw e;
@@ -101,15 +114,25 @@ public class MessageService {
         }
 
         message.softDelete();
+        if (message.getMedia() != null) message.getMedia().softDelete();
 
-        // 첨부 파일이 있다면 Media도 soft delete
-        if (message.getMedia() != null) {
-            message.getMedia().softDelete();
-        }
+        // Firebase에 필요한 DB 데이터를 트랜잭션 내에서 미리 조회
+        Long chatRoomId = message.getChatRoom().getChatRoomId();
+        Optional<Long> lastMessageId = messageRepository.findLastMessageId(message.getChatRoom());
+        boolean isLast = isLastMessage(message.getMessageId(), lastMessageId);
+        List<ChatPart> chatParts = isLast
+                ? chatPartRepository.findByChatRoomIdWithUser(chatRoomId)
+                : List.of();
 
-        // RealtimeDB 업데이트
-        updateFirebaseAsDeleted(message);
-        updateChatRoomMetadataAsDeleted(message);
+        // 커밋 성공 후 Firebase 동기화
+        registerAfterCommit(() -> {
+            updateFirebaseAsDeleted(message);
+            if (isLast) {
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("lastMessage", "삭제된 메시지입니다");
+                updateChatRoomMetadataInFirebase(chatRoomId, chatParts, updates);
+            }
+        });
     }
 
     @Transactional
@@ -168,105 +191,78 @@ public class MessageService {
         }
     }
 
-    /**
-     * Firebase 및 채팅방 메타데이터 업데이트
-     */
-    private void publishMessageToFirebase(Message message) {
-        saveMessageToFirebase(message);
 
-        Long chatRoomId = message.getChatRoom().getChatRoomId();
-        List<ChatPart> chatParts = chatPartRepository.findByChatRoomIdWithUser(chatRoomId);
-        updateUserChatRoomMetadata(chatRoomId, chatParts, message);
-    }
-
-    // 메시지 RealtimeDB에 저장
     private void saveMessageToFirebase(Message message) {
-        DatabaseReference messagesRef = firebaseDatabase.getReference("messages")
-                .child(String.valueOf(message.getChatRoom().getChatRoomId()))
-                .child(String.valueOf(message.getMessageId()));
-
-        // 파일 메시지인 경우 S3 공개 URL 생성
         String fileUrl = null;
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
             fileUrl = storageService.getPublicUrl(message.getMedia().getFileKey());
         }
-
         FirebaseChatMessage messageData = FirebaseChatMessage.from(message, fileUrl);
-
-        messagesRef.setValueAsync(messageData);
-    }
-
-    // 채팅방 리스트에서 실시간 업데이트를 하기 위해, RealtimeDB로 메시지를 전송할 때 채팅방에 있는 유저들의 채팅방 메타데이터 업데이트
-    private void updateUserChatRoomMetadata(Long chatRoomId, List<ChatPart> chatParts, Message message) {
-        ChatRoomMetadata metadata = ChatRoomMetadata.from(message);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("lastMessageId", metadata.getLastMessageId());
-        updates.put("lastMessage", metadata.getLastMessage());
-        updates.put("lastMessageTime", metadata.getLastMessageTime());
-        updates.put("lastMessageSenderId", metadata.getLastMessageSenderId());
-        updates.put("lastMessageSenderName", metadata.getLastMessageSenderName());
-
-        for (ChatPart chatPart : chatParts) {
-            Long userId = chatPart.getUser().getUserId();
-            DatabaseReference userChatRoomRef = firebaseDatabase.getReference("users")
-                    .child(String.valueOf(userId))
-                    .child("chatrooms")
-                    .child(String.valueOf(chatRoomId));
-
-            userChatRoomRef.updateChildrenAsync(updates);
-        }
-    }
-
-    // 메시지를 삭제했을 때 RealtimeDB 업데이트
-    private void updateFirebaseAsDeleted(Message message) {
-        DatabaseReference messageRef = firebaseDatabase.getReference("messages")
+        DatabaseReference ref = firebaseDatabase.getReference("messages")
                 .child(String.valueOf(message.getChatRoom().getChatRoomId()))
                 .child(String.valueOf(message.getMessageId()));
+        addFirebaseCallback(ref.setValueAsync(messageData), "메시지 저장 messageId=" + message.getMessageId());
+    }
 
+
+    private void updateFirebaseAsDeleted(Message message) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("content", "삭제된 메시지입니다");
-
-        // 파일 관련 필드 null 처리
         updates.put("fileUrl", null);
         updates.put("fileName", null);
         updates.put("fileSize", null);
         updates.put("mediaType", null);
-
-        messageRef.updateChildrenAsync(updates);
+        DatabaseReference ref = firebaseDatabase.getReference("messages")
+                .child(String.valueOf(message.getChatRoom().getChatRoomId()))
+                .child(String.valueOf(message.getMessageId()));
+        addFirebaseCallback(ref.updateChildrenAsync(updates), "메시지 삭제 처리 messageId=" + message.getMessageId());
     }
 
-
-    private void updateChatRoomMetadataAsDeleted(Message deletedMessage) {
-        ChatRoom chatRoom = deletedMessage.getChatRoom();
-        Long chatRoomId = chatRoom.getChatRoomId();
-
-        Optional<Long> lastMessageId = messageRepository.findLastMessageId(chatRoom);
-
-        // 삭제하려는 메시지가 마지막 메시지인 경우에만 메타데이터 업데이트
-        if (isLastMessage(deletedMessage.getMessageId(), lastMessageId)) {
-            List<ChatPart> chatParts = chatPartRepository.findByChatRoomIdWithUser(chatRoomId);
-
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("lastMessage", "삭제된 메시지입니다");
-
-            updateUserChatRoomMetadataFields(chatRoomId, chatParts, updates);
-        }
-    }
 
     private boolean isLastMessage(Long deletedMessageId, Optional<Long> lastMessageId) {
         // soft 삭제 이후 1년이 지난 경우를 위해 Optional로 isPresent 사용
         return lastMessageId.isPresent() && lastMessageId.get().equals(deletedMessageId);
     }
 
-    private void updateUserChatRoomMetadataFields(Long chatRoomId, List<ChatPart> chatParts, Map<String, Object> updates) {
+    // sendMessage/deleteMessage 공용 - afterCommit 내에서만 호출
+    private void updateChatRoomMetadataInFirebase(Long chatRoomId, List<ChatPart> chatParts, Map<String, Object> updates) {
         for (ChatPart chatPart : chatParts) {
-            Long userId = chatPart.getUser().getUserId();
-            DatabaseReference userChatRoomRef = firebaseDatabase.getReference("users")
-                    .child(String.valueOf(userId))
+            Long uid = chatPart.getUser().getUserId();
+            DatabaseReference ref = firebaseDatabase.getReference("users")
+                    .child(String.valueOf(uid))
                     .child("chatrooms")
                     .child(String.valueOf(chatRoomId));
-
-            userChatRoomRef.updateChildrenAsync(updates);
+            addFirebaseCallback(ref.updateChildrenAsync(updates),
+                    "채팅방 메타데이터 업데이트 chatRoomId=" + chatRoomId + " userId=" + uid);
         }
+    }
+
+    private Map<String, Object> buildMetadataUpdates(ChatRoomMetadata metadata) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("lastMessageId", metadata.getLastMessageId());
+        updates.put("lastMessage", metadata.getLastMessage());
+        updates.put("lastMessageTime", metadata.getLastMessageTime());
+        updates.put("lastMessageSenderId", metadata.getLastMessageSenderId());
+        updates.put("lastMessageSenderName", metadata.getLastMessageSenderName());
+        return updates;
+    }
+
+    private void registerAfterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
+    }
+
+    private void addFirebaseCallback(ApiFuture<Void> future, String context) {
+        future.addListener(() -> {
+            try {
+                future.get();
+            } catch (Exception e) {
+                log.error("Firebase 쓰기 실패 - {}", context, e);
+            }
+        }, command -> command.run());
     }
 }

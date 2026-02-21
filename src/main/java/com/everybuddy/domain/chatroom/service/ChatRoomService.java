@@ -11,11 +11,15 @@ import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.google.api.core.ApiFuture;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatRoomService {
@@ -51,8 +56,9 @@ public class ChatRoomService {
 
         List<Long> allParticipantIds = saveAllParticipants(creator, chatRoom, participants);
 
-        // 3. Firebase
-        saveParticipantsToFirebase(chatRoom.getChatRoomId(), allParticipantIds);
+        // 3. Firebase: 커밋 성공 후 동기화
+        Long chatRoomId = chatRoom.getChatRoomId();
+        registerAfterCommit(() -> saveParticipantsToFirebase(chatRoomId, allParticipantIds));
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);
     }
@@ -170,7 +176,8 @@ public class ChatRoomService {
                 .child("participants");
 
         Map<String, Boolean> participantsMap = createParticipantsMap(participantIds);
-        participantsRef.setValueAsync(participantsMap);
+        addFirebaseCallback(participantsRef.setValueAsync(participantsMap),
+                "채팅방 참여자 저장 chatRoomId=" + chatRoomId);
     }
 
     private Map<String, Boolean> createParticipantsMap(List<Long> participantIds) {
@@ -179,5 +186,24 @@ public class ChatRoomService {
             participantsMap.put(String.valueOf(participantId), true);
         }
         return participantsMap;
+    }
+
+    private void registerAfterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
+    }
+
+    private void addFirebaseCallback(ApiFuture<Void> future, String context) {
+        future.addListener(() -> {
+            try {
+                future.get();
+            } catch (Exception e) {
+                log.error("Firebase 쓰기 실패 - {}", context, e);
+            }
+        }, command -> command.run());
     }
 }

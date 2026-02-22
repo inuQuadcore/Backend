@@ -18,16 +18,16 @@ import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,35 +41,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import org.mockito.ArgumentCaptor;
-
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MessageService 단위 테스트")
 class MessageServiceTest {
 
-    @Mock
-    private MessageRepository messageRepository;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private ChatRoomRepository chatRoomRepository;
-
-    @Mock
-    private ChatPartRepository chatPartRepository;
-
-    @Mock
-    private MediaRepository mediaRepository;
-
-    @Mock
-    private StorageService storageService;
-
-    @Mock
-    private FirebaseDatabase firebaseDatabase;
-
-    @Mock
-    private DatabaseReference databaseReference;
+    @Mock private MessageRepository messageRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private ChatRoomRepository chatRoomRepository;
+    @Mock private ChatPartRepository chatPartRepository;
+    @Mock private MediaRepository mediaRepository;
+    @Mock private StorageService storageService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private MessageService messageService;
@@ -77,37 +59,23 @@ class MessageServiceTest {
     private User testUser;
     private ChatRoom testChatRoom;
     private ChatMessageRequest textRequest;
-    private ChatMessageRequest emptyRequest;
 
     @BeforeEach
     void setUp() {
-        // 테스트용 User 생성 (ID 포함)
         testUser = User.createForTest(1L, "testuser", "테스트유저", "password",
                 Country.KOREA, Language.KOREAN, Gender.MALE, LocalDate.of(1990, 1, 1));
 
-        // 테스트용 ChatRoom 생성 (ID 포함)
         testChatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");
 
-        // 텍스트 메시지 요청
         textRequest = ChatMessageRequest.of(1L, "안녕하세요");
-
-        // 빈 요청
-        emptyRequest = ChatMessageRequest.of(1L, null);
     }
 
     // ===== 테스트 헬퍼 메서드 =====
 
-    /**
-     * sendMessage 성공 케이스를 위한 공통 Mock 설정
-     */
     private void setupCommonMocksForSendSuccess() {
-        setupFirebaseMockForSend();
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
         when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
-
-        ChatPart chatPart = ChatPart.create(testUser, testChatRoom);
-        when(chatPartRepository.findByChatRoomIdWithUser(1L)).thenReturn(List.of(chatPart));
 
         // MessageService가 save 반환값의 ID, sendAt을 사용하므로 채워진 객체 반환
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
@@ -122,40 +90,18 @@ class MessageServiceTest {
         });
     }
 
-    /**
-     * 파일 업로드 관련 Mock 설정
-     */
     private void setupFileUploadMocks(String fileName) {
         String s3Key = "s3/key/" + fileName;
         when(storageService.uploadChatFile(eq(1L), any(MultipartFile.class))).thenReturn(s3Key);
         when(mediaRepository.save(any(Media.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    /**
-     * Firebase Mock 설정 (sendMessage용 - setValueAsync + updateChildrenAsync)
-     */
-    private void setupFirebaseMockForSend() {
-        when(firebaseDatabase.getReference(anyString())).thenReturn(databaseReference);
-        when(databaseReference.child(anyString())).thenReturn(databaseReference);
-        when(databaseReference.setValueAsync(any())).thenReturn(null);
-        when(databaseReference.updateChildrenAsync(any())).thenReturn(null);
-    }
-
-    /**
-     * Firebase Mock 설정 (deleteMessage용 - updateChildrenAsync만)
-     */
-    private void setupFirebaseMockForDelete() {
-        when(firebaseDatabase.getReference(anyString())).thenReturn(databaseReference);
-        when(databaseReference.child(anyString())).thenReturn(databaseReference);
-        when(databaseReference.updateChildrenAsync(any())).thenReturn(null);
-    }
-
     @Nested
-    @DisplayName("1. 정상 케이스")
+    @DisplayName("1. sendMessage() - 정상 케이스")
     class SuccessCases {
 
         @Test
-        @DisplayName("TC-1-1. 텍스트 메시지만 전송")
+        @DisplayName("TC-1-1. 텍스트 메시지 전송")
         void sendTextMessageOnly() {
             // given
             setupCommonMocksForSendSuccess();
@@ -179,7 +125,7 @@ class MessageServiceTest {
         }
 
         @Test
-        @DisplayName("TC-1-2. 파일 메시지만 전송 (content = null)")
+        @DisplayName("TC-1-2. 파일 메시지 전송 (content = null)")
         void sendFileMessageOnly_contentNull() {
             // given
             setupCommonMocksForSendSuccess();
@@ -215,7 +161,7 @@ class MessageServiceTest {
         }
 
         @Test
-        @DisplayName("TC-1-3. 파일 메시지만 전송 (content = 빈 문자열)")
+        @DisplayName("TC-1-3. 파일 메시지 전송 (content = 빈 문자열)")
         void sendFileMessageOnly_contentEmpty() {
             // given
             setupCommonMocksForSendSuccess();
@@ -245,7 +191,7 @@ class MessageServiceTest {
     }
 
     @Nested
-    @DisplayName("2. 엔티티 조회 실패 케이스")
+    @DisplayName("2. sendMessage() - 엔티티 조회 실패")
     class EntityNotFoundCases {
 
         @Test
@@ -255,12 +201,10 @@ class MessageServiceTest {
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(999L, textRequest, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(999L, textRequest, null));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
-            verify(userRepository, times(1)).findById(999L);
             verify(messageRepository, never()).save(any());
         }
 
@@ -274,12 +218,10 @@ class MessageServiceTest {
             when(chatRoomRepository.findById(999L)).thenReturn(Optional.empty());
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, request, null));
 
             assertEquals(ErrorCode.CHATROOM_NOT_FOUND, exception.getErrorCode());
-            verify(chatRoomRepository, times(1)).findById(999L);
             verify(messageRepository, never()).save(any());
         }
 
@@ -289,21 +231,19 @@ class MessageServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(false);  // 참여하지 않음
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(false);
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, textRequest, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, textRequest, null));
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
-            verify(chatPartRepository, times(1)).existsByUserIdAndChatRoomId(1L, 1L);
             verify(messageRepository, never()).save(any());
         }
     }
 
     @Nested
-    @DisplayName("3. 검증 실패 케이스")
+    @DisplayName("3. sendMessage() - 입력값 검증 실패")
     class ValidationFailureCases {
 
         @Test
@@ -311,12 +251,8 @@ class MessageServiceTest {
         void cannotSendFileAndTextTogether() {
             // given
             ChatMessageRequest request = ChatMessageRequest.of(1L, "파일 설명");
-
             MockMultipartFile file = new MockMultipartFile(
-                    "file",
-                    "test.jpg",
-                    "image/jpeg",
-                    "test content".getBytes()
+                    "file", "test.jpg", "image/jpeg", "test content".getBytes()
             );
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -324,9 +260,8 @@ class MessageServiceTest {
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, file);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, request, file));
 
             assertEquals(ErrorCode.CANNOT_SEND_FILE_AND_TEXT_TOGETHER, exception.getErrorCode());
             verify(messageRepository, never()).save(any());
@@ -337,16 +272,13 @@ class MessageServiceTest {
         @DisplayName("TC-3-2. TEXT 타입인데 content가 null")
         void textMessageWithNullContent() {
             // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
-
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, null), null));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
             verify(messageRepository, never()).save(any());
@@ -356,16 +288,13 @@ class MessageServiceTest {
         @DisplayName("TC-3-3. TEXT 타입인데 content가 빈 문자열")
         void textMessageWithEmptyContent() {
             // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, "");
-
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, ""), null));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
             verify(messageRepository, never()).save(any());
@@ -375,32 +304,24 @@ class MessageServiceTest {
         @DisplayName("TC-3-4. TEXT 타입인데 content가 공백만")
         void textMessageWithBlankContent() {
             // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, "   ");
-
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, "   "), null));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
             verify(messageRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("TC-3-5. FILE 타입인데 파일 크기가 0")
-        void fileMessageWithZeroSize() {
-            // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
-
+        @DisplayName("TC-3-5. 크기 0인 파일은 파일 없음으로 판단하여 content 검증")
+        void emptyFileIsConsideredNoFile() {
+            // given: 크기 0인 파일 → isEmpty() = true → hasFile = false → TEXT 타입으로 판단
             MockMultipartFile emptyFile = new MockMultipartFile(
-                    "file",
-                    "test.jpg",
-                    "image/jpeg",
-                    new byte[0]  // 크기 0
+                    "file", "test.jpg", "image/jpeg", new byte[0]
             );
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -408,56 +329,29 @@ class MessageServiceTest {
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
-            // 파일 크기 0 → hasFile = false → TEXT 타입으로 판단 → content null 검증
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, emptyFile);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, null), emptyFile));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
             verify(storageService, never()).uploadChatFile(any(), any());
             verify(messageRepository, never()).save(any());
         }
-
-        @Test
-        @DisplayName("TC-3-6. MultipartFile이 isEmpty() = true")
-        void fileMessageWithEmptyFile() {
-            // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
-
-            // isEmpty()가 true인 파일 Mock
-            MultipartFile emptyFile = mock(MultipartFile.class);
-            when(emptyFile.isEmpty()).thenReturn(true);
-
-            when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
-
-            // when & then: TEXT 타입으로 판단되어 content 검증 진입
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, emptyFile);
-            });
-
-            assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
-            verify(storageService, never()).uploadChatFile(any(), any());
-        }
     }
 
     @Nested
-    @DisplayName("4. Soft Delete 검증 케이스")
+    @DisplayName("4. sendMessage() - Soft Delete 검증")
     class SoftDeleteValidationCases {
 
         @Test
         @DisplayName("TC-4-1. 삭제된 유저는 메시지 전송 불가")
         void deletedUserCannotSendMessage() {
             // given
-            testUser.softDelete();  // 유저 삭제
-
+            testUser.softDelete();
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, textRequest, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, textRequest, null));
 
             assertEquals(ErrorCode.USER_DELETED, exception.getErrorCode());
             verify(chatRoomRepository, never()).findById(any());
@@ -468,15 +362,13 @@ class MessageServiceTest {
         @DisplayName("TC-4-2. 삭제된 채팅방에는 메시지 전송 불가")
         void cannotSendMessageToDeletedChatRoom() {
             // given
-            testChatRoom.softDelete();  // 채팅방 삭제
-
+            testChatRoom.softDelete();
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, textRequest, null);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.sendMessage(1L, textRequest, null));
 
             assertEquals(ErrorCode.CHATROOM_DELETED, exception.getErrorCode());
             verify(chatPartRepository, never()).existsByUserIdAndChatRoomId(any(), any());
@@ -489,125 +381,123 @@ class MessageServiceTest {
     class DeleteMessageCases {
 
         @Test
-        @DisplayName("TC-5-1. 자신의 메시지 삭제 성공")
-        void deleteOwnMessageSuccess() {
+        @DisplayName("TC-5-1. 메시지 없음")
+        void messageNotFound() {
             // given
-            setupFirebaseMockForDelete();
+            when(messageRepository.findById(999L)).thenReturn(Optional.empty());
 
-            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
-                    "삭제할 메시지", LocalDateTime.now());
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.deleteMessage(testUser.getUserId(), 999L));
 
-            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
-            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(1L));
-
-            ChatPart chatPart = ChatPart.create(testUser, testChatRoom);
-            when(chatPartRepository.findByChatRoomIdWithUser(any())).thenReturn(java.util.List.of(chatPart));
-
-            // when
-            messageService.deleteMessage(testUser.getUserId(), 1L);
-
-            // then
-            assertTrue(message.isDeleted());
-            verify(messageRepository).findById(1L);
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, exception.getErrorCode());
         }
 
         @Test
-        @DisplayName("TC-5-2. 다른 사람의 메시지 삭제 시도 시 예외")
+        @DisplayName("TC-5-2. 다른 사람의 메시지 삭제 시도")
         void cannotDeleteOtherUserMessage() {
             // given
             User otherUser = User.createForTest(2L, "otheruser", "다른유저", "password",
                     Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1995, 1, 1));
-
             Message message = Message.createForTest(1L, testChatRoom, otherUser, MessageType.TEXT,
                     "다른 사람 메시지", LocalDateTime.now());
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.deleteMessage(testUser.getUserId(), 1L);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.deleteMessage(testUser.getUserId(), 1L));
 
             assertEquals(ErrorCode.NOT_MESSAGE_OF_USER, exception.getErrorCode());
             assertFalse(message.isDeleted());
         }
 
         @Test
-        @DisplayName("TC-5-3. 이미 삭제된 메시지 재삭제 시도 시 예외")
+        @DisplayName("TC-5-3. 이미 삭제된 메시지 재삭제 시도")
         void cannotDeleteAlreadyDeletedMessage() {
             // given
             Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
                     "이미 삭제된 메시지", LocalDateTime.now());
-            message.softDelete();  // 이미 삭제됨
+            message.softDelete();
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.deleteMessage(testUser.getUserId(), 1L);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.deleteMessage(testUser.getUserId(), 1L));
 
             assertEquals(ErrorCode.MESSAGE_ALREADY_DELETED, exception.getErrorCode());
         }
-    }
-
-    @Nested
-    @DisplayName("6. 경계값 테스트")
-    class BoundaryTest {
 
         @Test
-        @DisplayName("TC-6-1. 특수문자 포함 파일명")
-        void sendFileWithSpecialCharactersInFilename() {
-            // given
-            setupCommonMocksForSendSuccess();
-            String specialFileName = "파일명!@#$%.jpg";
-            setupFileUploadMocks(specialFileName);
+        @DisplayName("TC-5-4. 마지막 메시지 삭제 성공 (soft delete 확인)")
+        void deleteLastMessageSuccess() {
+            // given: 삭제 대상 메시지가 채팅방의 마지막 메시지
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "삭제할 메시지", LocalDateTime.now());
 
-            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
-            MockMultipartFile file = new MockMultipartFile(
-                    "file", specialFileName, "image/jpeg", "test content".getBytes()
-            );
-
-            ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(1L));
+            when(chatPartRepository.findByChatRoomIdWithUser(any()))
+                    .thenReturn(List.of(ChatPart.create(testUser, testChatRoom)));
 
             // when
-            messageService.sendMessage(1L, request, file);
+            messageService.deleteMessage(testUser.getUserId(), 1L);
 
             // then
-            verify(storageService).uploadChatFile(eq(1L), any(MultipartFile.class));
-            verify(messageRepository).save(messageCaptor.capture());
-
-            Message savedMessage = messageCaptor.getValue();
-            assertEquals(MessageType.FILE, savedMessage.getMessageType());
-            assertNotNull(savedMessage.getMedia());
+            assertTrue(message.isDeleted());
+            verify(chatPartRepository).findByChatRoomIdWithUser(testChatRoom.getChatRoomId());
         }
 
         @Test
-        @DisplayName("TC-6-2. content와 file 둘 다 null/없음")
-        void sendMessageWithBothContentAndFileNull() {
+        @DisplayName("TC-5-5. 마지막이 아닌 메시지 삭제 시 참여자 조회 생략")
+        void deleteNonLastMessageSkipsParticipantQuery() {
+            // given: 삭제 대상(id=1)이 마지막 메시지(id=2)가 아님 → isLast = false
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "삭제할 메시지", LocalDateTime.now());
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(2L));
+
+            // when
+            messageService.deleteMessage(testUser.getUserId(), 1L);
+
+            // then
+            assertTrue(message.isDeleted());
+            verify(chatPartRepository, never()).findByChatRoomIdWithUser(any());
+        }
+
+        @Test
+        @DisplayName("TC-5-6. 파일 메시지 삭제 시 Media도 soft delete")
+        void deleteFileMessageAlsoDeletesMedia() {
             // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "photo.jpg", "image/jpeg", "content".getBytes()
+            );
+            Media media = Media.from(testUser, testChatRoom, "s3-key", file);
+            Message message = Message.createWithMediaForTest(1L, testChatRoom, testUser,
+                    media, MessageType.FILE, LocalDateTime.now());
 
-            when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(1L));
+            when(chatPartRepository.findByChatRoomIdWithUser(any()))
+                    .thenReturn(List.of(ChatPart.create(testUser, testChatRoom)));
 
-            // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.sendMessage(1L, request, null);
-            });
+            // when
+            messageService.deleteMessage(testUser.getUserId(), 1L);
 
-            assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
-            verify(messageRepository, never()).save(any());
+            // then
+            assertTrue(message.isDeleted());
+            assertTrue(message.getMedia().isDeleted());
         }
     }
 
     @Nested
-    @DisplayName("7. markAsRead() 테스트")
+    @DisplayName("6. markAsRead() 테스트")
     class MarkAsReadCases {
 
         @Test
-        @DisplayName("TC-7-1. 메시지 읽음 처리 성공")
+        @DisplayName("TC-6-1. 메시지 읽음 처리 성공")
         void markMessageAsReadSuccess() {
             // given
             Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
@@ -621,13 +511,12 @@ class MessageServiceTest {
             // when
             messageService.markAsRead(testUser.getUserId(), 1L);
 
-            // then
-            verify(messageRepository, times(1)).findById(1L);
-            verify(chatPartRepository, times(1)).findByUserIdAndChatRoomId(testUser.getUserId(), 1L);
+            // then: 마지막 읽은 메시지가 실제로 업데이트됐는지 확인
+            assertEquals(message, chatPart.getLastReadMessage());
         }
 
         @Test
-        @DisplayName("TC-7-2. 채팅방 미참여 유저의 읽음 처리 시도 시 예외")
+        @DisplayName("TC-6-2. 채팅방 미참여 유저의 읽음 처리 시도")
         void cannotMarkAsReadByNonParticipant() {
             // given
             Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
@@ -635,12 +524,11 @@ class MessageServiceTest {
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
             when(chatPartRepository.findByUserIdAndChatRoomId(999L, 1L))
-                    .thenReturn(Optional.empty());  // 참여하지 않음
+                    .thenReturn(Optional.empty());
 
             // when & then
-            CustomException exception = assertThrows(CustomException.class, () -> {
-                messageService.markAsRead(999L, 1L);
-            });
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.markAsRead(999L, 1L));
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
         }

@@ -5,24 +5,20 @@ import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
+import com.everybuddy.domain.chatroom.event.ChatRoomCreatedEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.google.api.core.ApiFuture;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,7 +32,7 @@ public class ChatRoomService {
     private final ChatPartRepository chatPartRepository;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
-    private final FirebaseDatabase firebaseDatabase;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ChatRoomResponse createChatRoom(Long creatorId, CreateChatRoomRequest request) {
@@ -57,8 +53,7 @@ public class ChatRoomService {
         List<Long> allParticipantIds = saveAllParticipants(creator, chatRoom, participants);
 
         // 3. Firebase: 커밋 성공 후 동기화
-        Long chatRoomId = chatRoom.getChatRoomId();
-        registerAfterCommit(() -> saveParticipantsToFirebase(chatRoomId, allParticipantIds));
+        eventPublisher.publishEvent(ChatRoomCreatedEvent.of(chatRoom.getChatRoomId(), allParticipantIds));
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);
     }
@@ -168,42 +163,5 @@ public class ChatRoomService {
         }
 
         return responses;
-    }
-
-    private void saveParticipantsToFirebase(Long chatRoomId, List<Long> participantIds) {
-        DatabaseReference participantsRef = firebaseDatabase.getReference("chatrooms")
-                .child(String.valueOf(chatRoomId))
-                .child("participants");
-
-        Map<String, Boolean> participantsMap = createParticipantsMap(participantIds);
-        addFirebaseCallback(participantsRef.setValueAsync(participantsMap),
-                "채팅방 참여자 저장 chatRoomId=" + chatRoomId);
-    }
-
-    private Map<String, Boolean> createParticipantsMap(List<Long> participantIds) {
-        Map<String, Boolean> participantsMap = new HashMap<>();
-        for (Long participantId : participantIds) {
-            participantsMap.put(String.valueOf(participantId), true);
-        }
-        return participantsMap;
-    }
-
-    private void registerAfterCommit(Runnable action) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                action.run();
-            }
-        });
-    }
-
-    private void addFirebaseCallback(ApiFuture<Void> future, String context) {
-        future.addListener(() -> {
-            try {
-                future.get();
-            } catch (Exception e) {
-                log.error("Firebase 쓰기 실패 - {}", context, e);
-            }
-        }, command -> command.run());
     }
 }

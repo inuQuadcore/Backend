@@ -16,8 +16,6 @@ import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,17 +25,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,8 +45,7 @@ class ChatRoomServiceTest {
     @Mock private ChatPartRepository chatPartRepository;
     @Mock private UserRepository userRepository;
     @Mock private MessageRepository messageRepository;
-    @Mock private FirebaseDatabase firebaseDatabase;
-    @Mock private DatabaseReference databaseReference;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ChatRoomService chatRoomService;
@@ -78,26 +74,6 @@ class ChatRoomServiceTest {
         chatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");
     }
 
-    // ===== 헬퍼 메서드 =====
-
-    private void setupFirebaseMock() {
-        when(firebaseDatabase.getReference(anyString())).thenReturn(databaseReference);
-        when(databaseReference.child(anyString())).thenReturn(databaseReference);
-        when(databaseReference.setValueAsync(any())).thenReturn(null);
-    }
-
-    private void verifyFirebaseParticipants(Long... expectedIds) {
-        ArgumentCaptor<Map<String, Boolean>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(firebaseDatabase).getReference("chatrooms");
-        verify(databaseReference).setValueAsync(captor.capture());
-
-        Map<String, Boolean> savedMap = captor.getValue();
-        assertEquals(expectedIds.length, savedMap.size());
-        for (Long id : expectedIds) {
-            assertTrue(savedMap.containsKey(String.valueOf(id)));
-        }
-    }
-
     @Nested
     @DisplayName("1. createChatRoom() - 정상 케이스")
     class CreateChatRoomSuccessCases {
@@ -110,8 +86,6 @@ class ChatRoomServiceTest {
                 return ChatRoom.createForTest(1L, input.getRoomName());
             });
             when(chatPartRepository.save(any(ChatPart.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(chatPartRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-            setupFirebaseMock();
         }
 
         @Test
@@ -119,6 +93,7 @@ class ChatRoomServiceTest {
         void createChatRoomWithOneParticipant() {
             // given
             when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
+            when(chatPartRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
@@ -148,15 +123,31 @@ class ChatRoomServiceTest {
             List<ChatPart> savedParts = partsCaptor.getValue();
             assertEquals(1, savedParts.size());
             assertEquals(2L, savedParts.get(0).getUser().getUserId());
-
-            verifyFirebaseParticipants(1L, 2L);
         }
 
         @Test
-        @DisplayName("TC-1-2. participantIds에 여러 명 포함")
+        @DisplayName("TC-1-2. participantIds가 빈 리스트 (생성자만 참여)")
+        void createChatRoomWithNoOtherParticipants() {
+            // given: participantIds가 빈 리스트 → validateParticipants가 바로 List.of() 반환
+            // when
+            ChatRoomResponse response = chatRoomService.createChatRoom(1L,
+                    CreateChatRoomRequest.of("테스트방", List.of()));
+
+            // then
+            assertAll(
+                    () -> assertEquals(1, response.getParticipantIds().size()),
+                    () -> assertTrue(response.getParticipantIds().contains(1L))
+            );
+            verify(userRepository, never()).findAllById(any());
+            verify(chatPartRepository, never()).saveAll(any());
+        }
+
+        @Test
+        @DisplayName("TC-1-3. participantIds에 여러 명 포함")
         void createChatRoomWithMultipleParticipants() {
             // given
             when(userRepository.findAllById(List.of(2L, 3L))).thenReturn(List.of(participant1, participant2));
+            when(chatPartRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
@@ -177,8 +168,6 @@ class ChatRoomServiceTest {
             assertEquals(2, savedParts.size());
             assertTrue(savedParts.stream().anyMatch(cp -> cp.getUser().getUserId().equals(2L)));
             assertTrue(savedParts.stream().anyMatch(cp -> cp.getUser().getUserId().equals(3L)));
-
-            verifyFirebaseParticipants(1L, 2L, 3L);
         }
     }
 

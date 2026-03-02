@@ -20,6 +20,14 @@ public class UserController implements UserApiSpecification {
 
     private final UserService userService;
 
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteUser(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        userService.deleteUser(userDetails.getUserId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserProfileResponse> updateProfile(
             @AuthenticationPrincipal UserDetailsImpl userDetails,

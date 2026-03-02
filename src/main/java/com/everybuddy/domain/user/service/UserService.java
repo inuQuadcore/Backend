@@ -26,6 +26,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final StorageService storageService;
 
+    public void deleteUser(Long userId) {
+        User user = findActiveUser(userId);
+        user.softDelete();
+    }
+
     public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request, MultipartFile profileImage) {
         User user = findActiveUser(userId);
 

@@ -262,4 +262,53 @@ class UserServiceTest {
             );
         }
     }
+
+    @Nested
+    @DisplayName("5. deleteUser() - 성공 케이스")
+    class DeleteUserSuccessCases {
+
+        @Test
+        @DisplayName("TC-5-1. 정상 탈퇴 → softDelete 호출 검증")
+        void deleteUserSuccess() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // when
+            userService.deleteUser(1L);
+
+            // then
+            assertTrue(user.isDeleted());
+        }
+    }
+
+    @Nested
+    @DisplayName("6. deleteUser() - 실패 케이스")
+    class DeleteUserFailCases {
+
+        @Test
+        @DisplayName("TC-6-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.deleteUser(999L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-6-2. 이미 탈퇴한 유저 → USER_DELETED")
+        void userAlreadyDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.deleteUser(2L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+        }
+    }
 }

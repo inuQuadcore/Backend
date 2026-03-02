@@ -46,7 +46,8 @@ public class User {
 
     private String profile;
 
-    private String hobby;
+    @Column(length = 150)
+    private String bio;
 
     @Column(nullable = false)
     private LocalDate birthday;
@@ -63,7 +64,7 @@ public class User {
 
     @Builder
     private User(String loginId, String name, String password, Country country,
-                 Language language, Gender gender, String profile, String hobby, LocalDate birthday) {
+                 Language language, Gender gender, String profile, String bio, LocalDate birthday) {
         this.loginId = loginId;
         this.name = name;
         this.password = password;
@@ -71,7 +72,7 @@ public class User {
         this.language = language;
         this.gender = gender;
         this.profile = profile;
-        this.hobby = hobby;
+        this.bio = bio;
         this.birthday = birthday;
     }
 
@@ -99,6 +100,15 @@ public class User {
                 .build();
     }
 
+    public void updateProfile(String name, LocalDate birthday, Gender gender, Country country, String bio, String profileKey) {
+        if (name != null) this.name = name;
+        if (birthday != null) this.birthday = birthday;
+        if (gender != null) this.gender = gender;
+        if (country != null) this.country = country;
+        if (bio != null) this.bio = bio;
+        if (profileKey != null) this.profile = profileKey;
+    }
+
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
     }
@@ -121,6 +131,22 @@ public class User {
                 .language(language)
                 .gender(gender)
                 .birthday(birthday)
+                .build();
+        user.userId = userId;
+        return user;
+    }
+
+    public static User createForTest(Long userId, String loginId, String name, String password,
+                                    Country country, Language language, Gender gender, LocalDate birthday, String bio) {
+        User user = User.builder()
+                .loginId(loginId)
+                .name(name)
+                .password(password)
+                .country(country)
+                .language(language)
+                .gender(gender)
+                .birthday(birthday)
+                .bio(bio)
                 .build();
         user.userId = userId;
         return user;

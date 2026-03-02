@@ -1,6 +1,7 @@
 package com.everybuddy.domain.user.controller;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.service.UserService;
 import com.everybuddy.global.security.UserDetailsImpl;
@@ -19,6 +20,15 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController implements UserApiSpecification {
 
     private final UserService userService;
+
+    @PatchMapping("/me/languages")
+    public ResponseEntity<Void> updateLanguageLevel(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @RequestBody UserLanguageRequest request) {
+
+        userService.updateLanguageLevel(userDetails.getUserId(), request);
+        return ResponseEntity.noContent().build();
+    }
 
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteUser(

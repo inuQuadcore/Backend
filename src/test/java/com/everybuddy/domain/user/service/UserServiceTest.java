@@ -1,11 +1,14 @@
 package com.everybuddy.domain.user.service;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.domain.user.entity.User;
+import com.everybuddy.domain.user.entity.UserLanguage;
+import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
@@ -32,6 +35,7 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private UserLanguageRepository userLanguageRepository;
     @Mock private StorageService storageService;
 
     @InjectMocks
@@ -39,6 +43,7 @@ class UserServiceTest {
 
     private User user;
     private User deletedUser;
+    private UserLanguage userLanguage;
 
     @BeforeEach
     void setUp() {
@@ -48,6 +53,8 @@ class UserServiceTest {
         deletedUser = User.createForTest(2L, "deleted", "삭제된유저", "password",
                 Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1992, 1, 1));
         deletedUser.softDelete();
+
+        userLanguage = UserLanguage.of(user, Language.ENGLISH, 2);
     }
 
     @Nested
@@ -309,6 +316,95 @@ class UserServiceTest {
                     () -> userService.deleteUser(2L));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("7. updateLanguageLevel() - 성공 케이스")
+    class UpdateLanguageLevelSuccessCases {
+
+        @Test
+        @DisplayName("TC-7-1. 정상 레벨 수정")
+        void updateLanguageLevelSuccess() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.ENGLISH))
+                    .thenReturn(Optional.of(userLanguage));
+
+            UserLanguageRequest request = mock(UserLanguageRequest.class);
+            when(request.getLanguage()).thenReturn("ENGLISH");
+            when(request.getLevel()).thenReturn(4);
+
+            // when
+            userService.updateLanguageLevel(1L, request);
+
+            // then
+            assertEquals(4, userLanguage.getLevel());
+        }
+    }
+
+    @Nested
+    @DisplayName("8. updateLanguageLevel() - 실패 케이스")
+    class UpdateLanguageLevelFailCases {
+
+        @Test
+        @DisplayName("TC-8-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateLanguageLevel(999L, mock(UserLanguageRequest.class)));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-8-2. 탈퇴한 유저 → USER_DELETED")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateLanguageLevel(2L, mock(UserLanguageRequest.class)));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-8-3. 잘못된 language 값 → INVALID_INPUT_VALUE")
+        void invalidLanguage() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            UserLanguageRequest request = mock(UserLanguageRequest.class);
+            when(request.getLanguage()).thenReturn("INVALID_LANGUAGE");
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateLanguageLevel(1L, request));
+
+            assertEquals(ErrorCode.INVALID_INPUT_VALUE, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-8-4. 관심 언어 목록에 없는 언어 → USER_LANGUAGE_NOT_FOUND")
+        void languageNotInUserList() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.JAPANESE))
+                    .thenReturn(Optional.empty());
+
+            UserLanguageRequest request = mock(UserLanguageRequest.class);
+            when(request.getLanguage()).thenReturn("JAPANESE");
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateLanguageLevel(1L, request));
+
+            assertEquals(ErrorCode.USER_LANGUAGE_NOT_FOUND, ex.getErrorCode());
         }
     }
 }

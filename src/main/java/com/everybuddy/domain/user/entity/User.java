@@ -135,20 +135,4 @@ public class User {
         user.userId = userId;
         return user;
     }
-
-    public static User createForTest(Long userId, String loginId, String name, String password,
-                                    Country country, Language language, Gender gender, LocalDate birthday, String bio) {
-        User user = User.builder()
-                .loginId(loginId)
-                .name(name)
-                .password(password)
-                .country(country)
-                .language(language)
-                .gender(gender)
-                .birthday(birthday)
-                .bio(bio)
-                .build();
-        user.userId = userId;
-        return user;
-    }
 }

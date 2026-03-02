@@ -1,10 +1,14 @@
 package com.everybuddy.domain.user.service;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
+import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.domain.user.entity.User;
+import com.everybuddy.domain.user.entity.UserLanguage;
+import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
@@ -24,7 +28,21 @@ import java.time.format.DateTimeParseException;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserLanguageRepository userLanguageRepository;
     private final StorageService storageService;
+
+    public void updateLanguageLevel(Long userId, UserLanguageRequest request) {
+        findActiveUser(userId);
+
+        Language language = EnumConverter.stringToEnum(
+                request.getLanguage(), Language.class, ErrorCode.INVALID_INPUT_VALUE);
+
+        UserLanguage userLanguage = userLanguageRepository
+                .findByUserUserIdAndLanguage(userId, language)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_LANGUAGE_NOT_FOUND));
+
+        userLanguage.updateLevel(request.getLevel());
+    }
 
     public void deleteUser(Long userId) {
         User user = findActiveUser(userId);

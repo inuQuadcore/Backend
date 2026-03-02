@@ -1,6 +1,7 @@
 package com.everybuddy.global.swagger;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
@@ -67,6 +68,89 @@ public interface UserApiSpecification {
             )
     })
     ResponseEntity<Void> deleteUser(@AuthenticationPrincipal UserDetailsImpl userDetails);
+
+    @Operation(summary = "관심 언어 수준 수정", description = "관심 언어 목록에 있는 언어의 수준(1~5)을 수정합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "수정 성공"),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "잘못된 언어 값", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "수준 범위 초과", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다.",
+                                        "errors": {
+                                            "level": "언어 수준은 1 이상이어야 합니다."
+                                        }
+                                    }
+                                    """),
+                                    @ExampleObject(name = "수준 범위 초과", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다.",
+                                        "errors": {
+                                            "level": "언어 수준은 5 이하여야 합니다."
+                                        }
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "관심 언어 목록에 없는 언어",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_LANGUAGE_NOT_FOUND",
+                        "message": "해당 언어가 관심 언어 목록에 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<Void> updateLanguageLevel(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @RequestBody UserLanguageRequest request
+    );
 
     @Operation(
             summary = "프로필 수정",

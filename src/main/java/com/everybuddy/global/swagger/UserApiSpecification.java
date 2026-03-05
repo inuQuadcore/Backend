@@ -1,6 +1,7 @@
 package com.everybuddy.global.swagger;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.global.exception.ErrorResponse;
@@ -23,6 +24,67 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "유저 API", description = "유저 프로필 관련 기능")
 public interface UserApiSpecification {
+
+    @Operation(summary = "태그 수정", description = "유저의 태그 목록을 전달된 목록으로 교체합니다. 빈 리스트 전송 시 전체 삭제됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "수정 성공"),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 400,
+                        "name": "INVALID_INPUT_VALUE",
+                        "message": "잘못된 입력입니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<Void> updateTags(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @RequestBody UpdateTagsRequest request
+    );
 
     @Operation(summary = "회원 탈퇴", description = "현재 로그인한 유저를 탈퇴 처리합니다.")
     @ApiResponses({

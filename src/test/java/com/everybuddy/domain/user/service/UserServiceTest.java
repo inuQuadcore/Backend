@@ -1,15 +1,19 @@
 package com.everybuddy.domain.user.service;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
+import com.everybuddy.domain.user.entity.Tag;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.entity.UserLanguage;
+import com.everybuddy.domain.user.entity.UserTag;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.domain.user.repository.UserTagRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
@@ -18,12 +22,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +43,7 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserLanguageRepository userLanguageRepository;
+    @Mock private UserTagRepository userTagRepository;
     @Mock private StorageService storageService;
 
     @InjectMocks
@@ -405,6 +413,118 @@ class UserServiceTest {
                     () -> userService.updateLanguageLevel(1L, request));
 
             assertEquals(ErrorCode.USER_LANGUAGE_NOT_FOUND, ex.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("9. updateTags() - 성공 케이스")
+    class UpdateTagsSuccessCases {
+
+        @BeforeEach
+        void setUpMocks() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        }
+
+        @Test
+        @DisplayName("TC-9-1. 유효한 태그 목록 전달 → delete 먼저 호출 후 saveAll, 태그 올바르게 변환됨")
+        void updateTagsSuccess() {
+            // given
+            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+            when(request.getTags()).thenReturn(List.of("SPORTS", "INTJ", "MOVIES"));
+
+            // when
+            userService.updateTags(1L, request);
+
+            // then: delete → saveAll 순서 보장
+            InOrder inOrder = inOrder(userTagRepository);
+            inOrder.verify(userTagRepository).deleteAllTagsByUserId(1L);
+            inOrder.verify(userTagRepository).saveAll(any());
+
+            // then: 저장된 UserTag 내용 검증
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<UserTag>> captor = ArgumentCaptor.forClass(List.class);
+            verify(userTagRepository).saveAll(captor.capture());
+
+            List<UserTag> saved = captor.getValue();
+            assertAll(
+                    () -> assertEquals(3, saved.size()),
+                    () -> assertEquals(Tag.SPORTS, saved.get(0).getTag()),
+                    () -> assertEquals(Tag.INTJ, saved.get(1).getTag()),
+                    () -> assertEquals(Tag.MOVIES, saved.get(2).getTag()),
+                    () -> saved.forEach(ut -> assertEquals(user, ut.getUser()))
+            );
+        }
+
+        @Test
+        @DisplayName("TC-9-2. 빈 리스트 전달 → 기존 태그 전체 삭제, saveAll에 빈 리스트 전달")
+        void updateTagsWithEmptyList() {
+            // given
+            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+            when(request.getTags()).thenReturn(List.of());
+
+            // when
+            userService.updateTags(1L, request);
+
+            // then
+            verify(userTagRepository).deleteAllTagsByUserId(1L);
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<UserTag>> captor = ArgumentCaptor.forClass(List.class);
+            verify(userTagRepository).saveAll(captor.capture());
+            assertTrue(captor.getValue().isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("10. updateTags() - 실패 케이스")
+    class UpdateTagsFailCases {
+
+        @Test
+        @DisplayName("TC-10-1. 존재하지 않는 유저 → USER_NOT_FOUND, delete 미호출")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateTags(999L, request));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(userTagRepository, never()).deleteAllTagsByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-10-2. 탈퇴한 유저 → USER_DELETED, delete 미호출")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateTags(2L, request));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(userTagRepository, never()).deleteAllTagsByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-10-3. 유효하지 않은 태그 문자열 → INVALID_INPUT_VALUE")
+        void invalidTagString() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+            when(request.getTags()).thenReturn(List.of("SPORTS", "INVALID_TAG"));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.updateTags(1L, request));
+
+            assertEquals(ErrorCode.INVALID_INPUT_VALUE, ex.getErrorCode());
         }
     }
 }

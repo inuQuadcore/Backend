@@ -1,6 +1,7 @@
 package com.everybuddy.domain.user.controller;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.service.UserService;
@@ -27,6 +28,15 @@ public class UserController implements UserApiSpecification {
             @Valid @RequestBody UserLanguageRequest request) {
 
         userService.updateLanguageLevel(userDetails.getUserId(), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/me/tags")
+    public ResponseEntity<Void> updateTags(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @RequestBody UpdateTagsRequest request) {
+
+        userService.updateTags(userDetails.getUserId(), request);
         return ResponseEntity.noContent().build();
     }
 

@@ -1,15 +1,19 @@
 package com.everybuddy.domain.user.service;
 
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
+import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
+import com.everybuddy.domain.user.entity.Tag;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.entity.UserLanguage;
+import com.everybuddy.domain.user.entity.UserTag;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.domain.user.repository.UserTagRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
@@ -21,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 
 @Service
 @Transactional
@@ -29,6 +34,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserLanguageRepository userLanguageRepository;
+    private final UserTagRepository userTagRepository;
     private final StorageService storageService;
 
     public void updateLanguageLevel(Long userId, UserLanguageRequest request) {
@@ -43,6 +49,17 @@ public class UserService {
 
         userLanguage.updateLevel(request.getLevel());
     }
+
+    public void updateTags(Long userId, UpdateTagsRequest request) {
+        User user = findActiveUser(userId);
+
+        userTagRepository.deleteAllTagsByUserId(userId);
+
+        List<UserTag> userTags = getUserTags(request, user);
+
+        userTagRepository.saveAll(userTags);
+    }
+
 
     public void deleteUser(Long userId) {
         User user = findActiveUser(userId);
@@ -113,4 +130,12 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
     }
+
+    private List<UserTag> getUserTags(UpdateTagsRequest request, User user) {
+        return request.getTags().stream()
+                .map(tagStr -> EnumConverter.stringToEnum(tagStr, Tag.class, ErrorCode.INVALID_INPUT_VALUE))
+                .map(tag -> UserTag.of(user, tag))
+                .toList();
+    }
+
 }

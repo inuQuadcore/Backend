@@ -9,7 +9,7 @@ import lombok.Getter;
 @Schema(description = "회원가입 요청")
 public class RegisterRequest {
 
-    @Schema(description = "로그인 ID", example = "user123")
+    @Schema(description = "로그인 Email", example = "babo@gmail.com")
     @NotBlank(message = "ID를 입력해주세요.")
     private String loginId;
 

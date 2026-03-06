@@ -115,9 +115,12 @@ public class FirebaseEventHandler {
         future.addListener(() -> {
             try {
                 future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Firebase 쓰기 인터럽트 - {}", context, e);
             } catch (Exception e) {
                 log.error("Firebase 쓰기 실패 - {}", context, e);
             }
-        }, command -> command.run());
+        }, Runnable::run);
     }
 }

@@ -46,7 +46,8 @@ public class User {
 
     private String profile;
 
-    private String hobby;
+    @Column(length = 150)
+    private String bio;
 
     @Column(nullable = false)
     private LocalDate birthday;
@@ -55,13 +56,15 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    private LocalDateTime deletedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Gender gender;
 
     @Builder
     private User(String loginId, String name, String password, Country country,
-                 Language language, Gender gender, String profile, String hobby, LocalDate birthday) {
+                 Language language, Gender gender, String profile, String bio, LocalDate birthday) {
         this.loginId = loginId;
         this.name = name;
         this.password = password;
@@ -69,7 +72,7 @@ public class User {
         this.language = language;
         this.gender = gender;
         this.profile = profile;
-        this.hobby = hobby;
+        this.bio = bio;
         this.birthday = birthday;
     }
 
@@ -95,5 +98,41 @@ public class User {
                 .gender(gender)
                 .birthday(birthday)
                 .build();
+    }
+
+    public void updateProfile(String name, LocalDate birthday, Gender gender, Country country, String bio, String profileKey) {
+        if (name != null) this.name = name;
+        if (birthday != null) this.birthday = birthday;
+        if (gender != null) this.gender = gender;
+        if (country != null) this.country = country;
+        if (bio != null) this.bio = bio;
+        if (profileKey != null) this.profile = profileKey;
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
+    /**
+     * 테스트용 정적 팩토리 메서드
+     * userId를 명시적으로 설정할 수 있습니다.
+     */
+    public static User createForTest(Long userId, String loginId, String name, String password,
+                                    Country country, Language language, Gender gender, LocalDate birthday) {
+        User user = User.builder()
+                .loginId(loginId)
+                .name(name)
+                .password(password)
+                .country(country)
+                .language(language)
+                .gender(gender)
+                .birthday(birthday)
+                .build();
+        user.userId = userId;
+        return user;
     }
 }

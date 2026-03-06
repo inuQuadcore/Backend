@@ -5,24 +5,25 @@ import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
+import com.everybuddy.domain.chatroom.event.ChatRoomCreatedEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatRoomService {
@@ -31,20 +32,28 @@ public class ChatRoomService {
     private final ChatPartRepository chatPartRepository;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
-    private final FirebaseDatabase firebaseDatabase;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ChatRoomResponse createChatRoom(Long creatorId, CreateChatRoomRequest request) {
-        ChatRoom chatRoom = ChatRoom.create(request.getRoomName());
-        chatRoomRepository.save(chatRoom);
-
-        User user = userRepository.findById(creatorId)
+        // 1. 검증
+        User creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // 성능 개선 필요
-        List<Long> allParticipantIds = addAllParticipants(user, chatRoom, request.getParticipantIds());
+        if (creator.isDeleted()) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
 
-        saveParticipantsToFirebase(chatRoom.getChatRoomId(), allParticipantIds);
+        List<User> participants = validateParticipants(request.getParticipantIds());
+
+        // 2. 저장
+        ChatRoom chatRoom = ChatRoom.create(request.getRoomName());
+        chatRoom = chatRoomRepository.save(chatRoom);
+
+        List<Long> allParticipantIds = saveAllParticipants(creator, chatRoom, participants);
+
+        // 3. Firebase: 커밋 성공 후 동기화
+        eventPublisher.publishEvent(ChatRoomCreatedEvent.of(chatRoom.getChatRoomId(), allParticipantIds));
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);
     }
@@ -62,27 +71,39 @@ public class ChatRoomService {
         return buildChatRoomResponses(myChatParts, participantsMap);
     }
 
-    private List<Long> addAllParticipants(User creator, ChatRoom chatRoom, List<Long> otherParticipantIds) {
-        ChatPart creatorPart = ChatPart.create(creator, chatRoom);
-        chatPartRepository.save(creatorPart);
-
-        List<ChatPart> otherChatParts = saveOtherParticipants(chatRoom, otherParticipantIds);
-
-        return extractAllParticipantIds(creatorPart, otherChatParts);
-    }
-
-
-    private List<ChatPart> saveOtherParticipants(ChatRoom chatRoom, List<Long> participantIds) {
+    private List<User> validateParticipants(List<Long> participantIds) {
         if (participantIds == null || participantIds.isEmpty()) {
             return List.of();
         }
 
         List<User> participants = userRepository.findAllById(participantIds);
-        List<ChatPart> chatParts = participants.stream()
-                .map(user -> ChatPart.create(user, chatRoom))
-                .toList();
 
-        return chatPartRepository.saveAll(chatParts);
+        if (participants.size() != participantIds.size()) {
+            throw new CustomException(ErrorCode.PARTICIPANT_NOT_FOUND);
+        }
+
+        boolean hasDeletedUser = participants.stream()
+                .anyMatch(User::isDeleted);
+        if (hasDeletedUser) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
+
+        return participants;
+    }
+
+    private List<Long> saveAllParticipants(User creator, ChatRoom chatRoom, List<User> participants) {
+        ChatPart creatorPart = ChatPart.create(creator, chatRoom);
+        chatPartRepository.save(creatorPart);
+
+        List<ChatPart> otherChatParts = List.of();
+        if (!participants.isEmpty()) {
+            otherChatParts = participants.stream()
+                    .map(user -> ChatPart.create(user, chatRoom))
+                    .toList();
+            chatPartRepository.saveAll(otherChatParts);
+        }
+
+        return extractAllParticipantIds(creatorPart, otherChatParts);
     }
 
     private List<Long> extractAllParticipantIds(ChatPart creatorPart, List<ChatPart> otherChatParts) {
@@ -142,22 +163,5 @@ public class ChatRoomService {
         }
 
         return responses;
-    }
-
-    private void saveParticipantsToFirebase(Long chatRoomId, List<Long> participantIds) {
-        DatabaseReference participantsRef = firebaseDatabase.getReference("chatrooms")
-                .child(String.valueOf(chatRoomId))
-                .child("participants");
-
-        Map<String, Boolean> participantsMap = createParticipantsMap(participantIds);
-        participantsRef.setValueAsync(participantsMap);
-    }
-
-    private Map<String, Boolean> createParticipantsMap(List<Long> participantIds) {
-        Map<String, Boolean> participantsMap = new HashMap<>();
-        for (Long participantId : participantIds) {
-            participantsMap.put(String.valueOf(participantId), true);
-        }
-        return participantsMap;
     }
 }

@@ -20,4 +20,11 @@ public class UserLanguageRequest {
     @Min(value = 1, message = "언어 수준은 1 이상이어야 합니다.")
     @Max(value = 5, message = "언어 수준은 5 이하여야 합니다.")
     private Integer level;
+
+    public static UserLanguageRequest of(String language, Integer level) {
+        UserLanguageRequest request = new UserLanguageRequest();
+        request.language = language;
+        request.level = level;
+        return request;
+    }
 }

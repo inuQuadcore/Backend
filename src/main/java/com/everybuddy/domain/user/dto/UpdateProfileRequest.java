@@ -23,4 +23,14 @@ public class UpdateProfileRequest {
     @Schema(description = "자기소개 (최대 150자)", example = "안녕하세요!")
     @Size(max = 150, message = "자기소개는 150자 이내로 입력해주세요.")
     private String bio;
+
+    public static UpdateProfileRequest of(String name, String birthday, String gender, String country, String bio) {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.name = name;
+        request.birthday = birthday;
+        request.gender = gender;
+        request.country = country;
+        request.bio = bio;
+        return request;
+    }
 }

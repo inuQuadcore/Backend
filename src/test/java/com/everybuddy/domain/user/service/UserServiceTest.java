@@ -78,12 +78,7 @@ class UserServiceTest {
         @DisplayName("TC-1-1. 텍스트 필드만 수정 (이미지 없음)")
         void updateTextFieldsOnly() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
-            when(request.getName()).thenReturn("김철수");
-            when(request.getBirthday()).thenReturn("1995-06-15");
-            when(request.getGender()).thenReturn("FEMALE");
-            when(request.getCountry()).thenReturn("USA");
-            when(request.getBio()).thenReturn("안녕하세요");
+            UpdateProfileRequest request = UpdateProfileRequest.of("김철수", "1995-06-15", "FEMALE", "USA", "안녕하세요");
 
             // when
             UserProfileResponse response = userService.updateProfile(1L, request, null);
@@ -106,9 +101,7 @@ class UserServiceTest {
         @DisplayName("TC-1-2. 일부 필드만 수정 (null 필드는 기존 값 유지)")
         void updatePartialFields() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
-            when(request.getName()).thenReturn("김철수");
-            // birthday, gender, country, bio → null (Mockito 기본값)
+            UpdateProfileRequest request = UpdateProfileRequest.of("김철수", null, null, null, null);
 
             // when
             UserProfileResponse response = userService.updateProfile(1L, request, null);
@@ -126,7 +119,7 @@ class UserServiceTest {
         @DisplayName("TC-1-3. 이미지 포함 수정, 기존 이미지 없음")
         void updateWithNewImageNoExistingImage() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage)).thenReturn("profiles/user-1/new.jpg");
@@ -147,7 +140,7 @@ class UserServiceTest {
             // given: 기존 프로필 이미지 세팅
             user.updateProfile(null, null, null, null, null, "profiles/user-1/old.jpg");
 
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage)).thenReturn("profiles/user-1/new.jpg");
@@ -174,8 +167,9 @@ class UserServiceTest {
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
             // when & then
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
             CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateProfile(999L, mock(UpdateProfileRequest.class), null));
+                    () -> userService.updateProfile(999L, request, null));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
             verify(storageService, never()).uploadProfileImage(any(), any());
@@ -188,8 +182,9 @@ class UserServiceTest {
             when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
 
             // when & then
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
             CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateProfile(2L, mock(UpdateProfileRequest.class), null));
+                    () -> userService.updateProfile(2L, request, null));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
             verify(storageService, never()).uploadProfileImage(any(), any());
@@ -209,8 +204,7 @@ class UserServiceTest {
         @DisplayName("TC-3-1. 잘못된 gender 값 → INVALID_INPUT_VALUE")
         void invalidGender() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
-            when(request.getGender()).thenReturn("INVALID_GENDER");
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, "INVALID_GENDER", null, null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -223,8 +217,7 @@ class UserServiceTest {
         @DisplayName("TC-3-2. 잘못된 country 값 → INVALID_INPUT_VALUE")
         void invalidCountry() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
-            when(request.getCountry()).thenReturn("INVALID_COUNTRY");
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, "INVALID_COUNTRY", null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -237,8 +230,7 @@ class UserServiceTest {
         @DisplayName("TC-3-3. 잘못된 birthday 형식 → INVALID_INPUT_VALUE")
         void invalidBirthday() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
-            when(request.getBirthday()).thenReturn("2000/01/01");
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, "2000/01/01", null, null, null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -261,7 +253,7 @@ class UserServiceTest {
         @DisplayName("TC-4-1. S3 업로드 실패 → S3_CONNECTION_ERROR, DB 업데이트 안 됨")
         void s3UploadFails() {
             // given
-            UpdateProfileRequest request = mock(UpdateProfileRequest.class);
+            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage))
@@ -339,9 +331,7 @@ class UserServiceTest {
             when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.ENGLISH))
                     .thenReturn(Optional.of(userLanguage));
 
-            UserLanguageRequest request = mock(UserLanguageRequest.class);
-            when(request.getLanguage()).thenReturn("ENGLISH");
-            when(request.getLevel()).thenReturn(4);
+            UserLanguageRequest request = UserLanguageRequest.of("ENGLISH", 4);
 
             // when
             userService.updateLanguageLevel(1L, request);
@@ -362,8 +352,9 @@ class UserServiceTest {
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
             // when & then
+            UserLanguageRequest request = UserLanguageRequest.of(null, null);
             CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateLanguageLevel(999L, mock(UserLanguageRequest.class)));
+                    () -> userService.updateLanguageLevel(999L, request));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
@@ -375,8 +366,9 @@ class UserServiceTest {
             when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
 
             // when & then
+            UserLanguageRequest request = UserLanguageRequest.of(null, null);
             CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateLanguageLevel(2L, mock(UserLanguageRequest.class)));
+                    () -> userService.updateLanguageLevel(2L, request));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
         }
@@ -387,8 +379,7 @@ class UserServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            UserLanguageRequest request = mock(UserLanguageRequest.class);
-            when(request.getLanguage()).thenReturn("INVALID_LANGUAGE");
+            UserLanguageRequest request = UserLanguageRequest.of("INVALID_LANGUAGE", null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -405,8 +396,7 @@ class UserServiceTest {
             when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.JAPANESE))
                     .thenReturn(Optional.empty());
 
-            UserLanguageRequest request = mock(UserLanguageRequest.class);
-            when(request.getLanguage()).thenReturn("JAPANESE");
+            UserLanguageRequest request = UserLanguageRequest.of("JAPANESE", null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -429,21 +419,17 @@ class UserServiceTest {
         @DisplayName("TC-9-1. 유효한 태그 목록 전달 → delete 먼저 호출 후 saveAll, 태그 올바르게 변환됨")
         void updateTagsSuccess() {
             // given
-            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
-            when(request.getTags()).thenReturn(List.of("SPORTS", "INTJ", "MOVIES"));
+            UpdateTagsRequest request = UpdateTagsRequest.of(List.of("SPORTS", "INTJ", "MOVIES"));
 
             // when
             userService.updateTags(1L, request);
 
-            // then: delete → saveAll 순서 보장
-            InOrder inOrder = inOrder(userTagRepository);
-            inOrder.verify(userTagRepository).deleteAllTagsByUserId(1L);
-            inOrder.verify(userTagRepository).saveAll(any());
-
-            // then: 저장된 UserTag 내용 검증
+            // then: delete → saveAll 순서 보장 + 저장된 UserTag 내용 검증
             @SuppressWarnings("unchecked")
             ArgumentCaptor<List<UserTag>> captor = ArgumentCaptor.forClass(List.class);
-            verify(userTagRepository).saveAll(captor.capture());
+            InOrder inOrder = inOrder(userTagRepository);
+            inOrder.verify(userTagRepository).deleteAllTagsByUserId(1L);
+            inOrder.verify(userTagRepository).saveAll(captor.capture());
 
             List<UserTag> saved = captor.getValue();
             assertAll(
@@ -459,8 +445,7 @@ class UserServiceTest {
         @DisplayName("TC-9-2. 빈 리스트 전달 → 기존 태그 전체 삭제, saveAll에 빈 리스트 전달")
         void updateTagsWithEmptyList() {
             // given
-            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
-            when(request.getTags()).thenReturn(List.of());
+            UpdateTagsRequest request = UpdateTagsRequest.of(List.of());
 
             // when
             userService.updateTags(1L, request);
@@ -485,7 +470,7 @@ class UserServiceTest {
             // given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+            UpdateTagsRequest request = UpdateTagsRequest.of(List.of());
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -501,7 +486,7 @@ class UserServiceTest {
             // given
             when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
 
-            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
+            UpdateTagsRequest request = UpdateTagsRequest.of(List.of());
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -517,14 +502,14 @@ class UserServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            UpdateTagsRequest request = mock(UpdateTagsRequest.class);
-            when(request.getTags()).thenReturn(List.of("SPORTS", "INVALID_TAG"));
+            UpdateTagsRequest request = UpdateTagsRequest.of(List.of("SPORTS", "INVALID_TAG"));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
                     () -> userService.updateTags(1L, request));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, ex.getErrorCode());
+            verify(userTagRepository).deleteAllTagsByUserId(1L);
         }
     }
 }

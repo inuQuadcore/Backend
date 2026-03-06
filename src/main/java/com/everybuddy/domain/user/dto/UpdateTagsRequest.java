@@ -13,4 +13,10 @@ public class UpdateTagsRequest {
     @Schema(description = "태그 목록 (빈 리스트 전송 시 전체 삭제)", example = "[\"SPORTS\", \"INTJ\", \"MOVIES\"]")
     @NotNull(message = "태그 목록을 입력해주세요.")
     private List<String> tags;
+
+    public static UpdateTagsRequest of(List<String> tags) {
+        UpdateTagsRequest request = new UpdateTagsRequest();
+        request.tags = tags;
+        return request;
+    }
 }

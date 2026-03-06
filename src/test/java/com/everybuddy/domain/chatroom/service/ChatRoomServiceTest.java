@@ -35,7 +35,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ChatRoomService 단위 테스트")
@@ -138,6 +140,9 @@ class ChatRoomServiceTest {
                     () -> assertEquals(1, response.getParticipantIds().size()),
                     () -> assertTrue(response.getParticipantIds().contains(1L))
             );
+            ArgumentCaptor<ChatPart> chatPartCaptor = ArgumentCaptor.forClass(ChatPart.class);
+            verify(chatPartRepository).save(chatPartCaptor.capture());
+            assertEquals(1L, chatPartCaptor.getValue().getUser().getUserId());
             verify(userRepository, never()).findAllById(any());
             verify(chatPartRepository, never()).saveAll(any());
         }
@@ -321,7 +326,9 @@ class ChatRoomServiceTest {
                     () -> assertEquals(7L, responses.get(1).getUnreadCount()),
                     () -> assertEquals(0L, responses.get(2).getUnreadCount())
             );
-            verify(messageRepository, times(3)).countUnreadMessages(any(), any());
+            verify(messageRepository).countUnreadMessages(1L, null);
+            verify(messageRepository).countUnreadMessages(2L, null);
+            verify(messageRepository).countUnreadMessages(3L, null);
         }
 
         @Test

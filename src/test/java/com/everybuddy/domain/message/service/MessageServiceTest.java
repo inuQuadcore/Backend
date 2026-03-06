@@ -23,6 +23,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -268,49 +271,20 @@ class MessageServiceTest {
             verify(storageService, never()).uploadChatFile(any(), any());
         }
 
-        @Test
-        @DisplayName("TC-3-2. TEXT 타입인데 content가 null")
-        void textMessageWithNullContent() {
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"   "})
+        @DisplayName("TC-3-2/3-3/3-4. TEXT 타입인데 content가 null/빈 문자열/공백")
+        void textMessageWithBlankOrNullContent(String content) {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            ChatMessageRequest request = ChatMessageRequest.of(1L, content);
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, null), null));
-
-            assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
-            verify(messageRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("TC-3-3. TEXT 타입인데 content가 빈 문자열")
-        void textMessageWithEmptyContent() {
-            // given
-            when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
-
-            // when & then
-            CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, ""), null));
-
-            assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
-            verify(messageRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("TC-3-4. TEXT 타입인데 content가 공백만")
-        void textMessageWithBlankContent() {
-            // given
-            when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
-
-            // when & then
-            CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, "   "), null));
+                    () -> messageService.sendMessage(1L, request, null));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
             verify(messageRepository, never()).save(any());
@@ -437,8 +411,8 @@ class MessageServiceTest {
                     "삭제할 메시지", LocalDateTime.now());
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
-            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(1L));
-            when(chatPartRepository.findByChatRoomIdWithUser(any()))
+            when(messageRepository.findLastMessageId(testChatRoom)).thenReturn(Optional.of(1L));
+            when(chatPartRepository.findByChatRoomIdWithUser(testChatRoom.getChatRoomId()))
                     .thenReturn(List.of(ChatPart.create(testUser, testChatRoom)));
 
             // when
@@ -457,7 +431,7 @@ class MessageServiceTest {
                     "삭제할 메시지", LocalDateTime.now());
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
-            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(2L));
+            when(messageRepository.findLastMessageId(testChatRoom)).thenReturn(Optional.of(2L));
 
             // when
             messageService.deleteMessage(testUser.getUserId(), 1L);
@@ -479,8 +453,8 @@ class MessageServiceTest {
                     media, MessageType.FILE, LocalDateTime.now());
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
-            when(messageRepository.findLastMessageId(any())).thenReturn(Optional.of(1L));
-            when(chatPartRepository.findByChatRoomIdWithUser(any()))
+            when(messageRepository.findLastMessageId(testChatRoom)).thenReturn(Optional.of(1L));
+            when(chatPartRepository.findByChatRoomIdWithUser(testChatRoom.getChatRoomId()))
                     .thenReturn(List.of(ChatPart.create(testUser, testChatRoom)));
 
             // when
@@ -489,6 +463,7 @@ class MessageServiceTest {
             // then
             assertTrue(message.isDeleted());
             assertTrue(message.getMedia().isDeleted());
+            verify(chatPartRepository).findByChatRoomIdWithUser(testChatRoom.getChatRoomId());
         }
     }
 

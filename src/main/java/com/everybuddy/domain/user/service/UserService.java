@@ -42,8 +42,6 @@ public class UserService {
     private final StorageService storageService;
 
     public void updateLanguageLevel(Long userId, UserLanguageRequest request) {
-        findActiveUser(userId);
-
         Language language = EnumConverter.stringToEnum(
                 request.getLanguage(), Language.class, ErrorCode.INVALID_INPUT_VALUE);
 
@@ -55,11 +53,11 @@ public class UserService {
     }
 
     public void updateTags(Long userId, UpdateTagsRequest request) {
-        User user = findActiveUser(userId);
+        User user = findUser(userId);
 
         userTagRepository.deleteAllTagsByUserId(userId);
 
-        List<UserTag> userTags = getUserTags(request, user);
+        List<UserTag> userTags = getRequestUserTags(request, user);
 
         userTagRepository.saveAll(userTags);
     }
@@ -75,9 +73,7 @@ public class UserService {
     public List<UserTagResponse> getUserTags(Long userId) {
         findActiveUser(userId);
 
-        return userTagRepository.findAllByUserId(userId).stream()
-                .map(UserTagResponse::from)
-                .toList();
+        return getUserTagResponses(userId);
     }
 
     @Transactional(readOnly = true)
@@ -91,12 +87,12 @@ public class UserService {
 
 
     public void deleteUser(Long userId) {
-        User user = findActiveUser(userId);
+        User user = findUser(userId);
         user.softDelete();
     }
 
     public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request, MultipartFile profileImage) {
-        User user = findActiveUser(userId);
+        User user = findUser(userId);
 
         String newProfileKey = uploadNewProfileImage(userId, profileImage);
         String oldProfileKey = user.getProfile();
@@ -122,6 +118,11 @@ public class UserService {
             throw new CustomException(ErrorCode.USER_DELETED);
         }
         return user;
+    }
+
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 
     private String uploadNewProfileImage(Long userId, MultipartFile profileImage) {
@@ -160,7 +161,7 @@ public class UserService {
         }
     }
 
-    private List<UserTag> getUserTags(UpdateTagsRequest request, User user) {
+    private List<UserTag> getRequestUserTags(UpdateTagsRequest request, User user) {
         return request.getTags().stream()
                 .map(tagStr -> EnumConverter.stringToEnum(tagStr, Tag.class, ErrorCode.INVALID_INPUT_VALUE))
                 .map(tag -> UserTag.of(user, tag))
@@ -173,4 +174,9 @@ public class UserService {
                 .toList();
     }
 
+    private List<UserTagResponse> getUserTagResponses(Long userId) {
+        return userTagRepository.findAllByUserId(userId).stream()
+                .map(UserTagResponse::from)
+                .toList();
+    }
 }

@@ -4,6 +4,7 @@ import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
@@ -510,6 +511,146 @@ class UserServiceTest {
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, ex.getErrorCode());
             verify(userTagRepository).deleteAllTagsByUserId(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("11. getUserTags() - 성공 케이스")
+    class GetUserTagsSuccessCases {
+
+        private User targetUser;
+
+        @BeforeEach
+        void setUp() {
+            targetUser = User.createForTest(3L, "target", "대상유저", "password",
+                    Country.USA, Language.ENGLISH, Gender.FEMALE, LocalDate.of(1995, 5, 5));
+        }
+
+        @Test
+        @DisplayName("TC-11-1. 태그가 있는 대상 유저 조회 → tag, category 포함 목록 반환")
+        void getUserTagsSuccess() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+            List<UserTag> targetTags = List.of(
+                    UserTag.of(targetUser, Tag.TRAVEL),
+                    UserTag.of(targetUser, Tag.KOREAN_FOOD)
+            );
+            when(userTagRepository.findAllByUserId(3L)).thenReturn(targetTags);
+
+            // when
+            List<UserTagResponse> result = userService.getUserTags(1L, 3L);
+
+            // then
+            assertAll(
+                    () -> assertEquals(2, result.size()),
+                    () -> assertEquals("TRAVEL", result.get(0).getTag()),
+                    () -> assertEquals("HOBBY", result.get(0).getCategory()),
+                    () -> assertEquals("KOREAN_FOOD", result.get(1).getTag()),
+                    () -> assertEquals("FOOD", result.get(1).getCategory())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-11-2. 태그가 없는 대상 유저 조회 → 빈 목록 반환")
+        void getUserTagsEmpty() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+            when(userTagRepository.findAllByUserId(3L)).thenReturn(List.of());
+
+            // when
+            List<UserTagResponse> result = userService.getUserTags(1L, 3L);
+
+            // then
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("TC-11-3. 본인 userId 전달 → 본인 태그 목록 반환")
+        void getOwnTags() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            List<UserTag> tags = List.of(UserTag.of(user, Tag.SPORTS));
+            when(userTagRepository.findAllByUserId(1L)).thenReturn(tags);
+
+            // when
+            List<UserTagResponse> result = userService.getUserTags(1L, 1L);
+
+            // then
+            assertEquals(1, result.size());
+            assertEquals("SPORTS", result.get(0).getTag());
+        }
+    }
+
+    @Nested
+    @DisplayName("12. getUserTags() - 실패 케이스")
+    class GetUserTagsFailCases {
+
+        private User targetUser;
+
+        @BeforeEach
+        void setUp() {
+            targetUser = User.createForTest(3L, "target", "대상유저", "password",
+                    Country.USA, Language.ENGLISH, Gender.FEMALE, LocalDate.of(1995, 5, 5));
+        }
+
+        @Test
+        @DisplayName("TC-12-1. 요청자가 존재하지 않음 → USER_NOT_FOUND")
+        void requesterNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserTags(999L, 3L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(userTagRepository, never()).findAllByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-12-2. 요청자가 탈퇴한 유저 → USER_DELETED")
+        void requesterDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserTags(2L, 3L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(userTagRepository, never()).findAllByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-12-3. 대상 유저가 존재하지 않음 → USER_NOT_FOUND")
+        void targetNotFound() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserTags(1L, 999L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(userTagRepository, never()).findAllByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-12-4. 대상 유저가 탈퇴한 유저 → USER_DELETED")
+        void targetDeleted() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserTags(1L, 2L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(userTagRepository, never()).findAllByUserId(any());
         }
     }
 }

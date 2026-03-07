@@ -4,6 +4,7 @@ import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.service.UserService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.UserApiSpecification;
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -21,6 +24,15 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController implements UserApiSpecification {
 
     private final UserService userService;
+
+    @GetMapping("/{userId}/tags")
+    public ResponseEntity<List<UserTagResponse>> getUserTags(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long userId) {
+
+        List<UserTagResponse> response = userService.getUserTags(userDetails.getUserId(), userId);
+        return ResponseEntity.ok(response);
+    }
 
     @PatchMapping("/me/languages")
     public ResponseEntity<Void> updateLanguageLevel(

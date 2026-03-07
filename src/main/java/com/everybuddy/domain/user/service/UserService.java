@@ -4,6 +4,7 @@ import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
@@ -60,6 +61,16 @@ public class UserService {
         userTagRepository.saveAll(userTags);
     }
 
+
+    @Transactional(readOnly = true)
+    public List<UserTagResponse> getUserTags(Long requesterId, Long targetUserId) {
+        findActiveUser(requesterId);
+        findActiveUser(targetUserId);
+
+        return userTagRepository.findAllByUserId(targetUserId).stream()
+                .map(UserTagResponse::from)
+                .toList();
+    }
 
     public void deleteUser(Long userId) {
         User user = findActiveUser(userId);

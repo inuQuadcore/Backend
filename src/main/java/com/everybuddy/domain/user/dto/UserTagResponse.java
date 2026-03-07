@@ -2,21 +2,29 @@ package com.everybuddy.domain.user.dto;
 
 import com.everybuddy.domain.user.entity.UserTag;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
+@Schema(description = "유저 태그 응답")
 public class UserTagResponse {
 
-    @Schema(description = "태그")
+    @Schema(description = "태그", example = "SPORTS")
     private String tag;
+
+    @Schema(description = "태그 카테고리", example = "HOBBY")
     private String category;
 
+    @Builder
+    private UserTagResponse(String tag, String category) {
+        this.tag = tag;
+        this.category = category;
+    }
+
     public static UserTagResponse from(UserTag userTag) {
-        return new UserTagResponse(
-                userTag.getTag().name(),
-                userTag.getTag().getCategory().name()
-        );
+        return UserTagResponse.builder()
+                .tag(userTag.getTag().name())
+                .category(userTag.getTag().getCategory().name())
+                .build();
     }
 }

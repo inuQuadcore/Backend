@@ -12,7 +12,6 @@ import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
-import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
@@ -66,7 +65,7 @@ class MessageServiceTest {
     @BeforeEach
     void setUp() {
         testUser = User.createForTest(1L, "testuser", "테스트유저", "password",
-                Country.KOREA, Language.KOREAN, Gender.MALE, LocalDate.of(1990, 1, 1));
+                Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
 
         testChatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");
 
@@ -372,7 +371,7 @@ class MessageServiceTest {
         void cannotDeleteOtherUserMessage() {
             // given
             User otherUser = User.createForTest(2L, "otheruser", "다른유저", "password",
-                    Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1995, 1, 1));
+                    Country.KOREA, Gender.FEMALE, LocalDate.of(1995, 1, 1));
             Message message = Message.createForTest(1L, testChatRoom, otherUser, MessageType.TEXT,
                     "다른 사람 메시지", LocalDateTime.now());
 

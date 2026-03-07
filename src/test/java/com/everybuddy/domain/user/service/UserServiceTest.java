@@ -57,10 +57,10 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         user = User.createForTest(1L, "user1", "홍길동", "password",
-                Country.KOREA, Language.KOREAN, Gender.MALE, LocalDate.of(1990, 1, 1));
+                Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
 
         deletedUser = User.createForTest(2L, "deleted", "삭제된유저", "password",
-                Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1992, 1, 1));
+                Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
         deletedUser.softDelete();
 
         userLanguage = UserLanguage.of(user, Language.ENGLISH, 2);
@@ -523,7 +523,7 @@ class UserServiceTest {
         @BeforeEach
         void setUp() {
             targetUser = User.createForTest(3L, "target", "대상유저", "password",
-                    Country.USA, Language.ENGLISH, Gender.FEMALE, LocalDate.of(1995, 5, 5));
+                    Country.USA, Gender.FEMALE, LocalDate.of(1995, 5, 5));
         }
 
         @Test
@@ -592,7 +592,7 @@ class UserServiceTest {
         @BeforeEach
         void setUp() {
             targetUser = User.createForTest(3L, "target", "대상유저", "password",
-                    Country.USA, Language.ENGLISH, Gender.FEMALE, LocalDate.of(1995, 5, 5));
+                    Country.USA, Gender.FEMALE, LocalDate.of(1995, 5, 5));
         }
 
         @Test

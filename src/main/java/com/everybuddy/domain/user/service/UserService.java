@@ -3,6 +3,8 @@ package com.everybuddy.domain.user.service;
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
+import com.everybuddy.domain.user.dto.UserLanguageResponse;
+import com.everybuddy.domain.user.dto.UserLanguagesResponse;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.dto.UserProfileViewResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
@@ -70,14 +72,23 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserTagResponse> getUserTags(Long requesterId, Long targetUserId) {
-        findActiveUser(requesterId);
-        findActiveUser(targetUserId);
+    public List<UserTagResponse> getUserTags(Long userId) {
+        findActiveUser(userId);
 
-        return userTagRepository.findAllByUserId(targetUserId).stream()
+        return userTagRepository.findAllByUserId(userId).stream()
                 .map(UserTagResponse::from)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public UserLanguagesResponse getUserLanguages(Long userId, Long requesterId) {
+        findActiveUser(userId);
+
+        List<UserLanguageResponse> languages = getUserLanguages(userId);
+
+        return UserLanguagesResponse.of(requesterId.equals(userId), languages);
+    }
+
 
     public void deleteUser(Long userId) {
         User user = findActiveUser(userId);
@@ -153,6 +164,12 @@ public class UserService {
         return request.getTags().stream()
                 .map(tagStr -> EnumConverter.stringToEnum(tagStr, Tag.class, ErrorCode.INVALID_INPUT_VALUE))
                 .map(tag -> UserTag.of(user, tag))
+                .toList();
+    }
+
+    private List<UserLanguageResponse> getUserLanguages(Long userId) {
+        return userLanguageRepository.findAllByUserId(userId).stream()
+                .map(UserLanguageResponse::from)
                 .toList();
     }
 

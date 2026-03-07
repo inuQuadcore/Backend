@@ -3,6 +3,7 @@ package com.everybuddy.domain.user.controller;
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
+import com.everybuddy.domain.user.dto.UserLanguagesResponse;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.dto.UserProfileViewResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
@@ -36,10 +37,18 @@ public class UserController implements UserApiSpecification {
 
     @GetMapping("/{userId}/tags")
     public ResponseEntity<List<UserTagResponse>> getUserTags(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long userId) {
 
-        List<UserTagResponse> response = userService.getUserTags(userDetails.getUserId(), userId);
+        List<UserTagResponse> response = userService.getUserTags(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{userId}/languages")
+    public ResponseEntity<UserLanguagesResponse> getUserLanguages(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        UserLanguagesResponse response = userService.getUserLanguages(userId, userDetails.getUserId());
         return ResponseEntity.ok(response);
     }
 

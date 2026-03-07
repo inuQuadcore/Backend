@@ -3,6 +3,7 @@ package com.everybuddy.global.swagger;
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
+import com.everybuddy.domain.user.dto.UserLanguagesResponse;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
 import com.everybuddy.domain.user.dto.UserProfileViewResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
@@ -128,8 +129,58 @@ public interface UserApiSpecification {
             )
     })
     ResponseEntity<List<UserTagResponse>> getUserTags(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long userId
+    );
+
+    @Operation(summary = "유저 언어 목록 조회", description = "특정 유저의 관심 언어 목록을 조회합니다. 본인 userId를 전달하면 isOwner가 true로 반환됩니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = UserLanguagesResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<UserLanguagesResponse> getUserLanguages(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     );
 
     @Operation(summary = "태그 수정", description = "유저의 태그 목록을 전달된 목록으로 교체합니다. 빈 리스트 전송 시 전체 삭제됩니다.")

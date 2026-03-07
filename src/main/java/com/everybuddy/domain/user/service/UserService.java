@@ -4,6 +4,7 @@ import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserProfileViewResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
@@ -61,6 +62,12 @@ public class UserService {
         userTagRepository.saveAll(userTags);
     }
 
+
+    @Transactional(readOnly = true)
+    public UserProfileViewResponse getUserProfile(Long userId) {
+        User user = findActiveUser(userId);
+        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()));
+    }
 
     @Transactional(readOnly = true)
     public List<UserTagResponse> getUserTags(Long requesterId, Long targetUserId) {

@@ -4,6 +4,7 @@ import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserProfileViewResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
@@ -31,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 
@@ -651,6 +653,83 @@ class UserServiceTest {
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
             verify(userTagRepository, never()).findAllByUserId(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("13. getUserProfile() - 성공 케이스")
+    class GetUserProfileSuccessCases {
+
+        private User targetUser;
+
+        @BeforeEach
+        void setUp() {
+            targetUser = User.createForTest(3L, "target", "대상유저", "password",
+                    Country.USA, Gender.FEMALE, LocalDate.of(1995, 5, 5));
+        }
+
+        @Test
+        @DisplayName("TC-13-1. 정상 조회 → profileImageUrl, country, name, age, gender, bio 반환")
+        void getUserProfileSuccess() {
+            // given
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+
+            // when
+            UserProfileViewResponse response = userService.getUserProfile(3L);
+
+            // then
+            assertAll(
+                    () -> assertNull(response.getProfileImageUrl()),
+                    () -> assertEquals("USA", response.getCountry()),
+                    () -> assertEquals("대상유저", response.getName()),
+                    () -> assertEquals(Period.between(LocalDate.of(1995, 5, 5), LocalDate.now()).getYears(), response.getAge()),
+                    () -> assertEquals("FEMALE", response.getGender()),
+                    () -> assertNull(response.getBio())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-13-2. 본인 userId 전달 → 본인 프로필 반환")
+        void getOwnProfile() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // when
+            UserProfileViewResponse response = userService.getUserProfile(1L);
+
+            // then
+            assertEquals("홍길동", response.getName());
+        }
+    }
+
+    @Nested
+    @DisplayName("14. getUserProfile() - 실패 케이스")
+    class GetUserProfileFailCases {
+
+        @Test
+        @DisplayName("TC-14-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserProfile(999L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-14-2. 탈퇴한 유저 → USER_DELETED")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserProfile(2L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
         }
     }
 }

@@ -4,6 +4,7 @@ import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserProfileViewResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
@@ -29,6 +30,56 @@ import java.util.List;
 
 @Tag(name = "유저 API", description = "유저 프로필 관련 기능")
 public interface UserApiSpecification {
+
+    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 본인 프로필을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = UserProfileViewResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<UserProfileViewResponse> getUserProfile(
+            @PathVariable Long userId
+    );
 
     @Operation(summary = "유저 태그 조회", description = "특정 유저의 태그 목록을 조회합니다. 본인 userId를 전달하면 본인 태그를 조회합니다.")
     @ApiResponses({

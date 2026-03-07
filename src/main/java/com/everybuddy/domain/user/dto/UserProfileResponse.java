@@ -8,30 +8,40 @@ import lombok.Getter;
 import java.time.LocalDate;
 
 @Getter
-@Builder
 @Schema(description = "유저 프로필 응답")
 public class UserProfileResponse {
 
     @Schema(description = "유저 ID", example = "1")
-    private Long userId;
+    private final Long userId;
 
     @Schema(description = "이름", example = "홍길동")
-    private String name;
+    private final String name;
 
     @Schema(description = "프로필 이미지 URL")
-    private String profileImageUrl;
+    private final String profileImageUrl;
 
     @Schema(description = "생년월일", example = "2000-01-01")
-    private LocalDate birthday;
+    private final LocalDate birthday;
 
     @Schema(description = "성별", example = "MALE")
-    private String gender;
+    private final String gender;
 
     @Schema(description = "국적", example = "KOREA")
-    private String country;
+    private final String country;
 
     @Schema(description = "자기소개", example = "안녕하세요!")
-    private String bio;
+    private final String bio;
+
+    @Builder
+    private UserProfileResponse(Long userId, String name, String profileImageUrl, LocalDate birthday, String gender, String country, String bio) {
+        this.userId = userId;
+        this.name = name;
+        this.profileImageUrl = profileImageUrl;
+        this.birthday = birthday;
+        this.gender = gender;
+        this.country = country;
+        this.bio = bio;
+    }
 
     public static UserProfileResponse from(User user, String profileImageUrl) {
         return UserProfileResponse.builder()

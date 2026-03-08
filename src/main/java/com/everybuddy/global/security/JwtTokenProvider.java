@@ -64,7 +64,11 @@ public class JwtTokenProvider {
         //사용자 정보 조회
         String loginId = claims.getSubject();
         User user = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new UsernameNotFoundException(loginId));
+                .orElseThrow(() -> new JwtAuthException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.isDeleted()) {
+            throw new JwtAuthException(ErrorCode.USER_DELETED);
+        }
 
         //UserDetails 생성
         UserDetailsImpl userDetails = UserDetailsImpl.create(user.getLoginId(), user.getUserId());

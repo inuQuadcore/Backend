@@ -3,7 +3,11 @@ package com.everybuddy.domain.user.service;
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
+import com.everybuddy.domain.user.dto.UserLanguageResponse;
+import com.everybuddy.domain.user.dto.UserLanguagesResponse;
 import com.everybuddy.domain.user.dto.UserProfileResponse;
+import com.everybuddy.domain.user.dto.UserProfileViewResponse;
+import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
@@ -30,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,10 +61,10 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         user = User.createForTest(1L, "user1", "홍길동", "password",
-                Country.KOREA, Language.KOREAN, Gender.MALE, LocalDate.of(1990, 1, 1));
+                Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
 
         deletedUser = User.createForTest(2L, "deleted", "삭제된유저", "password",
-                Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1992, 1, 1));
+                Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
         deletedUser.softDelete();
 
         userLanguage = UserLanguage.of(user, Language.ENGLISH, 2);
@@ -172,21 +177,6 @@ class UserServiceTest {
                     () -> userService.updateProfile(999L, request, null));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
-            verify(storageService, never()).uploadProfileImage(any(), any());
-        }
-
-        @Test
-        @DisplayName("TC-2-2. 탈퇴한 유저 → USER_DELETED")
-        void userDeleted() {
-            // given
-            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
-
-            // when & then
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
-            CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateProfile(2L, request, null));
-
-            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
             verify(storageService, never()).uploadProfileImage(any(), any());
         }
     }
@@ -304,19 +294,6 @@ class UserServiceTest {
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
-
-        @Test
-        @DisplayName("TC-6-2. 이미 탈퇴한 유저 → USER_DELETED")
-        void userAlreadyDeleted() {
-            // given
-            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
-
-            // when & then
-            CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.deleteUser(2L));
-
-            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
-        }
     }
 
     @Nested
@@ -327,7 +304,6 @@ class UserServiceTest {
         @DisplayName("TC-7-1. 정상 레벨 수정")
         void updateLanguageLevelSuccess() {
             // given
-            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
             when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.ENGLISH))
                     .thenReturn(Optional.of(userLanguage));
 
@@ -346,39 +322,9 @@ class UserServiceTest {
     class UpdateLanguageLevelFailCases {
 
         @Test
-        @DisplayName("TC-8-1. 존재하지 않는 유저 → USER_NOT_FOUND")
-        void userNotFound() {
-            // given
-            when(userRepository.findById(999L)).thenReturn(Optional.empty());
-
-            // when & then
-            UserLanguageRequest request = UserLanguageRequest.of(null, null);
-            CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateLanguageLevel(999L, request));
-
-            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
-        }
-
-        @Test
-        @DisplayName("TC-8-2. 탈퇴한 유저 → USER_DELETED")
-        void userDeleted() {
-            // given
-            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
-
-            // when & then
-            UserLanguageRequest request = UserLanguageRequest.of(null, null);
-            CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateLanguageLevel(2L, request));
-
-            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
-        }
-
-        @Test
-        @DisplayName("TC-8-3. 잘못된 language 값 → INVALID_INPUT_VALUE")
+        @DisplayName("TC-8-1. 잘못된 language 값 → INVALID_INPUT_VALUE")
         void invalidLanguage() {
             // given
-            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
             UserLanguageRequest request = UserLanguageRequest.of("INVALID_LANGUAGE", null);
 
             // when & then
@@ -389,10 +335,9 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("TC-8-4. 관심 언어 목록에 없는 언어 → USER_LANGUAGE_NOT_FOUND")
+        @DisplayName("TC-8-2. 관심 언어 목록에 없는 언어 → USER_LANGUAGE_NOT_FOUND")
         void languageNotInUserList() {
             // given
-            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
             when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.JAPANESE))
                     .thenReturn(Optional.empty());
 
@@ -481,22 +426,6 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("TC-10-2. 탈퇴한 유저 → USER_DELETED, delete 미호출")
-        void userDeleted() {
-            // given
-            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
-
-            UpdateTagsRequest request = UpdateTagsRequest.of(List.of());
-
-            // when & then
-            CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.updateTags(2L, request));
-
-            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
-            verify(userTagRepository, never()).deleteAllTagsByUserId(any());
-        }
-
-        @Test
         @DisplayName("TC-10-3. 유효하지 않은 태그 문자열 → INVALID_INPUT_VALUE")
         void invalidTagString() {
             // given
@@ -510,6 +439,238 @@ class UserServiceTest {
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, ex.getErrorCode());
             verify(userTagRepository).deleteAllTagsByUserId(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("11. getUserTags() - 성공 케이스")
+    class GetUserTagsSuccessCases {
+
+        @Test
+        @DisplayName("TC-11-1. 태그가 있는 유저 조회 → tag, category 포함 목록 반환")
+        void getUserTagsSuccess() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            List<UserTag> userTags = List.of(
+                    UserTag.of(user, Tag.TRAVEL),
+                    UserTag.of(user, Tag.KOREAN_FOOD)
+            );
+            when(userTagRepository.findAllByUserId(1L)).thenReturn(userTags);
+
+            // when
+            List<UserTagResponse> result = userService.getUserTags(1L);
+
+            // then
+            assertAll(
+                    () -> assertEquals(2, result.size()),
+                    () -> assertEquals("TRAVEL", result.get(0).getTag()),
+                    () -> assertEquals("HOBBY", result.get(0).getCategory()),
+                    () -> assertEquals("KOREAN_FOOD", result.get(1).getTag()),
+                    () -> assertEquals("FOOD", result.get(1).getCategory())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-11-2. 태그가 없는 유저 조회 → 빈 목록 반환")
+        void getUserTagsEmpty() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // when
+            List<UserTagResponse> result = userService.getUserTags(1L);
+
+            // then
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("12. getUserTags() - 실패 케이스")
+    class GetUserTagsFailCases {
+
+        @Test
+        @DisplayName("TC-12-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserTags(999L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(userTagRepository, never()).findAllByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-12-2. 탈퇴한 유저 → USER_DELETED")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserTags(2L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(userTagRepository, never()).findAllByUserId(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("13. getUserProfile() - 성공 케이스")
+    class GetUserProfileSuccessCases {
+
+        private User targetUser;
+
+        @BeforeEach
+        void setUp() {
+            targetUser = User.createForTest(3L, "target", "대상유저", "password",
+                    Country.USA, Gender.FEMALE, LocalDate.of(1995, 5, 5));
+        }
+
+        @Test
+        @DisplayName("TC-13-1. 정상 조회 → profileImageUrl, country, name, age, gender, bio 반환")
+        void getUserProfileSuccess() {
+            // given
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+
+            // when
+            UserProfileViewResponse response = userService.getUserProfile(3L);
+
+            // then
+            assertAll(
+                    () -> assertNull(response.getProfileImageUrl()),
+                    () -> assertEquals("USA", response.getCountry()),
+                    () -> assertEquals("대상유저", response.getName()),
+                    () -> assertEquals(Period.between(LocalDate.of(1995, 5, 5), LocalDate.now()).getYears(), response.getAge()),
+                    () -> assertEquals("FEMALE", response.getGender()),
+                    () -> assertNull(response.getBio())
+            );
+        }
+
+    }
+
+    @Nested
+    @DisplayName("14. getUserProfile() - 실패 케이스")
+    class GetUserProfileFailCases {
+
+        @Test
+        @DisplayName("TC-14-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserProfile(999L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-14-2. 탈퇴한 유저 → USER_DELETED")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserProfile(2L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("15. getUserLanguages() - 성공 케이스")
+    class GetUserLanguagesSuccessCases {
+
+        @Test
+        @DisplayName("TC-15-1. 언어가 있는 유저, 타인 조회 → languages 목록 + isOwner=false")
+        void getUserLanguagesSuccess() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            List<UserLanguage> userLanguages = List.of(
+                    UserLanguage.of(user, Language.ENGLISH, 3),
+                    UserLanguage.of(user, Language.JAPANESE, 2)
+            );
+            when(userLanguageRepository.findAllByUserId(1L)).thenReturn(userLanguages);
+
+            // when
+            UserLanguagesResponse result = userService.getUserLanguages(1L, 2L);
+
+            // then
+            assertAll(
+                    () -> assertFalse(result.isOwner()),
+                    () -> assertEquals(2, result.getLanguages().size()),
+                    () -> assertEquals("ENGLISH", result.getLanguages().get(0).getLanguage()),
+                    () -> assertEquals(3, result.getLanguages().get(0).getLevel()),
+                    () -> assertEquals("JAPANESE", result.getLanguages().get(1).getLanguage()),
+                    () -> assertEquals(2, result.getLanguages().get(1).getLevel())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-15-2. 본인 조회 → isOwner=true")
+        void getOwnLanguages() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // when
+            UserLanguagesResponse result = userService.getUserLanguages(1L, 1L);
+
+            // then
+            assertTrue(result.isOwner());
+        }
+
+        @Test
+        @DisplayName("TC-15-3. 언어가 없는 유저 → 빈 목록 + isOwner=false")
+        void getUserLanguagesEmpty() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // when
+            UserLanguagesResponse result = userService.getUserLanguages(1L, 2L);
+
+            // then
+            assertAll(
+                    () -> assertFalse(result.isOwner()),
+                    () -> assertTrue(result.getLanguages().isEmpty())
+            );
+        }
+    }
+
+    @Nested
+    @DisplayName("16. getUserLanguages() - 실패 케이스")
+    class GetUserLanguagesFailCases {
+
+        @Test
+        @DisplayName("TC-16-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserLanguages(999L, 1L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(userLanguageRepository, never()).findAllByUserId(any());
+        }
+
+        @Test
+        @DisplayName("TC-16-2. 탈퇴한 유저 → USER_DELETED")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.getUserLanguages(2L, 1L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(userLanguageRepository, never()).findAllByUserId(any());
         }
     }
 }

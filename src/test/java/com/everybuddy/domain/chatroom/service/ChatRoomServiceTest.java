@@ -11,7 +11,6 @@ import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
-import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
@@ -61,16 +60,16 @@ class ChatRoomServiceTest {
     @BeforeEach
     void setUp() {
         creator = User.createForTest(1L, "creator", "생성자", "password",
-                Country.KOREA, Language.KOREAN, Gender.MALE, LocalDate.of(1990, 1, 1));
+                Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
 
         participant1 = User.createForTest(2L, "participant1", "참여자1", "password",
-                Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1995, 1, 1));
+                Country.KOREA, Gender.FEMALE, LocalDate.of(1995, 1, 1));
 
         participant2 = User.createForTest(3L, "participant2", "참여자2", "password",
-                Country.KOREA, Language.KOREAN, Gender.MALE, LocalDate.of(2000, 1, 1));
+                Country.KOREA, Gender.MALE, LocalDate.of(2000, 1, 1));
 
         deletedUser = User.createForTest(4L, "deleted", "삭제된유저", "password",
-                Country.KOREA, Language.KOREAN, Gender.FEMALE, LocalDate.of(1992, 1, 1));
+                Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
         deletedUser.softDelete();
 
         chatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");

@@ -40,10 +40,6 @@ public class User {
     @Column(nullable = false)
     private Country country;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Language language;
-
     private String profile;
 
     @Column(length = 150)
@@ -64,12 +60,11 @@ public class User {
 
     @Builder
     private User(String loginId, String name, String password, Country country,
-                 Language language, Gender gender, String profile, String bio, LocalDate birthday) {
+                 Gender gender, String profile, String bio, LocalDate birthday) {
         this.loginId = loginId;
         this.name = name;
         this.password = password;
         this.country = country;
-        this.language = language;
         this.gender = gender;
         this.profile = profile;
         this.bio = bio;
@@ -92,10 +87,10 @@ public class User {
         return User.builder()
                 .loginId(registerRequest.getLoginId())
                 .name(registerRequest.getName())
-                .password(passwordEncoder.encode(registerRequest.getPassword()))  // 비밀번호 암호화
+                .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .country(country)
-                .language(Language.ENGLISH) // 기본값, 추후 변경 가능
                 .gender(gender)
+                .bio(registerRequest.getBio())
                 .birthday(birthday)
                 .build();
     }
@@ -122,13 +117,12 @@ public class User {
      * userId를 명시적으로 설정할 수 있습니다.
      */
     public static User createForTest(Long userId, String loginId, String name, String password,
-                                    Country country, Language language, Gender gender, LocalDate birthday) {
+                                    Country country, Gender gender, LocalDate birthday) {
         User user = User.builder()
                 .loginId(loginId)
                 .name(name)
                 .password(password)
                 .country(country)
-                .language(language)
                 .gender(gender)
                 .birthday(birthday)
                 .build();

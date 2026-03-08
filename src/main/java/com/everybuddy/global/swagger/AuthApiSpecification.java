@@ -26,19 +26,48 @@ public interface AuthApiSpecification {
     @SecurityRequirements(value = {})
     @Operation(summary = "회원가입", description = "신규 회원 가입")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "회원가입 성공"),
+            @ApiResponse(responseCode = "200", description = "회원가입 성공"),
             @ApiResponse(
-                    responseCode = "400", description = "개인정보 약관 미동의",
+                    responseCode = "400", description = "잘못된 입력",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject("""
-                    {
-                        "code": 400,
-                        "name": "INVALID_INPUT_VALUE",
-                        "message": "개인정보 동의가 필요합니다."
-                    }
-                    """
-                            )
+                            examples = {
+                                    @ExampleObject(name = "개인정보 약관 미동의", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "개인정보 동의가 필요합니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "관심 언어 미입력", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "관심 언어를 하나 이상 선택해주세요."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "관심 태그 미입력", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "관심 태그를 하나 이상 선택해주세요."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "잘못된 국적/성별/언어/태그 값", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "잘못된 생년월일 형식", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다."
+                                    }
+                                    """)
+                            }
                     )
             ),
             @ApiResponse(

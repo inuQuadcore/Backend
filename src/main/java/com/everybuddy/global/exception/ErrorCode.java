@@ -10,6 +10,8 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 유저를 찾을 수 없습니다."),
     USER_DELETED(HttpStatus.GONE, 410, "삭제된 사용자입니다."),
     DUPLICATED_USER(HttpStatus.CONFLICT, 409, "이미 존재하는 유저입니다."),
+    CANNOT_ADD_SELF(HttpStatus.BAD_REQUEST, 400, "자기 자신을 친구로 추가할 수 없습니다."),
+    ALREADY_FRIEND(HttpStatus.CONFLICT, 409, "이미 친구인 사용자입니다."),
     USER_LANGUAGE_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 언어가 관심 언어 목록에 없습니다."),
     PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "요청한 참여자를 찾을 수 없습니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, 400, "잘못된 입력입니다."),

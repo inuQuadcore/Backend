@@ -22,4 +22,11 @@ public class FriendRelation {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "to_user_id")
     private User toUser;
+
+    public static FriendRelation of(User fromUser, User toUser) {
+        FriendRelation relation = new FriendRelation();
+        relation.fromUser = fromUser;
+        relation.toUser = toUser;
+        return relation;
+    }
 }

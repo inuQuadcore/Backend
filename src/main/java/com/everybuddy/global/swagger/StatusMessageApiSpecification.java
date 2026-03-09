@@ -100,4 +100,38 @@ public interface StatusMessageApiSpecification {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody UpdateStatusMessageRequest request
     );
+
+    @Operation(summary = "상태메시지 삭제", description = "상태메시지를 삭제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "상태메시지 삭제 성공"),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "상태메시지 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "STATUS_MESSAGE_NOT_FOUND",
+                        "message": "상태메시지를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<Void> deleteStatusMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    );
 }

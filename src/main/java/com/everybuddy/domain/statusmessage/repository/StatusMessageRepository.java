@@ -11,13 +11,12 @@ import java.util.Optional;
 
 public interface StatusMessageRepository extends JpaRepository<StatusMessage, Long> {
 
-    @Query("SELECT sm FROM StatusMessage sm WHERE sm.user.userId = :userId")
+    @Query("SELECT sm FROM StatusMessage sm WHERE sm.user.userId = :userId AND sm.deletedAt IS NULL")
     Optional<StatusMessage> findByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT CASE WHEN COUNT(sm) > 0 THEN true ELSE false END FROM StatusMessage sm WHERE sm.user.userId = :userId")
-    boolean existsByUserId(@Param("userId") Long userId);
-
-    @Modifying
-    @Query("DELETE FROM StatusMessage sm WHERE sm.createdAt < :threshold")
-    void deleteExpiredBeforeOneYear(@Param("threshold") LocalDateTime threshold);
+@Modifying
+    @Query("DELETE FROM StatusMessage sm WHERE " +
+            "(sm.deletedAt IS NOT NULL AND sm.deletedAt < :threshold) " +
+            "OR sm.updatedAt < :threshold")
+    int deleteExpiredBeforeOneYear(@Param("threshold") LocalDateTime threshold);
 }

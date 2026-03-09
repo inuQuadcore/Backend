@@ -36,4 +36,12 @@ public class StatusMessageController implements StatusMessageApiSpecification {
         statusMessageService.updateStatusMessage(userDetails.getUserId(), request);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteStatusMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        statusMessageService.deleteStatusMessage(userDetails.getUserId());
+        return ResponseEntity.noContent().build();
+    }
 }

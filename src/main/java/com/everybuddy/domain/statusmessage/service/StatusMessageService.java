@@ -23,9 +23,7 @@ public class StatusMessageService {
     private final UserRepository userRepository;
 
     public void createStatusMessage(Long userId, CreateStatusMessageRequest request) {
-        if (statusMessageRepository.existsByUserId(userId)) {
-            throw new CustomException(ErrorCode.STATUS_MESSAGE_ALREADY_EXISTS);
-        }
+        validateAndCleanupExisting(userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -37,10 +35,31 @@ public class StatusMessageService {
         StatusMessage statusMessage = statusMessageRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.STATUS_MESSAGE_NOT_FOUND));
 
-        if (statusMessage.getUpdatedAt().isBefore(LocalDateTime.now().minusHours(24))) {
+        if (isExpired(statusMessage)) {
             throw new CustomException(ErrorCode.STATUS_MESSAGE_EXPIRED);
         }
 
         statusMessage.updateContent(request.getContent());
     }
+
+    public void deleteStatusMessage(Long userId) {
+        StatusMessage statusMessage = statusMessageRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.STATUS_MESSAGE_NOT_FOUND));
+
+        statusMessage.softDelete();
+    }
+
+    private boolean isExpired(StatusMessage statusMessage) {
+        return statusMessage.getUpdatedAt().isBefore(LocalDateTime.now().minusHours(24));
+    }
+
+    private void validateAndCleanupExisting(Long userId) {
+        statusMessageRepository.findByUserId(userId).ifPresent(existing -> {
+            if (!isExpired(existing)) {
+                throw new CustomException(ErrorCode.STATUS_MESSAGE_ALREADY_EXISTS);
+            }
+            existing.softDelete();
+        });
+    }
+
 }

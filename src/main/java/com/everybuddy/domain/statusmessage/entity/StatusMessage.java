@@ -38,6 +38,8 @@ public class StatusMessage {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    private LocalDateTime deletedAt;
+
     @Builder
     private StatusMessage(User user, String content) {
         this.user = user;
@@ -63,5 +65,13 @@ public class StatusMessage {
 
     public void updateContent(String content) {
         this.content = content;
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 }

@@ -51,9 +51,9 @@ class StatusMessageServiceTest {
     class CreateStatusMessageSuccessCases {
 
         @Test
-        @DisplayName("TC-1-1. 상태메시지 작성 성공")
+        @DisplayName("TC-1-1. 기존 메시지 없을 때 작성 성공")
         void success() {
-            when(statusMessageRepository.existsByUserId(1L)).thenReturn(false);
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
             CreateStatusMessageRequest request = CreateStatusMessageRequest.of("오늘 날씨 너무 좋다!");
@@ -66,6 +66,23 @@ class StatusMessageServiceTest {
                     () -> assertEquals("오늘 날씨 너무 좋다!", captor.getValue().getContent())
             );
         }
+
+        @Test
+        @DisplayName("TC-1-2. 만료된 메시지 있을 때 작성 성공 (기존 메시지 soft delete)")
+        void successWithExpiredMessage() {
+            StatusMessage expiredMessage = StatusMessage.createForTest(
+                    1L, user, "만료된 메시지", LocalDateTime.now().minusHours(25));
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(expiredMessage));
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("새 메시지");
+            statusMessageService.createStatusMessage(1L, request);
+
+            assertTrue(expiredMessage.isDeleted());
+            ArgumentCaptor<StatusMessage> captor = ArgumentCaptor.forClass(StatusMessage.class);
+            verify(statusMessageRepository).save(captor.capture());
+            assertEquals("새 메시지", captor.getValue().getContent());
+        }
     }
 
     @Nested
@@ -73,11 +90,13 @@ class StatusMessageServiceTest {
     class CreateStatusMessageFailCases {
 
         @Test
-        @DisplayName("TC-2-1. 이미 상태메시지 존재 → STATUS_MESSAGE_ALREADY_EXISTS")
+        @DisplayName("TC-2-1. 만료되지 않은 메시지 존재 → STATUS_MESSAGE_ALREADY_EXISTS")
         void failAlreadyExists() {
-            when(statusMessageRepository.existsByUserId(1L)).thenReturn(true);
+            StatusMessage existing = StatusMessage.createForTest(
+                    1L, user, "기존 메시지", LocalDateTime.now().minusHours(1));
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(existing));
 
-            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("오늘 날씨 너무 좋다!");
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("새 메시지");
             CustomException ex = assertThrows(CustomException.class,
                     () -> statusMessageService.createStatusMessage(1L, request));
 
@@ -132,6 +151,39 @@ class StatusMessageServiceTest {
                     () -> statusMessageService.updateStatusMessage(1L, request));
 
             assertEquals(ErrorCode.STATUS_MESSAGE_EXPIRED, ex.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("5. deleteStatusMessage() - 성공")
+    class DeleteStatusMessageSuccessCases {
+
+        @Test
+        @DisplayName("TC-5-1. 삭제 성공 (soft delete)")
+        void success() {
+            StatusMessage statusMessage = StatusMessage.createForTest(
+                    1L, user, "기존 메시지", LocalDateTime.now().minusHours(1));
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(statusMessage));
+
+            statusMessageService.deleteStatusMessage(1L);
+
+            assertTrue(statusMessage.isDeleted());
+        }
+    }
+
+    @Nested
+    @DisplayName("6. deleteStatusMessage() - 실패")
+    class DeleteStatusMessageFailCases {
+
+        @Test
+        @DisplayName("TC-6-1. 상태메시지 없음 → STATUS_MESSAGE_NOT_FOUND")
+        void failNotFound() {
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> statusMessageService.deleteStatusMessage(1L));
+
+            assertEquals(ErrorCode.STATUS_MESSAGE_NOT_FOUND, ex.getErrorCode());
         }
     }
 }

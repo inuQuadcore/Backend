@@ -2,6 +2,7 @@ package com.everybuddy.domain.friendrelation.repository;
 
 import com.everybuddy.domain.friendrelation.entity.FriendRelation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,4 +12,10 @@ public interface FriendRelationRepository extends JpaRepository<FriendRelation, 
             "WHERE (fr.fromUser.userId = :userAId AND fr.toUser.userId = :userBId) " +
             "OR (fr.fromUser.userId = :userBId AND fr.toUser.userId = :userAId)")
     boolean existsFriendRelationBetween(@Param("userAId") Long userAId, @Param("userBId") Long userBId);
+
+    @Modifying
+    @Query("DELETE FROM FriendRelation fr " +
+            "WHERE (fr.fromUser.userId = :userAId AND fr.toUser.userId = :userBId) " +
+            "OR (fr.fromUser.userId = :userBId AND fr.toUser.userId = :userAId)")
+    void deleteFriendRelationBetween(@Param("userAId") Long userAId, @Param("userBId") Long userBId);
 }

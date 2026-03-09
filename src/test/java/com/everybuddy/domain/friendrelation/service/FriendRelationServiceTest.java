@@ -1,6 +1,7 @@
 package com.everybuddy.domain.friendrelation.service;
 
 import com.everybuddy.domain.friendrelation.entity.FriendRelation;
+import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
@@ -30,6 +31,7 @@ import static org.mockito.Mockito.*;
 class FriendRelationServiceTest {
 
     @Mock private FriendRelationRepository friendRelationRepository;
+    @Mock private BlockRelationRepository blockRelationRepository;
     @Mock private UserRepository userRepository;
 
     @InjectMocks
@@ -51,14 +53,15 @@ class FriendRelationServiceTest {
     }
 
     @Nested
-    @DisplayName("addFriend()")
-    class AddFriend {
+    @DisplayName("1. addFriend() - 성공")
+    class AddFriendSuccessCases {
 
         @Test
-        @DisplayName("성공 - 친구 추가")
+        @DisplayName("TC-1-1. 친구 추가 성공")
         void success() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(userRepository.findById(2L)).thenReturn(Optional.of(userB));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(false);
             when(friendRelationRepository.existsFriendRelationBetween(1L, 2L)).thenReturn(false);
 
             friendRelationService.addFriend(1L, 2L);
@@ -70,9 +73,14 @@ class FriendRelationServiceTest {
                     () -> assertEquals(2L, captor.getValue().getToUser().getUserId())
             );
         }
+    }
+
+    @Nested
+    @DisplayName("2. addFriend() - 실패")
+    class AddFriendFailCases {
 
         @Test
-        @DisplayName("실패 - 자기 자신을 친구 추가")
+        @DisplayName("TC-2-1. 자기 자신을 친구 추가 → CANNOT_ADD_SELF")
         void failSelfAdd() {
             CustomException ex = assertThrows(CustomException.class,
                     () -> friendRelationService.addFriend(1L, 1L));
@@ -82,7 +90,7 @@ class FriendRelationServiceTest {
         }
 
         @Test
-        @DisplayName("실패 - toUser 없음")
+        @DisplayName("TC-2-2. toUser 없음 → USER_NOT_FOUND")
         void failToUserNotFound() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(userRepository.findById(2L)).thenReturn(Optional.empty());
@@ -95,7 +103,7 @@ class FriendRelationServiceTest {
         }
 
         @Test
-        @DisplayName("실패 - toUser 탈퇴")
+        @DisplayName("TC-2-3. toUser 탈퇴 → USER_DELETED")
         void failToUserDeleted() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(userRepository.findById(3L)).thenReturn(Optional.of(deletedUser));
@@ -108,10 +116,25 @@ class FriendRelationServiceTest {
         }
 
         @Test
-        @DisplayName("실패 - 이미 친구")
+        @DisplayName("TC-2-4. 차단 관계 있음 → USER_NOT_FOUND")
+        void failBlocked() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
+            when(userRepository.findById(2L)).thenReturn(Optional.of(userB));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(true);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> friendRelationService.addFriend(1L, 2L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(friendRelationRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("TC-2-5. 이미 친구 → ALREADY_FRIEND")
         void failAlreadyFriend() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(userRepository.findById(2L)).thenReturn(Optional.of(userB));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(false);
             when(friendRelationRepository.existsFriendRelationBetween(1L, 2L)).thenReturn(true);
 
             CustomException ex = assertThrows(CustomException.class,

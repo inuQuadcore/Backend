@@ -1,6 +1,6 @@
 package com.everybuddy.domain.friendrelation.service;
 
-import com.everybuddy.domain.friendrelation.entity.FriendRelation;
+import com.everybuddy.domain.friendrelation.entity.BlockRelation;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
 import com.everybuddy.domain.user.entity.User;
@@ -14,29 +14,34 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class FriendRelationService {
+public class BlockRelationService {
 
-    private final FriendRelationRepository friendRelationRepository;
     private final BlockRelationRepository blockRelationRepository;
+    private final FriendRelationRepository friendRelationRepository;
     private final UserRepository userRepository;
 
-    public void addFriend(Long fromUserId, Long toUserId) {
-        if (fromUserId.equals(toUserId)) {
-            throw new CustomException(ErrorCode.CANNOT_ADD_SELF);
+    public void block(Long blockerUserId, Long blockedUserId) {
+        if (blockerUserId.equals(blockedUserId)) {
+            throw new CustomException(ErrorCode.CANNOT_BLOCK_SELF);
         }
 
-        User fromUser = findUser(fromUserId);
-        User toUser = findActiveUser(toUserId);
+        User blockerUser = findUser(blockerUserId);
+        User blockedUser = findActiveUser(blockedUserId);
 
-        if (blockRelationRepository.existsBlockRelationBetween(fromUserId, toUserId)) {
-            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        if (blockRelationRepository.existsBlock(blockerUserId, blockedUserId)) {
+            throw new CustomException(ErrorCode.ALREADY_BLOCKED);
         }
 
-        if (friendRelationRepository.existsFriendRelationBetween(fromUserId, toUserId)) {
-            throw new CustomException(ErrorCode.ALREADY_FRIEND);
+        friendRelationRepository.deleteFriendRelationBetween(blockerUserId, blockedUserId);
+        blockRelationRepository.save(BlockRelation.of(blockerUser, blockedUser));
+    }
+
+    public void unblock(Long blockerUserId, Long blockedUserId) {
+        if (!blockRelationRepository.existsBlock(blockerUserId, blockedUserId)) {
+            throw new CustomException(ErrorCode.BLOCK_NOT_FOUND);
         }
 
-        friendRelationRepository.save(FriendRelation.of(fromUser, toUser));
+        blockRelationRepository.deleteBlock(blockerUserId, blockedUserId);
     }
 
     private User findActiveUser(Long userId) {

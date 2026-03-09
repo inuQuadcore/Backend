@@ -9,24 +9,25 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "friend_relation")
-public class FriendRelation {
+@Table(name = "block_relation")
+public class BlockRelation {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long friendRelationId;
+    private Long blockRelationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "from_user_id")
-    private User fromUser;
+    @JoinColumn(name = "blocker_user_id")
+    private User blockerUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "to_user_id")
-    private User toUser;
+    @JoinColumn(name = "blocked_user_id")
+    private User blockedUser;
 
-    public static FriendRelation of(User fromUser, User toUser) {
-        FriendRelation relation = new FriendRelation();
-        relation.fromUser = fromUser;
-        relation.toUser = toUser;
+    public static BlockRelation of(User blockerUser, User blockedUser) {
+        BlockRelation relation = new BlockRelation();
+        relation.blockerUser = blockerUser;
+        relation.blockedUser = blockedUser;
         return relation;
     }
 }

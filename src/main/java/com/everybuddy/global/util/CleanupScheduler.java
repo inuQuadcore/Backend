@@ -4,6 +4,7 @@ import com.everybuddy.domain.media.entity.Media;
 import com.everybuddy.domain.media.repository.MediaRepository;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.repository.MessageRepository;
+import com.everybuddy.domain.statusmessage.repository.StatusMessageRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.s3.service.S3FileService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class CleanupScheduler {
 
     private final MessageRepository messageRepository;
     private final MediaRepository mediaRepository;
+    private final StatusMessageRepository statusMessageRepository;
     private final S3FileService s3FileService;
 
     /**
@@ -34,6 +36,7 @@ public class CleanupScheduler {
     public void cleanupDeletedData() {
         cleanupOldMessages();
         cleanupOldMedia();
+        cleanupOldStatusMessages();
     }
 
     private void cleanupOldMessages() {
@@ -49,6 +52,17 @@ public class CleanupScheduler {
             log.info("메시지 물리 삭제 완료: {}건", messagesToDelete.size());
         } catch (DataAccessException e) {
             log.error("메시지 물리 삭제 실패", e);
+            throw e;
+        }
+    }
+
+    private void cleanupOldStatusMessages() {
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+        try {
+            int deleted = statusMessageRepository.deleteExpiredBeforeOneYear(oneYearAgo);
+            log.info("상태메시지 물리 삭제 완료: {}건", deleted);
+        } catch (DataAccessException e) {
+            log.error("상태메시지 물리 삭제 실패", e);
             throw e;
         }
     }

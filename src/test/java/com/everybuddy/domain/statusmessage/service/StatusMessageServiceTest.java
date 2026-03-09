@@ -1,0 +1,86 @@
+package com.everybuddy.domain.statusmessage.service;
+
+import com.everybuddy.domain.statusmessage.dto.CreateStatusMessageRequest;
+import com.everybuddy.domain.statusmessage.entity.StatusMessage;
+import com.everybuddy.domain.statusmessage.repository.StatusMessageRepository;
+import com.everybuddy.domain.user.entity.Country;
+import com.everybuddy.domain.user.entity.Gender;
+import com.everybuddy.domain.user.entity.User;
+import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("StatusMessageService 단위 테스트")
+class StatusMessageServiceTest {
+
+    @Mock private StatusMessageRepository statusMessageRepository;
+    @Mock private UserRepository userRepository;
+
+    @InjectMocks
+    private StatusMessageService statusMessageService;
+
+    private User user;
+
+    @BeforeEach
+    void setUp() {
+        user = User.createForTest(1L, "user1", "홍길동", "password",
+                Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
+    }
+
+    @Nested
+    @DisplayName("1. createStatusMessage() - 성공")
+    class CreateStatusMessageSuccessCases {
+
+        @Test
+        @DisplayName("TC-1-1. 상태메시지 작성 성공")
+        void success() {
+            when(statusMessageRepository.existsByUserId(1L)).thenReturn(false);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("오늘 날씨 너무 좋다!");
+            statusMessageService.createStatusMessage(1L, request);
+
+            ArgumentCaptor<StatusMessage> captor = ArgumentCaptor.forClass(StatusMessage.class);
+            verify(statusMessageRepository).save(captor.capture());
+            assertAll(
+                    () -> assertEquals(1L, captor.getValue().getUser().getUserId()),
+                    () -> assertEquals("오늘 날씨 너무 좋다!", captor.getValue().getContent())
+            );
+        }
+    }
+
+    @Nested
+    @DisplayName("2. createStatusMessage() - 실패")
+    class CreateStatusMessageFailCases {
+
+        @Test
+        @DisplayName("TC-2-1. 이미 상태메시지 존재 → STATUS_MESSAGE_ALREADY_EXISTS")
+        void failAlreadyExists() {
+            when(statusMessageRepository.existsByUserId(1L)).thenReturn(true);
+
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("오늘 날씨 너무 좋다!");
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> statusMessageService.createStatusMessage(1L, request));
+
+            assertEquals(ErrorCode.STATUS_MESSAGE_ALREADY_EXISTS, ex.getErrorCode());
+            verify(statusMessageRepository, never()).save(any());
+        }
+    }
+}

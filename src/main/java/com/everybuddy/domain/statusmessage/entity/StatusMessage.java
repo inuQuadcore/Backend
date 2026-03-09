@@ -51,4 +51,17 @@ public class StatusMessage {
                 .build();
     }
 
+    public static StatusMessage createForTest(Long statusMessageId, User user, String content, LocalDateTime updatedAt) {
+        StatusMessage statusMessage = StatusMessage.builder()
+                .user(user)
+                .content(content)
+                .build();
+        statusMessage.statusMessageId = statusMessageId;
+        statusMessage.updatedAt = updatedAt;
+        return statusMessage;
+    }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
 }

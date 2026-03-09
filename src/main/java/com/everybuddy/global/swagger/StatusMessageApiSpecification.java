@@ -1,6 +1,7 @@
 package com.everybuddy.global.swagger;
 
 import com.everybuddy.domain.statusmessage.dto.CreateStatusMessageRequest;
+import com.everybuddy.domain.statusmessage.dto.UpdateStatusMessageRequest;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,5 +51,53 @@ public interface StatusMessageApiSpecification {
     ResponseEntity<Void> createStatusMessage(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody CreateStatusMessageRequest request
+    );
+
+    @Operation(summary = "상태메시지 수정", description = "상태메시지를 수정합니다. 24시간 이내에만 수정 가능합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "상태메시지 수정 성공"),
+            @ApiResponse(
+                    responseCode = "400", description = "24시간 만료된 상태메시지",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 400,
+                        "name": "STATUS_MESSAGE_EXPIRED",
+                        "message": "만료된 상태메시지입니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "상태메시지 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "STATUS_MESSAGE_NOT_FOUND",
+                        "message": "상태메시지를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<Void> updateStatusMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody UpdateStatusMessageRequest request
     );
 }

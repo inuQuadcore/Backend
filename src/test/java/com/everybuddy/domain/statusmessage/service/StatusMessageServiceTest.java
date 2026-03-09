@@ -1,6 +1,7 @@
 package com.everybuddy.domain.statusmessage.service;
 
 import com.everybuddy.domain.statusmessage.dto.CreateStatusMessageRequest;
+import com.everybuddy.domain.statusmessage.dto.UpdateStatusMessageRequest;
 import com.everybuddy.domain.statusmessage.entity.StatusMessage;
 import com.everybuddy.domain.statusmessage.repository.StatusMessageRepository;
 import com.everybuddy.domain.user.entity.Country;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,6 +83,55 @@ class StatusMessageServiceTest {
 
             assertEquals(ErrorCode.STATUS_MESSAGE_ALREADY_EXISTS, ex.getErrorCode());
             verify(statusMessageRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("3. updateStatusMessage() - 성공")
+    class UpdateStatusMessageSuccessCases {
+
+        @Test
+        @DisplayName("TC-3-1. 수정 성공")
+        void success() {
+            StatusMessage statusMessage = StatusMessage.createForTest(
+                    1L, user, "기존 메시지", LocalDateTime.now().minusHours(1));
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(statusMessage));
+
+            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.of("수정된 메시지");
+            statusMessageService.updateStatusMessage(1L, request);
+
+            assertEquals("수정된 메시지", statusMessage.getContent());
+        }
+    }
+
+    @Nested
+    @DisplayName("4. updateStatusMessage() - 실패")
+    class UpdateStatusMessageFailCases {
+
+        @Test
+        @DisplayName("TC-4-1. 상태메시지 없음 → STATUS_MESSAGE_NOT_FOUND")
+        void failNotFound() {
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
+
+            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.of("수정된 메시지");
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> statusMessageService.updateStatusMessage(1L, request));
+
+            assertEquals(ErrorCode.STATUS_MESSAGE_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-4-2. 24시간 만료 → STATUS_MESSAGE_EXPIRED")
+        void failExpired() {
+            StatusMessage statusMessage = StatusMessage.createForTest(
+                    1L, user, "기존 메시지", LocalDateTime.now().minusHours(25));
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(statusMessage));
+
+            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.of("수정된 메시지");
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> statusMessageService.updateStatusMessage(1L, request));
+
+            assertEquals(ErrorCode.STATUS_MESSAGE_EXPIRED, ex.getErrorCode());
         }
     }
 }

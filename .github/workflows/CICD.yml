@@ -65,13 +65,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # docker-compose.yml을 EC2에 전송
+      # docker-compose.yml을 Bastion 경유 → Private EC2에 전송
       - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          proxy_host: ${{ secrets.EC2_BASTION_HOST }}
+          proxy_username: ${{ secrets.EC2_USERNAME }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
           source: "docker-compose.yml"
           target: "~/everybuddy"
 
@@ -83,22 +86,26 @@ jobs:
           $FIREBASE_ADMIN_KEY
           EOF
 
+      # Firebase 인증 파일을 Bastion 경유 → Private EC2에 전송
       - name: Copy Firebase credentials to EC2
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          proxy_host: ${{ secrets.EC2_BASTION_HOST }}
+          proxy_username: ${{ secrets.EC2_USERNAME }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
           source: "firebase-adminsdk.json"
           target: "~/everybuddy"
 
+      # Bastion 경유 → Private EC2에 SSH 접속 후 배포
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          RDS_USERNAME: ${{ secrets.RDS_USERNAME }}
+          RDS_PASSWORD: ${{ secrets.RDS_PASSWORD }}
           AWS_S3_ACCESS_KEY: ${{ secrets.AWS_S3_ACCESS_KEY }}
           AWS_S3_SECRET_KEY: ${{ secrets.AWS_S3_SECRET_KEY }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
@@ -112,13 +119,15 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DOCKER_USERNAME,MYSQL_ROOT_PASSWORD,MYSQL_USER,MYSQL_PASSWORD,AWS_S3_ACCESS_KEY,AWS_S3_SECRET_KEY,AWS_S3_BUCKET_NAME,JWT_SECRET,JWT_VALIDITY,FIREBASE_PROJECT_ID,FIREBASE_DATABASE_URL,FIREBASE_FILE_PATH,SERVER_URL
+          proxy_host: ${{ secrets.EC2_BASTION_HOST }}
+          proxy_username: ${{ secrets.EC2_USERNAME }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKER_USERNAME,RDS_USERNAME,RDS_PASSWORD,AWS_S3_ACCESS_KEY,AWS_S3_SECRET_KEY,AWS_S3_BUCKET_NAME,JWT_SECRET,JWT_VALIDITY,FIREBASE_PROJECT_ID,FIREBASE_DATABASE_URL,FIREBASE_FILE_PATH,SERVER_URL
           script: |
             cd ~/everybuddy
             export DOCKER_USERNAME=$DOCKER_USERNAME
-            export MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
-            export MYSQL_USER=$MYSQL_USER
-            export MYSQL_PASSWORD=$MYSQL_PASSWORD
+            export RDS_USERNAME=$RDS_USERNAME
+            export RDS_PASSWORD=$RDS_PASSWORD
             export AWS_S3_ACCESS_KEY=$AWS_S3_ACCESS_KEY
             export AWS_S3_SECRET_KEY=$AWS_S3_SECRET_KEY
             export AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME

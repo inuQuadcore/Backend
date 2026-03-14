@@ -1,6 +1,8 @@
 package com.everybuddy.domain.statusmessage.controller;
 
 import com.everybuddy.domain.statusmessage.dto.CreateStatusMessageRequest;
+import com.everybuddy.domain.statusmessage.dto.FriendStatusMessageListResponse;
+import com.everybuddy.domain.statusmessage.dto.MyStatusMessageResponse;
 import com.everybuddy.domain.statusmessage.dto.UpdateStatusMessageRequest;
 import com.everybuddy.domain.statusmessage.service.StatusMessageService;
 import com.everybuddy.global.security.UserDetailsImpl;
@@ -43,5 +45,21 @@ public class StatusMessageController implements StatusMessageApiSpecification {
 
         statusMessageService.deleteStatusMessage(userDetails.getUserId());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MyStatusMessageResponse> getMyStatusMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        return ResponseEntity.ok(statusMessageService.getMyStatusMessage(userDetails.getUserId()));
+    }
+
+    @GetMapping("/friends")
+    public ResponseEntity<FriendStatusMessageListResponse> getFriendStatusMessages(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size) {
+
+        return ResponseEntity.ok(statusMessageService.getFriendStatusMessages(userDetails.getUserId(), cursor, size));
     }
 }

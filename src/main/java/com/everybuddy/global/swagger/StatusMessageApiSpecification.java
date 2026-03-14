@@ -192,6 +192,10 @@ public interface StatusMessageApiSpecification {
             - 첫 요청은 cursor 없이 호출합니다.
             - 응답의 nextCursor를 다음 요청의 cursor로 사용합니다.
             - hasNext=false이면 마지막 페이지입니다. 추가 요청은 불필요합니다.
+
+            **본인 상태메시지 표시**
+            - 본인 상태메시지는 이 API에 포함되지 않습니다.
+            - 목록 최상단에 본인 상태메시지를 표시하려면 GET /api/v1/status-messages/me를 별도 호출하여 첫 번째 항목으로 추가해야 합니다.
             """)
     @ApiResponses({
             @ApiResponse(

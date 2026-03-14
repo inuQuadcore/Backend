@@ -184,11 +184,11 @@ class ChatRoomServiceTest {
         void creatorNotFound() {
             // given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
+            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
-                    () -> chatRoomService.createChatRoom(999L,
-                            CreateChatRoomRequest.of("테스트방", List.of(2L))));
+                    () -> chatRoomService.createChatRoom(999L, request));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
             verify(chatRoomRepository, never()).save(any());
@@ -200,11 +200,11 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 999L))).thenReturn(List.of(participant1));
+            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L, 999L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
-                    () -> chatRoomService.createChatRoom(1L,
-                            CreateChatRoomRequest.of("테스트방", List.of(2L, 999L))));
+                    () -> chatRoomService.createChatRoom(1L, request));
 
             assertEquals(ErrorCode.PARTICIPANT_NOT_FOUND, ex.getErrorCode());
             verify(chatRoomRepository, never()).save(any());
@@ -220,11 +220,11 @@ class ChatRoomServiceTest {
         void deletedUserCannotCreateChatRoom() {
             // given
             when(userRepository.findById(4L)).thenReturn(Optional.of(deletedUser));
+            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
-                    () -> chatRoomService.createChatRoom(4L,
-                            CreateChatRoomRequest.of("테스트방", List.of(2L))));
+                    () -> chatRoomService.createChatRoom(4L, request));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
             verify(chatRoomRepository, never()).save(any());
@@ -236,11 +236,11 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 4L))).thenReturn(List.of(participant1, deletedUser));
+            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L, 4L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
-                    () -> chatRoomService.createChatRoom(1L,
-                            CreateChatRoomRequest.of("테스트방", List.of(2L, 4L))));
+                    () -> chatRoomService.createChatRoom(1L, request));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
             verify(chatRoomRepository, never()).save(any());

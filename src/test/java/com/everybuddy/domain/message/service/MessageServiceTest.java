@@ -302,8 +302,9 @@ class MessageServiceTest {
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
+            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.sendMessage(1L, ChatMessageRequest.of(1L, null), emptyFile));
+                    () -> messageService.sendMessage(1L, request, emptyFile));
 
             assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
             verify(storageService, never()).uploadChatFile(any(), any());
@@ -358,10 +359,11 @@ class MessageServiceTest {
         void messageNotFound() {
             // given
             when(messageRepository.findById(999L)).thenReturn(Optional.empty());
+            long userId = testUser.getUserId();
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.deleteMessage(testUser.getUserId(), 999L));
+                    () -> messageService.deleteMessage(userId, 999L));
 
             assertEquals(ErrorCode.MESSAGE_NOT_FOUND, exception.getErrorCode());
         }
@@ -376,10 +378,11 @@ class MessageServiceTest {
                     "다른 사람 메시지", LocalDateTime.now());
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+            long userId = testUser.getUserId();
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.deleteMessage(testUser.getUserId(), 1L));
+                    () -> messageService.deleteMessage(userId, 1L));
 
             assertEquals(ErrorCode.NOT_MESSAGE_OF_USER, exception.getErrorCode());
             assertFalse(message.isDeleted());
@@ -394,10 +397,11 @@ class MessageServiceTest {
             message.softDelete();
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+            long userId = testUser.getUserId();
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.deleteMessage(testUser.getUserId(), 1L));
+                    () -> messageService.deleteMessage(userId, 1L));
 
             assertEquals(ErrorCode.MESSAGE_ALREADY_DELETED, exception.getErrorCode());
         }

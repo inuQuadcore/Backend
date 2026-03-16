@@ -15,4 +15,7 @@ public interface UserLanguageRepository extends JpaRepository<UserLanguage, Long
 
     @Query("SELECT ul FROM UserLanguage ul WHERE ul.user.userId = :userId")
     List<UserLanguage> findAllByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT ul FROM UserLanguage ul WHERE ul.user.userId IN :userIds")
+    List<UserLanguage> findAllByUserIdIn(@Param("userIds") List<Long> userIds);
 }

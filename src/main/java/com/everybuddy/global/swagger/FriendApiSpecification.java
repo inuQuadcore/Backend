@@ -1,5 +1,6 @@
 package com.everybuddy.global.swagger;
 
+import com.everybuddy.domain.friendrelation.dto.FriendListResponse;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,62 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @Tag(name = "친구 API", description = "친구 관계 관련 기능")
 public interface FriendApiSpecification {
+
+    @Operation(summary = "친구 목록 조회", description = "내 친구 전체 목록을 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "친구 목록 조회 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = FriendListResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "friends": [
+                            {
+                                "userId": 1,
+                                "name": "홍길동",
+                                "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/1.jpg",
+                                "country": "KOREA",
+                                "bio": "안녕하세요!",
+                                "languages": [
+                                    { "language": "ENGLISH", "level": 3 }
+                                ],
+                                "tags": [
+                                    { "tag": "SPORTS", "category": "HOBBY" }
+                                ]
+                            }
+                        ]
+                    }
+                    """)
+                    )),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<FriendListResponse> getFriends(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    );
 
     @Operation(summary = "친구 추가", description = "특정 유저를 친구로 추가합니다.")
     @ApiResponses({

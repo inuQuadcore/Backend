@@ -16,4 +16,7 @@ public interface UserTagRepository extends JpaRepository<UserTag, Long> {
 
     @Query("SELECT ut FROM UserTag ut WHERE ut.user.userId = :userId")
     List<UserTag> findAllByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT ut FROM UserTag ut WHERE ut.user.userId IN :userIds")
+    List<UserTag> findAllByUserIdIn(@Param("userIds") List<Long> userIds);
 }

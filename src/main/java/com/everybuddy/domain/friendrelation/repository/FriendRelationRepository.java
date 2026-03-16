@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface FriendRelationRepository extends JpaRepository<FriendRelation, Long> {
 
     @Query("SELECT CASE WHEN COUNT(fr) > 0 THEN true ELSE false END FROM FriendRelation fr " +
@@ -18,4 +20,10 @@ public interface FriendRelationRepository extends JpaRepository<FriendRelation, 
             "WHERE (fr.fromUser.userId = :userAId AND fr.toUser.userId = :userBId) " +
             "OR (fr.fromUser.userId = :userBId AND fr.toUser.userId = :userAId)")
     void deleteFriendRelationBetween(@Param("userAId") Long userAId, @Param("userBId") Long userBId);
+
+    @Query("SELECT fr FROM FriendRelation fr " +
+            "JOIN FETCH fr.fromUser " +
+            "JOIN FETCH fr.toUser " +
+            "WHERE fr.fromUser.userId = :userId OR fr.toUser.userId = :userId")
+    List<FriendRelation> findAllFriends(@Param("userId") Long userId);
 }

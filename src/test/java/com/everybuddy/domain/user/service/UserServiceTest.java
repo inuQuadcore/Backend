@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -53,6 +54,9 @@ class UserServiceTest {
 
     @InjectMocks
     private UserService userService;
+
+    @Captor
+    private ArgumentCaptor<List<UserTag>> userTagsCaptor;
 
     private User user;
     private User deletedUser;
@@ -370,13 +374,11 @@ class UserServiceTest {
             userService.updateTags(1L, request);
 
             // then: delete → saveAll 순서 보장 + 저장된 UserTag 내용 검증
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<UserTag>> captor = ArgumentCaptor.forClass(List.class);
             InOrder inOrder = inOrder(userTagRepository);
             inOrder.verify(userTagRepository).deleteAllTagsByUserId(1L);
-            inOrder.verify(userTagRepository).saveAll(captor.capture());
+            inOrder.verify(userTagRepository).saveAll(userTagsCaptor.capture());
 
-            List<UserTag> saved = captor.getValue();
+            List<UserTag> saved = userTagsCaptor.getValue();
             assertAll(
                     () -> assertEquals(3, saved.size()),
                     () -> assertEquals(Tag.SPORTS, saved.get(0).getTag()),
@@ -398,10 +400,8 @@ class UserServiceTest {
             // then
             verify(userTagRepository).deleteAllTagsByUserId(1L);
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<UserTag>> captor = ArgumentCaptor.forClass(List.class);
-            verify(userTagRepository).saveAll(captor.capture());
-            assertTrue(captor.getValue().isEmpty());
+            verify(userTagRepository).saveAll(userTagsCaptor.capture());
+            assertTrue(userTagsCaptor.getValue().isEmpty());
         }
     }
 

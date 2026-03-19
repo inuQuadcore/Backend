@@ -67,6 +67,7 @@ public class AuthService {
 
     private void saveUserLanguages(User user, List<UserLanguageRequest> languages) {
         List<UserLanguage> userLanguages = languages.stream()
+                .distinct()
                 .map(lr -> {
                     Language language = EnumConverter.stringToEnum(lr.getLanguage(), Language.class, ErrorCode.INVALID_INPUT_VALUE);
                     return UserLanguage.of(user, language, lr.getLevel());
@@ -77,6 +78,7 @@ public class AuthService {
 
     private void saveUserTags(User user, List<String> tags) {
         List<UserTag> userTags = tags.stream()
+                .distinct()
                 .map(tag -> EnumConverter.stringToEnum(tag, Tag.class, ErrorCode.INVALID_INPUT_VALUE))
                 .map(tag -> UserTag.of(user, tag))
                 .toList();

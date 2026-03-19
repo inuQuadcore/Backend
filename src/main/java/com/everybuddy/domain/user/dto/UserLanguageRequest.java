@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 @Schema(description = "관심 언어 수준 수정 요청")
 public class UserLanguageRequest {
@@ -20,6 +22,18 @@ public class UserLanguageRequest {
     @Min(value = 1, message = "언어 수준은 1 이상이어야 합니다.")
     @Max(value = 5, message = "언어 수준은 5 이하여야 합니다.")
     private Integer level;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserLanguageRequest other)) return false;
+        return Objects.equals(language, other.language);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(language);
+    }
 
     public static UserLanguageRequest of(String language, Integer level) {
         UserLanguageRequest request = new UserLanguageRequest();

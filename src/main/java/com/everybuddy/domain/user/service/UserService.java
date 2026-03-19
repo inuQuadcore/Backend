@@ -163,6 +163,7 @@ public class UserService {
 
     private List<UserTag> getRequestUserTags(UpdateTagsRequest request, User user) {
         return request.getTags().stream()
+                .distinct()
                 .map(tagStr -> EnumConverter.stringToEnum(tagStr, Tag.class, ErrorCode.INVALID_INPUT_VALUE))
                 .map(tag -> UserTag.of(user, tag))
                 .toList();

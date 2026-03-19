@@ -11,9 +11,8 @@ import com.everybuddy.domain.user.entity.Tag;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.entity.UserLanguage;
 import com.everybuddy.domain.user.entity.UserTag;
-import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
-import com.everybuddy.domain.user.repository.UserTagRepository;
+import com.everybuddy.domain.user.service.UserProfileLoader;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.s3.service.StorageService;
 import com.everybuddy.global.exception.ErrorCode;
@@ -28,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,8 +41,7 @@ class FriendRelationServiceTest {
     @Mock private FriendRelationRepository friendRelationRepository;
     @Mock private BlockRelationRepository blockRelationRepository;
     @Mock private UserRepository userRepository;
-    @Mock private UserLanguageRepository userLanguageRepository;
-    @Mock private UserTagRepository userTagRepository;
+    @Mock private UserProfileLoader userProfileLoader;
     @Mock private StorageService storageService;
 
     @InjectMocks
@@ -173,8 +172,8 @@ class FriendRelationServiceTest {
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of(relation));
-            when(userLanguageRepository.findAllByUserIdIn(List.of(2L))).thenReturn(List.of(language));
-            when(userTagRepository.findAllByUserIdIn(List.of(2L))).thenReturn(List.of(tag));
+            when(userProfileLoader.loadLanguagesByUserId(List.of(2L))).thenReturn(Map.of(2L, List.of(language)));
+            when(userProfileLoader.loadTagsByUserId(List.of(2L))).thenReturn(Map.of(2L, List.of(tag)));
 
             FriendListResponse response = friendRelationService.getFriends(1L);
 
@@ -222,8 +221,8 @@ class FriendRelationServiceTest {
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of(relation));
-            when(userLanguageRepository.findAllByUserIdIn(List.of(2L))).thenReturn(List.of());
-            when(userTagRepository.findAllByUserIdIn(List.of(2L))).thenReturn(List.of());
+            when(userProfileLoader.loadLanguagesByUserId(List.of(2L))).thenReturn(Map.of());
+            when(userProfileLoader.loadTagsByUserId(List.of(2L))).thenReturn(Map.of());
 
             FriendListResponse response = friendRelationService.getFriends(1L);
 

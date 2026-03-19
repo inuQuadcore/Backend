@@ -3,8 +3,6 @@ package com.everybuddy.domain.friendrelation.dto;
 import com.everybuddy.domain.user.dto.UserLanguageResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.User;
-import com.everybuddy.domain.user.entity.UserLanguage;
-import com.everybuddy.domain.user.entity.UserTag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -49,15 +47,15 @@ public class FriendResponse {
     }
 
     public static FriendResponse of(User user, String profileImageUrl,
-                                    List<UserLanguage> languages, List<UserTag> tags) {
+                                    List<UserLanguageResponse> languages, List<UserTagResponse> tags) {
         return FriendResponse.builder()
                 .userId(user.getUserId())
                 .name(user.getName())
                 .profileImageUrl(profileImageUrl)
                 .country(user.getCountry().name())
                 .bio(user.getBio())
-                .languages(languages.stream().map(UserLanguageResponse::from).toList())
-                .tags(tags.stream().map(UserTagResponse::from).toList())
+                .languages(languages)
+                .tags(tags)
                 .build();
     }
 }

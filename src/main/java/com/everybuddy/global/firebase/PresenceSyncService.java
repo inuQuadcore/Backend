@@ -53,10 +53,14 @@ public class PresenceSyncService {
                     }
 
                     @Override
-                    public void onChildChanged(DataSnapshot snapshot, String previousChildName) { }
+                    public void onChildChanged(DataSnapshot snapshot, String previousChildName) {
+                        // presence 노드는 단순 존재 여부만 추적하므로 값 변경 이벤트는 무시
+                    }
 
                     @Override
-                    public void onChildMoved(DataSnapshot snapshot, String previousChildName) { }
+                    public void onChildMoved(DataSnapshot snapshot, String previousChildName) {
+                        // presence 노드는 순서가 없으므로 이동 이벤트는 발생하지 않음
+                    }
 
                     @Override
                     public void onCancelled(DatabaseError error) {

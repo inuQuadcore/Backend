@@ -26,6 +26,8 @@ public interface UserPresenceRepository extends JpaRepository<UserPresence, Long
     @Query("UPDATE UserPresence p SET p.isOnline = false")
     void resetAllOffline();
 
+    List<UserPresence> findAllByUserIdIn(List<Long> userIds);
+
     @Transactional
     @Modifying
     @Query("UPDATE UserPresence p SET p.isOnline = true, p.lastSeenAt = CURRENT_TIMESTAMP WHERE p.userId IN :userIds")

@@ -8,8 +8,10 @@ import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.domain.user.entity.Tag;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.entity.UserLanguage;
+import com.everybuddy.domain.user.entity.UserPresence;
 import com.everybuddy.domain.user.entity.UserTag;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
+import com.everybuddy.domain.user.repository.UserPresenceRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.domain.user.repository.UserTagRepository;
 import com.everybuddy.global.exception.CustomException;
@@ -30,6 +32,7 @@ public class AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final UserPresenceRepository userPresenceRepository;
     private final UserLanguageRepository userLanguageRepository;
     private final UserTagRepository userTagRepository;
     private final PasswordEncoder passwordEncoder;
@@ -40,6 +43,7 @@ public class AuthService {
         User user = User.from(request, passwordEncoder);
         userRepository.save(user);
 
+        userPresenceRepository.save(UserPresence.of(user));
         saveUserLanguages(user, request.getLanguages());
         saveUserTags(user, request.getTags());
     }
@@ -67,6 +71,7 @@ public class AuthService {
 
     private void saveUserLanguages(User user, List<UserLanguageRequest> languages) {
         List<UserLanguage> userLanguages = languages.stream()
+                .distinct()
                 .map(lr -> {
                     Language language = EnumConverter.stringToEnum(lr.getLanguage(), Language.class, ErrorCode.INVALID_INPUT_VALUE);
                     return UserLanguage.of(user, language, lr.getLevel());
@@ -77,6 +82,7 @@ public class AuthService {
 
     private void saveUserTags(User user, List<String> tags) {
         List<UserTag> userTags = tags.stream()
+                .distinct()
                 .map(tag -> EnumConverter.stringToEnum(tag, Tag.class, ErrorCode.INVALID_INPUT_VALUE))
                 .map(tag -> UserTag.of(user, tag))
                 .toList();

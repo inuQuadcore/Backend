@@ -1,4 +1,4 @@
-package com.everybuddy.domain.friendrelation.dto;
+package com.everybuddy.domain.discover.dto;
 
 import com.everybuddy.domain.user.dto.UserLanguageResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
@@ -7,11 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Schema(description = "친구 프로필 정보")
-public class FriendResponse {
+@Schema(description = "탐색된 유저 프로필")
+public class DiscoveredUserResponse {
 
     @Schema(description = "유저 ID", example = "1")
     private final Long userId;
@@ -34,9 +35,13 @@ public class FriendResponse {
     @Schema(description = "태그 목록")
     private final List<UserTagResponse> tags;
 
+    @Schema(description = "마지막 접속 시각")
+    private final LocalDateTime lastSeenAt;
+
     @Builder
-    private FriendResponse(Long userId, String name, String profileImageUrl, String country,
-                           String bio, List<UserLanguageResponse> languages, List<UserTagResponse> tags) {
+    private DiscoveredUserResponse(Long userId, String name, String profileImageUrl, String country,
+                                   String bio, List<UserLanguageResponse> languages,
+                                   List<UserTagResponse> tags, LocalDateTime lastSeenAt) {
         this.userId = userId;
         this.name = name;
         this.profileImageUrl = profileImageUrl;
@@ -44,11 +49,14 @@ public class FriendResponse {
         this.bio = bio;
         this.languages = languages;
         this.tags = tags;
+        this.lastSeenAt = lastSeenAt;
     }
 
-    public static FriendResponse of(User user, String profileImageUrl,
-                                    List<UserLanguageResponse> languages, List<UserTagResponse> tags) {
-        return FriendResponse.builder()
+    public static DiscoveredUserResponse of(User user, String profileImageUrl,
+                                            List<UserLanguageResponse> languages,
+                                            List<UserTagResponse> tags,
+                                            LocalDateTime lastSeenAt) {
+        return DiscoveredUserResponse.builder()
                 .userId(user.getUserId())
                 .name(user.getName())
                 .profileImageUrl(profileImageUrl)
@@ -56,6 +64,7 @@ public class FriendResponse {
                 .bio(user.getBio())
                 .languages(languages)
                 .tags(tags)
+                .lastSeenAt(lastSeenAt)
                 .build();
     }
 }

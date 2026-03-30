@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -50,6 +51,9 @@ class ChatRoomServiceTest {
 
     @InjectMocks
     private ChatRoomService chatRoomService;
+
+    @Captor
+    private ArgumentCaptor<List<ChatPart>> chatPartsCaptor;
 
     private User creator;
     private User participant1;
@@ -119,9 +123,8 @@ class ChatRoomServiceTest {
             assertEquals(1L, chatPartCaptor.getValue().getUser().getUserId());
 
             // 다른 참여자 저장 값 검증
-            ArgumentCaptor<List<ChatPart>> partsCaptor = ArgumentCaptor.forClass(List.class);
-            verify(chatPartRepository).saveAll(partsCaptor.capture());
-            List<ChatPart> savedParts = partsCaptor.getValue();
+            verify(chatPartRepository).saveAll(chatPartsCaptor.capture());
+            List<ChatPart> savedParts = chatPartsCaptor.getValue();
             assertEquals(1, savedParts.size());
             assertEquals(2L, savedParts.get(0).getUser().getUserId());
         }
@@ -166,9 +169,8 @@ class ChatRoomServiceTest {
             );
 
             // 다른 참여자들 저장 값 검증
-            ArgumentCaptor<List<ChatPart>> partsCaptor = ArgumentCaptor.forClass(List.class);
-            verify(chatPartRepository).saveAll(partsCaptor.capture());
-            List<ChatPart> savedParts = partsCaptor.getValue();
+            verify(chatPartRepository).saveAll(chatPartsCaptor.capture());
+            List<ChatPart> savedParts = chatPartsCaptor.getValue();
             assertEquals(2, savedParts.size());
             assertTrue(savedParts.stream().anyMatch(cp -> cp.getUser().getUserId().equals(2L)));
             assertTrue(savedParts.stream().anyMatch(cp -> cp.getUser().getUserId().equals(3L)));

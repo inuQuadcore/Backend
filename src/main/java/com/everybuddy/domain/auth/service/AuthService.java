@@ -88,12 +88,15 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
 
-        LocalDateTime expiresAt = LocalDateTime.now()
+        LocalDateTime accessTokenExpiresAt = LocalDateTime.now()
+                .plusSeconds(jwtTokenProvider.getTokenValidityInMilliseconds() / 1000);
+        LocalDateTime refreshTokenExpiresAt = LocalDateTime.now()
                 .plusSeconds(jwtTokenProvider.getRefreshTokenValidityInMilliseconds() / 1000);
-        refreshTokenRepository.save(RefreshToken.of(user, refreshToken, expiresAt));
 
-        return LoginResponse.of(user.getUserId(), accessToken, jwtTokenProvider.getTokenValidityInMilliseconds(),
-                refreshToken, jwtTokenProvider.getRefreshTokenValidityInMilliseconds());
+        refreshTokenRepository.save(RefreshToken.of(user, refreshToken, refreshTokenExpiresAt));
+
+        return LoginResponse.of(user.getUserId(), accessToken, accessTokenExpiresAt,
+                refreshToken, refreshTokenExpiresAt);
     }
 
     private void validateDuplicateLoginId(String loginId) {

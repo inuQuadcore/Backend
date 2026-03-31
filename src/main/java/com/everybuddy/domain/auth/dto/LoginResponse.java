@@ -38,14 +38,14 @@ public class LoginResponse {
         this.refreshTokenExpiresAt = refreshTokenExpiresAt;
     }
 
-    public static LoginResponse of(Long userId, String accessToken, long accessTokenValidityInMillis,
-                                   String refreshToken, long refreshTokenValidityInMillis) {
+    public static LoginResponse of(Long userId, String accessToken, LocalDateTime accessTokenExpiresAt,
+                                   String refreshToken, LocalDateTime refreshTokenExpiresAt) {
         return LoginResponse.builder()
                 .userId(userId)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .accessTokenExpiresAt(LocalDateTime.now().plusSeconds(accessTokenValidityInMillis / 1000))
-                .refreshTokenExpiresAt(LocalDateTime.now().plusSeconds(refreshTokenValidityInMillis / 1000))
+                .accessTokenExpiresAt(accessTokenExpiresAt)
+                .refreshTokenExpiresAt(refreshTokenExpiresAt)
                 .build();
     }
 }

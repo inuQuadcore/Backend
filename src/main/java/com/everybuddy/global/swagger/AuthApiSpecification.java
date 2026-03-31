@@ -152,7 +152,8 @@ public interface AuthApiSpecification {
                         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                         "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                         "tokenType": "Bearer",
-                        "expireIn": 3600
+                        "accessTokenExpiresAt": "2026-04-30T13:00:00",
+                        "refreshTokenExpiresAt": "2026-05-30T13:00:00"
                     }
                     """
                             )

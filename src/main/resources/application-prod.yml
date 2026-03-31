@@ -37,6 +37,7 @@ logging:
 jwt:
   secret: ${JWT_SECRET}
   tokenValidityInMilliseconds: ${JWT_VALIDITY}
+  refreshTokenValidityInMilliseconds: ${JWT_REFRESH_VALIDITY}
 
 firebase:
   project:

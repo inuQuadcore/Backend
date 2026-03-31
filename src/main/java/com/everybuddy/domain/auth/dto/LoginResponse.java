@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Schema(description = "로그인 응답")
 public class LoginResponse {
@@ -14,24 +16,36 @@ public class LoginResponse {
     @Schema(description = "JWT 액세스 토큰", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     private final String accessToken;
 
+    @Schema(description = "JWT 리프레쉬 토큰", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    private final String refreshToken;
+
     @Schema(description = "토큰 타입", example = "Bearer")
     private final String tokenType = "Bearer";
 
-    @Schema(description = "토큰 만료 시간 (초)", example = "86400")
-    private final Long expireIn;
+    @Schema(description = "액세스 토큰 만료 시각", example = "2026-04-30T13:00:00")
+    private final LocalDateTime accessTokenExpiresAt;
+
+    @Schema(description = "리프레쉬 토큰 만료 시각", example = "2026-04-30T13:00:00")
+    private final LocalDateTime refreshTokenExpiresAt;
 
     @Builder
-    private LoginResponse(Long userId, String accessToken, String tokenType, Long expireIn) {
+    private LoginResponse(Long userId, String accessToken, String refreshToken,
+                          LocalDateTime accessTokenExpiresAt, LocalDateTime refreshTokenExpiresAt) {
         this.userId = userId;
         this.accessToken = accessToken;
-        this.expireIn = expireIn;
+        this.refreshToken = refreshToken;
+        this.accessTokenExpiresAt = accessTokenExpiresAt;
+        this.refreshTokenExpiresAt = refreshTokenExpiresAt;
     }
 
-    public static LoginResponse of(Long userId, String accessToken, Long expireInMillis) {
+    public static LoginResponse of(Long userId, String accessToken, LocalDateTime accessTokenExpiresAt,
+                                   String refreshToken, LocalDateTime refreshTokenExpiresAt) {
         return LoginResponse.builder()
                 .userId(userId)
                 .accessToken(accessToken)
-                .expireIn(expireInMillis / 1000)  // 밀리초 → 초 변환
+                .refreshToken(refreshToken)
+                .accessTokenExpiresAt(accessTokenExpiresAt)
+                .refreshTokenExpiresAt(refreshTokenExpiresAt)
                 .build();
     }
 }

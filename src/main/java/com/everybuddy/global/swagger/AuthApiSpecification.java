@@ -4,6 +4,7 @@ import com.everybuddy.domain.auth.dto.FirebaseTokenResponse;
 import com.everybuddy.domain.auth.dto.LoginRequest;
 import com.everybuddy.domain.auth.dto.LoginResponse;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
+import com.everybuddy.domain.auth.dto.TokenRefreshRequest;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -98,8 +99,10 @@ public interface AuthApiSpecification {
                     {
                         "userId": 123,
                         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                         "tokenType": "Bearer",
-                        "expireIn": 86400
+                        "accessTokenExpiresAt": "2026-04-30T13:00:00",
+                        "refreshTokenExpiresAt": "2026-05-30T12:00:00"
                     }
                     """
                             )
@@ -135,6 +138,58 @@ public interface AuthApiSpecification {
             )
     })
     ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest);
+
+    @SecurityRequirements(value = {})
+    @Operation(summary = "토큰 재발급", description = "리프레쉬 토큰으로 액세스/리프레쉬 토큰 재발급 (rotation)")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "재발급 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = LoginResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "userId": 123,
+                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "tokenType": "Bearer",
+                        "accessTokenExpiresAt": "2026-04-30T13:00:00",
+                        "refreshTokenExpiresAt": "2026-05-30T13:00:00"
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "유효하지 않거나 만료된 리프레쉬 토큰",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "유효하지 않은 토큰", value = """
+                                    {
+                                        "code": 401,
+                                        "name": "REFRESH_TOKEN_NOT_FOUND",
+                                        "message": "유효하지 않은 리프레쉬 토큰입니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "만료된 토큰", value = """
+                                    {
+                                        "code": 401,
+                                        "name": "REFRESH_TOKEN_EXPIRED",
+                                        "message": "리프레쉬 토큰이 만료되었습니다. 다시 로그인해주세요."
+                                    }
+                                    """)
+                            }
+                    )
+            )
+    })
+    ResponseEntity<LoginResponse> refresh(@Valid @RequestBody TokenRefreshRequest request);
+
+    @SecurityRequirements(value = {})
+    @Operation(summary = "로그아웃", description = "리프레쉬 토큰 무효화")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "로그아웃 성공")
+    })
+    ResponseEntity<Void> logout(@Valid @RequestBody TokenRefreshRequest request);
 
     @Operation(summary = "Firebase 토큰 발급", description = "Firebase 실시간 채팅용 커스텀 토큰 발급")
     @ApiResponses({

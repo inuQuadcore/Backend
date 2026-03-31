@@ -25,10 +25,12 @@ public class JwtTokenProvider {
     private SecretKey key;
     private final String secret;
     private final long tokenValidityInMilliseconds;
+    private final long refreshTokenValidityInMilliseconds;
 
-    public JwtTokenProvider(@Value("${jwt.secret}") String secret, @Value("${jwt.tokenValidityInMilliseconds}") long tokenValidityInMilliseconds, UserRepository userRepository) {
+    public JwtTokenProvider(@Value("${jwt.secret}") String secret, @Value("${jwt.tokenValidityInMilliseconds}") long tokenValidityInMilliseconds, @Value("${jwt.refreshTokenValidityInMilliseconds}") long refreshTokenValidityInMilliseconds, UserRepository userRepository) {
         this.secret = secret;
         this.tokenValidityInMilliseconds = tokenValidityInMilliseconds;
+        this.refreshTokenValidityInMilliseconds = refreshTokenValidityInMilliseconds;
         this.userRepository = userRepository;
     }
 
@@ -38,15 +40,27 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    //토큰 생성
-    public String createToken(String loginId) {
+    //액세스 토큰 생성
+    public String createAccessToken(Long userId) {
         //토큰 만료시간 설정
         long now = new Date().getTime();
         Date validate = new Date(now + this.tokenValidityInMilliseconds);
 
         //토큰 생성
         return Jwts.builder()
-                .subject(loginId)
+                .subject(String.valueOf(userId))
+                .expiration(validate)
+                .signWith(key)
+                .compact();
+    }
+
+    //리프레쉬 토큰 생성
+    public String createRefreshToken(Long userId) {
+        long now = new Date().getTime();
+        Date validate = new Date(now + this.refreshTokenValidityInMilliseconds);
+
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
                 .expiration(validate)
                 .signWith(key)
                 .compact();
@@ -62,8 +76,8 @@ public class JwtTokenProvider {
                 .getPayload();
 
         //사용자 정보 조회
-        String loginId = claims.getSubject();
-        User user = userRepository.findByLoginId(loginId)
+        Long userId = Long.parseLong(claims.getSubject());
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new JwtAuthException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isDeleted()) {
@@ -101,7 +115,11 @@ public class JwtTokenProvider {
         }
     }
 
-    public Long getTokenValidityInMilliseconds() {
+    public long getTokenValidityInMilliseconds() {
         return this.tokenValidityInMilliseconds;
+    }
+
+    public long getRefreshTokenValidityInMilliseconds() {
+        return this.refreshTokenValidityInMilliseconds;
     }
 }

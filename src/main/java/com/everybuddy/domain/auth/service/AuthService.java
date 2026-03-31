@@ -3,6 +3,8 @@ package com.everybuddy.domain.auth.service;
 import com.everybuddy.domain.auth.dto.LoginRequest;
 import com.everybuddy.domain.auth.dto.LoginResponse;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
+import com.everybuddy.domain.auth.entity.RefreshToken;
+import com.everybuddy.domain.auth.repository.RefreshTokenRepository;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.domain.user.entity.Tag;
@@ -23,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -35,6 +38,7 @@ public class AuthService {
     private final UserPresenceRepository userPresenceRepository;
     private final UserLanguageRepository userLanguageRepository;
     private final UserTagRepository userTagRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     public void createUser(RegisterRequest request) {
@@ -57,10 +61,39 @@ public class AuthService {
             throw new CustomException(ErrorCode.BAD_CREDENTIALS);
         }
 
-        String token = jwtTokenProvider.createToken(user.getLoginId());
-        Long expiresIn = jwtTokenProvider.getTokenValidityInMilliseconds() / 1000;
+        return issueTokens(user);
+    }
 
-        return LoginResponse.of(user.getUserId(), token, expiresIn);
+    public LoginResponse refresh(String refreshTokenStr) {
+        RefreshToken stored = refreshTokenRepository.findByToken(refreshTokenStr)
+                .orElseThrow(() -> new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
+
+        if (stored.isExpired()) {
+            refreshTokenRepository.deleteByUser(stored.getUser());
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+
+        User user = stored.getUser();
+        refreshTokenRepository.deleteByUser(user);
+        return issueTokens(user);
+    }
+
+    public void logout(String refreshTokenStr) {
+        refreshTokenRepository.deleteByToken(refreshTokenStr);
+    }
+
+    private LoginResponse issueTokens(User user) {
+        refreshTokenRepository.deleteByUser(user);
+
+        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
+
+        LocalDateTime expiresAt = LocalDateTime.now()
+                .plusSeconds(jwtTokenProvider.getRefreshTokenValidityInMilliseconds() / 1000);
+        refreshTokenRepository.save(RefreshToken.of(user, refreshToken, expiresAt));
+
+        return LoginResponse.of(user.getUserId(), accessToken, jwtTokenProvider.getTokenValidityInMilliseconds(),
+                refreshToken, jwtTokenProvider.getRefreshTokenValidityInMilliseconds());
     }
 
     private void validateDuplicateLoginId(String loginId) {

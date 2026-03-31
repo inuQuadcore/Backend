@@ -39,6 +39,8 @@ public enum ErrorCode {
     S3_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
 
     //JWT
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, 401, "유효하지 않은 리프레쉬 토큰입니다."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, 401, "리프레쉬 토큰이 만료되었습니다. 다시 로그인해주세요."),
     JWT_ENTRY_POINT(HttpStatus.UNAUTHORIZED, 401, "로그인이 필요합니다."),
     JWT_ACCESS_DENIED(HttpStatus.FORBIDDEN, 403, "접근 권한이 없습니다."),
     JWT_SIGNATURE(HttpStatus.UNAUTHORIZED, 401, "인증에 실패했습니다. 다시 로그인해주세요."),

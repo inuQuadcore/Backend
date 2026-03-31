@@ -4,6 +4,7 @@ import com.everybuddy.domain.auth.dto.FirebaseTokenResponse;
 import com.everybuddy.domain.auth.dto.LoginRequest;
 import com.everybuddy.domain.auth.dto.LoginResponse;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
+import com.everybuddy.domain.auth.dto.TokenRefreshRequest;
 import com.everybuddy.domain.auth.service.AuthService;
 import com.everybuddy.domain.auth.service.FirebaseTokenService;
 import com.everybuddy.global.security.UserDetailsImpl;
@@ -32,6 +33,17 @@ public class AuthController implements AuthApiSpecification {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest){
         LoginResponse loginResponse = authService.login(loginRequest);
         return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody TokenRefreshRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody TokenRefreshRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/firebaseToken")

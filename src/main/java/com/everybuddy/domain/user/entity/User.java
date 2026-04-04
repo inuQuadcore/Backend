@@ -1,5 +1,6 @@
 package com.everybuddy.domain.user.entity;
 
+import com.everybuddy.domain.auth.dto.GoogleRegisterRequest;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
@@ -27,14 +28,21 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String loginId;
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(20) NOT NULL DEFAULT 'LOCAL'")
+    private Provider provider;
+
+    @Column
+    private String providerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -60,7 +68,8 @@ public class User {
 
     @Builder
     private User(String loginId, String name, String password, Country country,
-                 Gender gender, String profile, String bio, LocalDate birthday) {
+                 Gender gender, String profile, String bio, LocalDate birthday,
+                 Provider provider, String providerId) {
         this.loginId = loginId;
         this.name = name;
         this.password = password;
@@ -69,29 +78,33 @@ public class User {
         this.profile = profile;
         this.bio = bio;
         this.birthday = birthday;
+        this.provider = provider;
+        this.providerId = providerId;
     }
 
     public static User from(RegisterRequest registerRequest, PasswordEncoder passwordEncoder) {
-        // String → Enum 변환
-        Country country = EnumConverter.stringToEnum(registerRequest.getCountry(), Country.class, ErrorCode.INVALID_INPUT_VALUE);
-        Gender gender = EnumConverter.stringToEnum(registerRequest.getGender(), Gender.class, ErrorCode.INVALID_INPUT_VALUE);
-
-        // String → LocalDate 변환
-        LocalDate birthday;
-        try {
-            birthday = LocalDate.parse(registerRequest.getBirthday());
-        } catch (DateTimeParseException e) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-
         return User.builder()
                 .loginId(registerRequest.getLoginId())
                 .name(registerRequest.getName())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
-                .country(country)
-                .gender(gender)
+                .country(parseCountry(registerRequest.getCountry()))
+                .gender(parseGender(registerRequest.getGender()))
                 .bio(registerRequest.getBio())
-                .birthday(birthday)
+                .birthday(parseBirthday(registerRequest.getBirthday()))
+                .provider(Provider.LOCAL)
+                .build();
+    }
+
+    public static User fromOAuth(String name, String email, String providerId, Provider provider, GoogleRegisterRequest request) {
+        return User.builder()
+                .loginId(email)
+                .name(name)
+                .country(parseCountry(request.getCountry()))
+                .gender(parseGender(request.getGender()))
+                .bio(request.getBio())
+                .birthday(parseBirthday(request.getBirthday()))
+                .provider(provider)
+                .providerId(providerId)
                 .build();
     }
 
@@ -128,5 +141,21 @@ public class User {
                 .build();
         user.userId = userId;
         return user;
+    }
+
+    private static Country parseCountry(String country) {
+        return EnumConverter.stringToEnum(country, Country.class, ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    private static Gender parseGender(String gender) {
+        return EnumConverter.stringToEnum(gender, Gender.class, ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    private static LocalDate parseBirthday(String birthday) {
+        try {
+            return LocalDate.parse(birthday);
+        } catch (DateTimeParseException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 }

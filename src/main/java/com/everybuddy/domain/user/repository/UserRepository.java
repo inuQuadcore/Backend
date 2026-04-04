@@ -3,6 +3,7 @@ package com.everybuddy.domain.user.repository;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
+import com.everybuddy.domain.user.entity.Provider;
 import com.everybuddy.domain.user.entity.Tag;
 import com.everybuddy.domain.user.entity.User;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.loginId = :loginId")
     Optional<User> findByLoginId(@Param("loginId") String loginId);
+
+    @Query("SELECT u FROM User u WHERE u.provider = :provider AND u.providerId = :providerId")
+    Optional<User> findByProviderAndProviderId(@Param("provider") Provider provider, @Param("providerId") String providerId);
 
     boolean existsByLoginId(String loginId);
 

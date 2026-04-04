@@ -1,7 +1,9 @@
 package com.everybuddy.global.security;
 
+import com.everybuddy.domain.user.entity.Provider;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
+import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.security.exception.JwtAuthException;
 import io.jsonwebtoken.*;
@@ -11,7 +13,6 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -26,11 +27,17 @@ public class JwtTokenProvider {
     private final String secret;
     private final long tokenValidityInMilliseconds;
     private final long refreshTokenValidityInMilliseconds;
+    private final long tempTokenValidityInMilliseconds;
 
-    public JwtTokenProvider(@Value("${jwt.secret}") String secret, @Value("${jwt.tokenValidityInMilliseconds}") long tokenValidityInMilliseconds, @Value("${jwt.refreshTokenValidityInMilliseconds}") long refreshTokenValidityInMilliseconds, UserRepository userRepository) {
+    public JwtTokenProvider(@Value("${jwt.secret}") String secret,
+                            @Value("${jwt.tokenValidityInMilliseconds}") long tokenValidityInMilliseconds,
+                            @Value("${jwt.refreshTokenValidityInMilliseconds}") long refreshTokenValidityInMilliseconds,
+                            @Value("${jwt.tempTokenValidityInMilliseconds}") long tempTokenValidityInMilliseconds,
+                            UserRepository userRepository) {
         this.secret = secret;
         this.tokenValidityInMilliseconds = tokenValidityInMilliseconds;
         this.refreshTokenValidityInMilliseconds = refreshTokenValidityInMilliseconds;
+        this.tempTokenValidityInMilliseconds = tempTokenValidityInMilliseconds;
         this.userRepository = userRepository;
     }
 
@@ -121,5 +128,37 @@ public class JwtTokenProvider {
 
     public long getRefreshTokenValidityInMilliseconds() {
         return this.refreshTokenValidityInMilliseconds;
+    }
+
+    public String createTempToken(String providerId, Provider provider, String email, String name) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(providerId)
+                .claim("type", "TEMP")
+                .claim("provider", provider.name())
+                .claim("email", email)
+                .claim("name", name)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + tempTokenValidityInMilliseconds))
+                .signWith(key)
+                .compact();
+    }
+
+    public Claims parseTempToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            if (!"TEMP".equals(claims.get("type", String.class))) {
+                throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+            }
+            return claims;
+        } catch (ExpiredJwtException e) {
+            throw new CustomException(ErrorCode.TEMP_TOKEN_EXPIRED);
+        } catch (JwtException e) {
+            throw new CustomException(ErrorCode.INVALID_OAUTH_TOKEN);
+        }
     }
 }

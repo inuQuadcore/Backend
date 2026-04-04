@@ -54,7 +54,7 @@ public class AuthController implements AuthApiSpecification {
         return ResponseEntity.ok(authService.authenticateWithGoogle(request.getIdToken()));
     }
 
-    @PostMapping("/oauth/google/complete")
+    @PostMapping("/oauth/google/register")
     public ResponseEntity<LoginResponse> googleRegister(@Valid @RequestBody GoogleRegisterRequest request) {
         return ResponseEntity.ok(authService.registerWithGoogle(request));
     }

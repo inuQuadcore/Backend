@@ -58,6 +58,8 @@ public enum ErrorCode {
     //인증 관련
     BAD_CREDENTIALS(HttpStatus.UNAUTHORIZED, 401, "아이디 또는 비밀번호가 올바르지 않습니다."),
     PASSWORD_NOT_MATCHED(HttpStatus.UNAUTHORIZED, 401, "비밀번호가 일치하지 않습니다."),
+    INVALID_OAUTH_TOKEN(HttpStatus.UNAUTHORIZED, 401, "유효하지 않은 OAuth 토큰입니다."),
+    TEMP_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, 401, "임시 토큰이 만료되었습니다. 다시 구글 로그인을 시도해주세요."),
 
     //데이터베이스 관련
     DATABASE_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 500, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),

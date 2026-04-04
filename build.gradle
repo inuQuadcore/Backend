@@ -41,6 +41,9 @@ dependencies {
 	// Firebase Admin SDK
 	implementation 'com.google.firebase:firebase-admin:9.4.2'
 
+	// Google OAuth
+	implementation 'com.google.api-client:google-api-client:2.4.0'
+
 	// AWS S3
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.0'
 

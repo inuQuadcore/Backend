@@ -1,6 +1,9 @@
 package com.everybuddy.domain.auth.controller;
 
 import com.everybuddy.domain.auth.dto.FirebaseTokenResponse;
+import com.everybuddy.domain.auth.dto.GoogleLoginRequest;
+import com.everybuddy.domain.auth.dto.GoogleLoginResponse;
+import com.everybuddy.domain.auth.dto.GoogleRegisterRequest;
 import com.everybuddy.domain.auth.dto.LoginRequest;
 import com.everybuddy.domain.auth.dto.LoginResponse;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
@@ -44,6 +47,16 @@ public class AuthController implements AuthApiSpecification {
     public ResponseEntity<Void> logout(@Valid @RequestBody TokenRefreshRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/oauth/google")
+    public ResponseEntity<GoogleLoginResponse> googleAuthenticate(@Valid @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.authenticateWithGoogle(request.getIdToken()));
+    }
+
+    @PostMapping("/oauth/google/complete")
+    public ResponseEntity<LoginResponse> googleRegister(@Valid @RequestBody GoogleRegisterRequest request) {
+        return ResponseEntity.ok(authService.registerWithGoogle(request));
     }
 
     @GetMapping("/firebaseToken")

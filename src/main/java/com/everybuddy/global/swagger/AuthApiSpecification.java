@@ -1,6 +1,9 @@
 package com.everybuddy.global.swagger;
 
 import com.everybuddy.domain.auth.dto.FirebaseTokenResponse;
+import com.everybuddy.domain.auth.dto.GoogleLoginRequest;
+import com.everybuddy.domain.auth.dto.GoogleLoginResponse;
+import com.everybuddy.domain.auth.dto.GoogleRegisterRequest;
 import com.everybuddy.domain.auth.dto.LoginRequest;
 import com.everybuddy.domain.auth.dto.LoginResponse;
 import com.everybuddy.domain.auth.dto.RegisterRequest;
@@ -237,4 +240,129 @@ public interface AuthApiSpecification {
     ResponseEntity<FirebaseTokenResponse> getFirebaseToken(
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) throws FirebaseAuthException;
+
+    @SecurityRequirements(value = {})
+    @Operation(summary = "Google OAuth 인증", description = """
+            [1단계] Google Sign-In SDK로 획득한 ID Token을 전송합니다.
+            - isNewUser: false → loginData의 accessToken/refreshToken으로 로그인 처리
+            - isNewUser: true  → tempToken을 저장 후 프로필 입력 화면으로 이동, /auth/oauth/google/complete 호출 시 사용
+            tempToken 유효시간: 10분""")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "인증 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = GoogleLoginResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "기존 유저", value = """
+                                    {
+                                        "isNewUser": false,
+                                        "tempToken": null,
+                                        "loginData": {
+                                            "userId": 123,
+                                            "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                            "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                            "tokenType": "Bearer",
+                                            "accessTokenExpiresAt": "2026-04-30T13:00:00",
+                                            "refreshTokenExpiresAt": "2026-05-30T13:00:00"
+                                        }
+                                    }
+                                    """),
+                                    @ExampleObject(name = "신규 유저", value = """
+                                    {
+                                        "isNewUser": true,
+                                        "tempToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                        "loginData": null
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "유효하지 않은 Google ID Token",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "INVALID_OAUTH_TOKEN",
+                        "message": "유효하지 않은 OAuth 토큰입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<GoogleLoginResponse> googleAuthenticate(@Valid @RequestBody GoogleLoginRequest request);
+
+    @SecurityRequirements(value = {})
+    @Operation(summary = "Google OAuth 회원가입 완료", description = """
+            [2단계] 신규 유저 전용. 1단계에서 받은 tempToken과 프로필 정보를 함께 전송합니다.
+            - tempToken 만료(10분) 시 TEMP_TOKEN_EXPIRED → 앱에서 1단계부터 재시도 필요
+            성공 시 accessToken/refreshToken 발급, 로그인 처리와 동일하게 저장""")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "회원가입 또는 로그인 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = LoginResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "userId": 123,
+                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "tokenType": "Bearer",
+                        "accessTokenExpiresAt": "2026-04-30T13:00:00",
+                        "refreshTokenExpiresAt": "2026-05-30T13:00:00"
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 400,
+                        "name": "INVALID_INPUT_VALUE",
+                        "message": "잘못된 입력입니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "임시 토큰 만료 또는 유효하지 않음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "임시 토큰 만료", value = """
+                                    {
+                                        "code": 401,
+                                        "name": "TEMP_TOKEN_EXPIRED",
+                                        "message": "임시 토큰이 만료되었습니다. 다시 구글 로그인을 시도해주세요."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "유효하지 않은 토큰", value = """
+                                    {
+                                        "code": 401,
+                                        "name": "INVALID_OAUTH_TOKEN",
+                                        "message": "유효하지 않은 OAuth 토큰입니다."
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409", description = "이미 가입된 계정",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 409,
+                        "name": "DUPLICATED_USER",
+                        "message": "이미 존재하는 유저입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<LoginResponse> googleRegister(@Valid @RequestBody GoogleRegisterRequest request);
 }

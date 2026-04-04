@@ -11,10 +11,4 @@ public class GoogleLoginRequest {
     @Schema(description = "Google ID Token", example = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...")
     @NotBlank(message = "ID Token을 입력해주세요.")
     private String idToken;
-
-    public static GoogleLoginRequest of(String idToken) {
-        GoogleLoginRequest request = new GoogleLoginRequest();
-        request.idToken = idToken;
-        return request;
-    }
 }

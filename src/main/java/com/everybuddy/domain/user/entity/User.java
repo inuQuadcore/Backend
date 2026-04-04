@@ -138,6 +138,7 @@ public class User {
                 .country(country)
                 .gender(gender)
                 .birthday(birthday)
+                .provider(Provider.LOCAL)
                 .build();
         user.userId = userId;
         return user;

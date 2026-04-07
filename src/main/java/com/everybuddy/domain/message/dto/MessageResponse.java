@@ -1,0 +1,67 @@
+package com.everybuddy.domain.message.dto;
+
+import com.everybuddy.domain.message.entity.Message;
+import com.everybuddy.domain.message.entity.MessageType;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+@Getter
+public class MessageResponse {
+
+    private final Long messageId;
+    private final Long userId;
+    private final String userName;
+    private final String messageType;
+    private final String content;
+    private final LocalDateTime sendAt;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final String fileUrl;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final String fileName;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final Long fileSize;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final String mediaType;
+
+    @Builder
+    private MessageResponse(Long messageId, Long userId, String userName, String messageType,
+                            String content, LocalDateTime sendAt, String fileUrl, String fileName,
+                            Long fileSize, String mediaType) {
+        this.messageId = messageId;
+        this.userId = userId;
+        this.userName = userName;
+        this.messageType = messageType;
+        this.content = content;
+        this.sendAt = sendAt;
+        this.fileUrl = fileUrl;
+        this.fileName = fileName;
+        this.fileSize = fileSize;
+        this.mediaType = mediaType;
+    }
+
+    public static MessageResponse from(Message message, String fileUrl) {
+        MessageResponseBuilder builder = MessageResponse.builder()
+                .messageId(message.getMessageId())
+                .userId(message.getUser().getUserId())
+                .userName(message.getUser().getName())
+                .messageType(message.getMessageType().name())
+                .content(message.getContent())
+                .sendAt(message.getSendAt());
+
+        if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
+            builder.fileUrl(fileUrl)
+                    .fileName(message.getMedia().getOriginalFilename())
+                    .fileSize(message.getMedia().getFileSize())
+                    .mediaType(message.getMedia().getMediaType().name());
+        }
+
+        return builder.build();
+    }
+}

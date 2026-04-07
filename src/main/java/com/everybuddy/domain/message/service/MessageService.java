@@ -26,8 +26,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.everybuddy.domain.message.dto.MessageResponse;
+import com.everybuddy.domain.message.dto.MessageSyncResponse;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -67,6 +72,18 @@ public class MessageService {
             deleteUploadedFileQuietly(fileKey);
             throw e;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public MessageSyncResponse getMessages(Long userId, Long chatRoomId, LocalDateTime since) {
+        findActiveChatRoom(chatRoomId);
+        validateParticipation(userId, chatRoomId);
+
+        return MessageSyncResponse.of(
+                resolveNewMessages(chatRoomId, since),
+                resolveUpdatedMessages(chatRoomId, since),
+                resolveDeletedIds(chatRoomId, since)
+        );
     }
 
     @Transactional
@@ -189,5 +206,32 @@ public class MessageService {
     private boolean isLastMessage(Long deletedMessageId, Optional<Long> lastMessageId) {
         // soft 삭제 이후 1년이 지난 경우를 위해 Optional로 isPresent 사용
         return lastMessageId.isPresent() && lastMessageId.get().equals(deletedMessageId);
+    }
+
+    private List<MessageResponse> resolveNewMessages(Long chatRoomId, LocalDateTime since) {
+        return toResponseList(messageRepository.findNewMessages(chatRoomId, since));
+    }
+
+    private List<MessageResponse> resolveUpdatedMessages(Long chatRoomId, LocalDateTime since) {
+        if (since == null) return List.of();
+        return toResponseList(messageRepository.findUpdatedMessages(chatRoomId, since));
+    }
+
+    private List<Long> resolveDeletedIds(Long chatRoomId, LocalDateTime since) {
+        if (since == null) return List.of();
+        return messageRepository.findDeletedMessageIds(chatRoomId, since);
+    }
+
+    private List<MessageResponse> toResponseList(List<Message> messages) {
+        return messages.stream()
+                .map(m -> MessageResponse.from(m, resolveFileUrl(m)))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveFileUrl(Message message) {
+        if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
+            return storageService.getPublicUrl(message.getMedia().getFileKey());
+        }
+        return null;
     }
 }

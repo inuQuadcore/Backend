@@ -35,4 +35,30 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             "AND m.chatRoom.chatRoomId = :chatRoomId")
     Optional<Message> findByIdAndChatRoomId(@Param("messageId") Long messageId,
                                             @Param("chatRoomId") Long chatRoomId);
+
+    @Query("SELECT m FROM Message m " +
+            "JOIN FETCH m.user " +
+            "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
+            "AND (:since IS NULL OR m.sendAt > :since) " +
+            "AND m.deletedAt IS NULL " +
+            "ORDER BY m.sendAt ASC")
+    List<Message> findNewMessages(@Param("chatRoomId") Long chatRoomId,
+                                  @Param("since") LocalDateTime since);
+
+    @Query("SELECT m FROM Message m " +
+            "JOIN FETCH m.user " +
+            "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
+            "AND m.updatedAt > :since " +
+            "AND m.sendAt <= :since " +
+            "AND m.deletedAt IS NULL " +
+            "ORDER BY m.sendAt ASC")
+    List<Message> findUpdatedMessages(@Param("chatRoomId") Long chatRoomId,
+                                      @Param("since") LocalDateTime since);
+
+    @Query("SELECT m.messageId FROM Message m " +
+            "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
+            "AND m.deletedAt > :since " +
+            "AND m.sendAt <= :since")
+    List<Long> findDeletedMessageIds(@Param("chatRoomId") Long chatRoomId,
+                                     @Param("since") LocalDateTime since);
 }

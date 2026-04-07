@@ -33,6 +33,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.everybuddy.domain.message.dto.MessageSyncResponse;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -509,6 +511,143 @@ class MessageServiceTest {
                     () -> messageService.markAsRead(999L, 1L));
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("7. getMessages() 테스트")
+    class GetMessagesCases {
+
+        private final LocalDateTime since = LocalDateTime.of(2026, 4, 7, 9, 0, 0);
+
+        private void setupChatRoomAndParticipation() {
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+        }
+
+        @Test
+        @DisplayName("TC-7-1. since 없음 → 전체 메시지 반환, updatedMessages/deletedIds 빈 리스트")
+        void sinceNullReturnsAllMessages() {
+            // given
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "전체 메시지", LocalDateTime.of(2026, 4, 7, 8, 0, 0));
+
+            setupChatRoomAndParticipation();
+            when(messageRepository.findNewMessages(1L, null)).thenReturn(List.of(message));
+
+            // when
+            MessageSyncResponse response = messageService.getMessages(1L, 1L, null);
+
+            // then
+            assertAll(
+                    () -> assertEquals(1, response.getNewMessages().size()),
+                    () -> assertEquals(1L, response.getNewMessages().get(0).getMessageId()),
+                    () -> assertTrue(response.getUpdatedMessages().isEmpty()),
+                    () -> assertTrue(response.getDeletedIds().isEmpty())
+            );
+            verify(messageRepository).findNewMessages(1L, null);
+            verify(messageRepository, never()).findUpdatedMessages(any(), any());
+            verify(messageRepository, never()).findDeletedMessageIds(any(), any());
+        }
+
+        @Test
+        @DisplayName("TC-7-2. since 이후 새 메시지 있음 → newMessages에 포함")
+        void newMessagesAfterSince() {
+            // given
+            Message message = Message.createForTest(10L, testChatRoom, testUser, MessageType.TEXT,
+                    "새 메시지", LocalDateTime.of(2026, 4, 7, 10, 0, 0));
+
+            setupChatRoomAndParticipation();
+            when(messageRepository.findNewMessages(1L, since)).thenReturn(List.of(message));
+            when(messageRepository.findUpdatedMessages(1L, since)).thenReturn(List.of());
+            when(messageRepository.findDeletedMessageIds(1L, since)).thenReturn(List.of());
+
+            // when
+            MessageSyncResponse response = messageService.getMessages(1L, 1L, since);
+
+            // then
+            assertAll(
+                    () -> assertEquals(1, response.getNewMessages().size()),
+                    () -> assertEquals(10L, response.getNewMessages().get(0).getMessageId()),
+                    () -> assertEquals("새 메시지", response.getNewMessages().get(0).getContent()),
+                    () -> assertTrue(response.getUpdatedMessages().isEmpty()),
+                    () -> assertTrue(response.getDeletedIds().isEmpty())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-7-3. since 이후 수정된 메시지 있음 → updatedMessages에 포함")
+        void updatedMessagesAfterSince() {
+            // given: since 이전에 전송됐지만 since 이후에 수정된 메시지
+            Message updatedMessage = Message.createForTestWithUpdatedAt(
+                    5L, testChatRoom, testUser, MessageType.TEXT, "수정된 내용",
+                    since.minusHours(1), since.plusMinutes(10));
+
+            setupChatRoomAndParticipation();
+            when(messageRepository.findNewMessages(1L, since)).thenReturn(List.of());
+            when(messageRepository.findUpdatedMessages(1L, since)).thenReturn(List.of(updatedMessage));
+            when(messageRepository.findDeletedMessageIds(1L, since)).thenReturn(List.of());
+
+            // when
+            MessageSyncResponse response = messageService.getMessages(1L, 1L, since);
+
+            // then
+            assertAll(
+                    () -> assertTrue(response.getNewMessages().isEmpty()),
+                    () -> assertEquals(1, response.getUpdatedMessages().size()),
+                    () -> assertEquals(5L, response.getUpdatedMessages().get(0).getMessageId()),
+                    () -> assertEquals("수정된 내용", response.getUpdatedMessages().get(0).getContent()),
+                    () -> assertTrue(response.getDeletedIds().isEmpty())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-7-4. since 이후 삭제된 메시지 있음 → deletedIds에 포함")
+        void deletedMessageIdsAfterSince() {
+            // given
+            setupChatRoomAndParticipation();
+            when(messageRepository.findNewMessages(1L, since)).thenReturn(List.of());
+            when(messageRepository.findUpdatedMessages(1L, since)).thenReturn(List.of());
+            when(messageRepository.findDeletedMessageIds(1L, since)).thenReturn(List.of(3L, 4L));
+
+            // when
+            MessageSyncResponse response = messageService.getMessages(1L, 1L, since);
+
+            // then
+            assertAll(
+                    () -> assertTrue(response.getNewMessages().isEmpty()),
+                    () -> assertTrue(response.getUpdatedMessages().isEmpty()),
+                    () -> assertEquals(List.of(3L, 4L), response.getDeletedIds())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-7-5. 존재하지 않는 채팅방")
+        void chatRoomNotFound() {
+            // given
+            when(chatRoomRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.getMessages(1L, 999L, since));
+
+            assertEquals(ErrorCode.CHATROOM_NOT_FOUND, exception.getErrorCode());
+            verify(messageRepository, never()).findNewMessages(any(), any());
+        }
+
+        @Test
+        @DisplayName("TC-7-6. 채팅방 미참여자")
+        void userNotInChatRoom() {
+            // given
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(false);
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.getMessages(1L, 1L, since));
+
+            assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
+            verify(messageRepository, never()).findNewMessages(any(), any());
         }
     }
 }

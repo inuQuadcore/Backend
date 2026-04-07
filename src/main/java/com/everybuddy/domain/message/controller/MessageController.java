@@ -1,16 +1,20 @@
 package com.everybuddy.domain.message.controller;
 
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
+import com.everybuddy.domain.message.dto.MessageSyncResponse;
 import com.everybuddy.domain.message.service.MessageService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.MessageApiSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/v1/messages")
@@ -45,5 +49,15 @@ public class MessageController implements MessageApiSpecification {
 
         messageService.markAsRead(userDetails.getUserId(), messageId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/chatrooms/{chatRoomId}")
+    public ResponseEntity<MessageSyncResponse> getMessages(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long chatRoomId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        MessageSyncResponse response = messageService.getMessages(userDetails.getUserId(), chatRoomId, since);
+        return ResponseEntity.ok(response);
     }
 }

@@ -118,6 +118,7 @@ jobs:
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
           FIREBASE_FILE_PATH: ${{ secrets.FIREBASE_FILE_PATH }}
           SERVER_URL: ${{ secrets.SERVER_URL }}
+          AI_FASTAPI_URL: ${{ secrets.AI_FASTAPI_URL }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
@@ -125,7 +126,7 @@ jobs:
           proxy_host: ${{ secrets.EC2_BASTION_HOST }}
           proxy_username: ${{ secrets.EC2_USERNAME }}
           proxy_key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DOCKER_USERNAME,RDS_USERNAME,RDS_PASSWORD,AWS_S3_ACCESS_KEY,AWS_S3_SECRET_KEY,AWS_S3_BUCKET_NAME,JWT_SECRET,JWT_VALIDITY,JWT_REFRESH_VALIDITY,JWT_TEMP_VALIDITY,GOOGLE_CLIENT_ID,FIREBASE_PROJECT_ID,FIREBASE_DATABASE_URL,FIREBASE_FILE_PATH,SERVER_URL
+          envs: DOCKER_USERNAME,RDS_USERNAME,RDS_PASSWORD,AWS_S3_ACCESS_KEY,AWS_S3_SECRET_KEY,AWS_S3_BUCKET_NAME,JWT_SECRET,JWT_VALIDITY,JWT_REFRESH_VALIDITY,JWT_TEMP_VALIDITY,GOOGLE_CLIENT_ID,FIREBASE_PROJECT_ID,FIREBASE_DATABASE_URL,FIREBASE_FILE_PATH,SERVER_URL,AI_FASTAPI_URL
           script: |
             cd ~/everybuddy
             export DOCKER_USERNAME=$DOCKER_USERNAME
@@ -143,6 +144,7 @@ jobs:
             export FIREBASE_DATABASE_URL=$FIREBASE_DATABASE_URL
             export FIREBASE_FILE_PATH=$FIREBASE_FILE_PATH
             export SERVER_URL=$SERVER_URL
+            export AI_FASTAPI_URL=$AI_FASTAPI_URL
 
             docker pull $DOCKER_USERNAME/everybuddy:latest
             docker compose down

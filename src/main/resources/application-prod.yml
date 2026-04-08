@@ -62,3 +62,8 @@ management:
         enabled: true
 swagger:
   server-url: ${SERVER_URL}
+
+ai:
+  fastapi:
+    url: ${AI_FASTAPI_URL}
+    timeout: 55000

@@ -69,7 +69,14 @@ public enum ErrorCode {
 
     // firebase 관련
     FIREBASE_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 500, "서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
-    FIREBASE_INITIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 500, "서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    FIREBASE_INITIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 500, "서비스 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
+
+    // 번역 관련
+    TRANSLATE_UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, 400, "지원하지 않는 언어입니다."),
+    TRANSLATE_INVALID_AUDIO_FORMAT(HttpStatus.BAD_REQUEST, 400, "wav, mp3, ogg, webm, m4a 형식만 지원합니다."),
+    TRANSLATE_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, 400, "파일 크기는 10MB 이하여야 합니다."),
+    TRANSLATE_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, 504, "번역 서버 응답 시간이 초과되었습니다."),
+    TRANSLATE_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, 503, "번역 서비스를 일시적으로 사용할 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final Integer code;

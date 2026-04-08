@@ -36,4 +36,5 @@ public class ChatRoomController implements ChatRoomApiSpecification {
         List<ChatRoomResponse> response = chatRoomService.getMyChatRooms(userDetails.getUserId());
         return ResponseEntity.ok(response);
     }
+
 }

@@ -8,10 +8,12 @@ import com.everybuddy.domain.media.entity.Media;
 import com.everybuddy.domain.media.repository.MediaRepository;
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.message.dto.ChatRoomMetadata;
+import com.everybuddy.domain.message.dto.UpdateMessageRequest;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.event.MessageDeletedEvent;
 import com.everybuddy.domain.message.event.MessageSentEvent;
+import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
@@ -26,8 +28,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.everybuddy.domain.message.dto.MessageResponse;
+import com.everybuddy.domain.message.dto.MessageSyncResponse;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -67,6 +74,29 @@ public class MessageService {
             deleteUploadedFileQuietly(fileKey);
             throw e;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public MessageSyncResponse getMessages(Long userId, Long chatRoomId, LocalDateTime since) {
+        findActiveChatRoom(chatRoomId);
+        validateParticipation(userId, chatRoomId);
+
+        return MessageSyncResponse.of(
+                resolveNewMessages(chatRoomId, since),
+                resolveUpdatedMessages(chatRoomId, since),
+                resolveDeletedIds(chatRoomId, since)
+        );
+    }
+
+    @Transactional
+    public MessageResponse updateMessage(Long userId, Long messageId, UpdateMessageRequest request) {
+        Message message = findMessage(messageId);
+        validateEditable(message, userId);
+
+        message.update(request.getContent());
+        eventPublisher.publishEvent(MessageUpdatedEvent.of(message, message.getChatRoom().getChatRoomId()));
+
+        return MessageResponse.from(message, resolveFileUrl(message));
     }
 
     @Transactional
@@ -120,12 +150,30 @@ public class MessageService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
     }
 
+    private void validateEditable(Message message, Long userId) {
+        if (!message.getUser().getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.NOT_MESSAGE_OF_USER);
+        }
+        if (message.isDeleted()) {
+            throw new CustomException(ErrorCode.MESSAGE_ALREADY_DELETED);
+        }
+        if (message.getMessageType() == MessageType.FILE) {
+            throw new CustomException(ErrorCode.CANNOT_EDIT_FILE_MESSAGE);
+        }
+        if (message.getSendAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED);
+        }
+    }
+
     private void validateDeletable(Message message, Long userId) {
         if (!message.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.NOT_MESSAGE_OF_USER);
         }
         if (message.isDeleted()) {
             throw new CustomException(ErrorCode.MESSAGE_ALREADY_DELETED);
+        }
+        if (message.getSendAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED);
         }
     }
 
@@ -189,5 +237,32 @@ public class MessageService {
     private boolean isLastMessage(Long deletedMessageId, Optional<Long> lastMessageId) {
         // soft 삭제 이후 1년이 지난 경우를 위해 Optional로 isPresent 사용
         return lastMessageId.isPresent() && lastMessageId.get().equals(deletedMessageId);
+    }
+
+    private List<MessageResponse> resolveNewMessages(Long chatRoomId, LocalDateTime since) {
+        return toResponseList(messageRepository.findNewMessages(chatRoomId, since));
+    }
+
+    private List<MessageResponse> resolveUpdatedMessages(Long chatRoomId, LocalDateTime since) {
+        if (since == null) return List.of();
+        return toResponseList(messageRepository.findUpdatedMessages(chatRoomId, since));
+    }
+
+    private List<Long> resolveDeletedIds(Long chatRoomId, LocalDateTime since) {
+        if (since == null) return List.of();
+        return messageRepository.findDeletedMessageIds(chatRoomId, since);
+    }
+
+    private List<MessageResponse> toResponseList(List<Message> messages) {
+        return messages.stream()
+                .map(m -> MessageResponse.from(m, resolveFileUrl(m)))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveFileUrl(Message message) {
+        if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
+            return storageService.getPublicUrl(message.getMedia().getFileKey());
+        }
+        return null;
     }
 }

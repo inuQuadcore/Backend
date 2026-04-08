@@ -47,6 +47,8 @@ public class Message {
 
     private LocalDateTime deletedAt;
 
+    private LocalDateTime updatedAt;
+
     @Builder
     private Message(ChatRoom chatRoom, User user, Media media, MessageType messageType, String content) {
         this.chatRoom = chatRoom;
@@ -60,8 +62,17 @@ public class Message {
         this.deletedAt = LocalDateTime.now();
     }
 
+    public void update(String content) {
+        this.content = content;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public boolean isDeleted() {
         return this.deletedAt != null;
+    }
+
+    public boolean isEdited() {
+        return this.updatedAt != null;
     }
 
     public static Message create(ChatRoom chatRoom, User user, MessageType messageType, String content) {
@@ -104,6 +115,14 @@ public class Message {
         Message message = createWithMedia(chatRoom, user, media, messageType);
         message.messageId = messageId;
         message.sendAt = sendAt;
+        return message;
+    }
+
+    public static Message createForTestWithUpdatedAt(Long messageId, ChatRoom chatRoom, User user,
+                                                     MessageType messageType, String content,
+                                                     LocalDateTime sendAt, LocalDateTime updatedAt) {
+        Message message = createForTest(messageId, chatRoom, user, messageType, content, sendAt);
+        message.updatedAt = updatedAt;
         return message;
     }
 }

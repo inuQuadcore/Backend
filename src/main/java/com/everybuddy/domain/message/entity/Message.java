@@ -62,6 +62,11 @@ public class Message {
         this.deletedAt = LocalDateTime.now();
     }
 
+    public void update(String content) {
+        this.content = content;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public boolean isDeleted() {
         return this.deletedAt != null;
     }

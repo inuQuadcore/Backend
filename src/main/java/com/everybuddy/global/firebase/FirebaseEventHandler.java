@@ -8,6 +8,7 @@ import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.event.MessageDeletedEvent;
 import com.everybuddy.domain.message.event.MessageSentEvent;
+import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 import com.everybuddy.global.s3.service.StorageService;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.database.DatabaseReference;
@@ -47,6 +48,11 @@ public class FirebaseEventHandler {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleMessageUpdated(MessageUpdatedEvent event) {
+        updateFirebaseAsEdited(event.getMessage());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatRoomCreated(ChatRoomCreatedEvent event) {
         saveParticipantsToFirebase(event.getChatRoomId(), event.getParticipantIds());
     }
@@ -74,6 +80,15 @@ public class FirebaseEventHandler {
                 .child(String.valueOf(message.getChatRoom().getChatRoomId()))
                 .child(String.valueOf(message.getMessageId()));
         addFirebaseCallback(ref.updateChildrenAsync(updates), "메시지 삭제 처리 messageId=" + message.getMessageId());
+    }
+
+    private void updateFirebaseAsEdited(Message message) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("content", message.getContent());
+        DatabaseReference ref = firebaseDatabase.getReference("messages")
+                .child(String.valueOf(message.getChatRoom().getChatRoomId()))
+                .child(String.valueOf(message.getMessageId()));
+        addFirebaseCallback(ref.updateChildrenAsync(updates), "메시지 수정 messageId=" + message.getMessageId());
     }
 
     private void saveParticipantsToFirebase(Long chatRoomId, List<Long> participantIds) {

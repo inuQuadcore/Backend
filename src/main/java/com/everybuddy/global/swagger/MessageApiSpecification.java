@@ -1,7 +1,9 @@
 package com.everybuddy.global.swagger;
 
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
+import com.everybuddy.domain.message.dto.MessageResponse;
 import com.everybuddy.domain.message.dto.MessageSyncResponse;
+import com.everybuddy.domain.message.dto.UpdateMessageRequest;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -157,7 +159,106 @@ public interface MessageApiSpecification {
             @RequestPart(required = false) MultipartFile file
     );
 
-    @Operation(summary = "메시지 삭제", description = "자신이 전송한 메시지를 삭제합니다.")
+    @Operation(summary = "메시지 수정", description = "자신이 전송한 텍스트 메시지를 수정합니다. 전송 후 5분 이내에만 수정 가능합니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "메시지 수정 성공",
+                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력 또는 파일 메시지 수정 시도",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "본문 누락", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다.",
+                                        "errors": {
+                                            "content": "메시지 본문을 입력해주세요."
+                                        }
+                                    }
+                                    """),
+                                    @ExampleObject(name = "파일 메시지 수정 불가", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "CANNOT_EDIT_FILE_MESSAGE",
+                                        "message": "파일 메시지는 수정할 수 없습니다."
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403", description = "수정 권한 없음 또는 시간 초과",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "타인 메시지", value = """
+                                    {
+                                        "code": 403,
+                                        "name": "NOT_MESSAGE_OF_USER",
+                                        "message": "자신의 메시지만 수정/삭제할 수 있습니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "5분 초과", value = """
+                                    {
+                                        "code": 403,
+                                        "name": "MESSAGE_EDIT_TIME_EXCEEDED",
+                                        "message": "메시지 수정/삭제 가능 시간이 지났습니다. (최대 5분)"
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "메시지를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "MESSAGE_NOT_FOUND",
+                        "message": "해당 메시지를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409", description = "이미 삭제된 메시지",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 409,
+                        "name": "MESSAGE_ALREADY_DELETED",
+                        "message": "이미 삭제된 메시지입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<MessageResponse> updateMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Parameter(description = "수정할 메시지 ID", required = true) @PathVariable Long messageId,
+            @Valid @RequestBody UpdateMessageRequest request
+    );
+
+    @Operation(summary = "메시지 삭제", description = "자신이 전송한 메시지를 삭제합니다. 전송 후 5분 이내에만 삭제 가능합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "메시지 삭제 성공"),
             @ApiResponse(
@@ -175,17 +276,25 @@ public interface MessageApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "403", description = "메시지 삭제 권한 없음",
+                    responseCode = "403", description = "메시지 삭제 권한 없음 또는 시간 초과",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject("""
-                    {
-                        "code": 403,
-                        "name": "NOT_MESSAGE_OF_USER",
-                        "message": "자신의 메시지만 삭제할 수 있습니다."
-                    }
-                    """
-                            )
+                            examples = {
+                                    @ExampleObject(name = "타인 메시지", value = """
+                                    {
+                                        "code": 403,
+                                        "name": "NOT_MESSAGE_OF_USER",
+                                        "message": "자신의 메시지만 수정/삭제할 수 있습니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "5분 초과", value = """
+                                    {
+                                        "code": 403,
+                                        "name": "MESSAGE_EDIT_TIME_EXCEEDED",
+                                        "message": "메시지 수정/삭제 가능 시간이 지났습니다. (최대 5분)"
+                                    }
+                                    """)
+                            }
                     )
             ),
             @ApiResponse(

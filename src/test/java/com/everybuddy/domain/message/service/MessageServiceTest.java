@@ -33,7 +33,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.everybuddy.domain.message.dto.MessageResponse;
 import com.everybuddy.domain.message.dto.MessageSyncResponse;
+import com.everybuddy.domain.message.dto.UpdateMessageRequest;
+import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -447,6 +450,23 @@ class MessageServiceTest {
         }
 
         @Test
+        @DisplayName("TC-5-7. 삭제 5분 초과")
+        void cannotDeleteAfterFiveMinutes() {
+            // given
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "삭제 시간 초과 메시지", LocalDateTime.now().minusMinutes(6));
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.deleteMessage(testUser.getUserId(), 1L));
+
+            assertEquals(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED, exception.getErrorCode());
+            assertFalse(message.isDeleted());
+        }
+
+        @Test
         @DisplayName("TC-5-6. 파일 메시지 삭제 시 Media도 soft delete")
         void deleteFileMessageAlsoDeletesMedia() {
             // given
@@ -648,6 +668,107 @@ class MessageServiceTest {
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
             verify(messageRepository, never()).findNewMessages(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("8. updateMessage() 테스트")
+    class UpdateMessageCases {
+
+        @Test
+        @DisplayName("TC-8-1. 본인 TEXT 메시지, 5분 이내 → content 변경, event 발행, MessageResponse 반환")
+        void updateTextMessageSuccess() {
+            // given
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "원본 내용", LocalDateTime.now().minusMinutes(2));
+            UpdateMessageRequest request = UpdateMessageRequest.of("수정된 내용");
+            ArgumentCaptor<MessageUpdatedEvent> eventCaptor = ArgumentCaptor.forClass(MessageUpdatedEvent.class);
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+
+            // when
+            MessageResponse response = messageService.updateMessage(testUser.getUserId(), 1L, request);
+
+            // then
+            assertAll(
+                    () -> assertEquals("수정된 내용", message.getContent()),
+                    () -> assertTrue(message.isEdited()),
+                    () -> assertEquals(1L, response.getMessageId()),
+                    () -> assertEquals("수정된 내용", response.getContent())
+            );
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertEquals(1L, eventCaptor.getValue().getMessage().getMessageId());
+        }
+
+        @Test
+        @DisplayName("TC-8-2. 타인 메시지 수정 시도 → NOT_MESSAGE_OF_USER")
+        void cannotUpdateOtherUserMessage() {
+            // given
+            User otherUser = User.createForTest(2L, "other", "다른유저", "password",
+                    Country.KOREA, Gender.FEMALE, LocalDate.of(1995, 1, 1));
+            Message message = Message.createForTest(1L, testChatRoom, otherUser, MessageType.TEXT,
+                    "다른 사람 메시지", LocalDateTime.now().minusMinutes(1));
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+
+            assertEquals(ErrorCode.NOT_MESSAGE_OF_USER, exception.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-8-3. 이미 삭제된 메시지 수정 시도 → MESSAGE_ALREADY_DELETED")
+        void cannotUpdateDeletedMessage() {
+            // given
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "삭제된 메시지", LocalDateTime.now().minusMinutes(1));
+            message.softDelete();
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+
+            assertEquals(ErrorCode.MESSAGE_ALREADY_DELETED, exception.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-8-4. 파일 메시지 수정 시도 → CANNOT_EDIT_FILE_MESSAGE")
+        void cannotUpdateFileMessage() {
+            // given
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.FILE,
+                    null, LocalDateTime.now().minusMinutes(1));
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+
+            assertEquals(ErrorCode.CANNOT_EDIT_FILE_MESSAGE, exception.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-8-5. 수정 5분 초과 → MESSAGE_EDIT_TIME_EXCEEDED")
+        void cannotUpdateAfterFiveMinutes() {
+            // given
+            Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
+                    "오래된 메시지", LocalDateTime.now().minusMinutes(6));
+
+            when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
+
+            // when & then
+            CustomException exception = assertThrows(CustomException.class,
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+
+            assertEquals(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED, exception.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 }

@@ -8,10 +8,12 @@ import com.everybuddy.domain.media.entity.Media;
 import com.everybuddy.domain.media.repository.MediaRepository;
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
 import com.everybuddy.domain.message.dto.ChatRoomMetadata;
+import com.everybuddy.domain.message.dto.UpdateMessageRequest;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.event.MessageDeletedEvent;
 import com.everybuddy.domain.message.event.MessageSentEvent;
+import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
@@ -87,6 +89,17 @@ public class MessageService {
     }
 
     @Transactional
+    public MessageResponse updateMessage(Long userId, Long messageId, UpdateMessageRequest request) {
+        Message message = findMessage(messageId);
+        validateEditable(message, userId);
+
+        message.update(request.getContent());
+        eventPublisher.publishEvent(MessageUpdatedEvent.of(message, message.getChatRoom().getChatRoomId()));
+
+        return MessageResponse.from(message, resolveFileUrl(message));
+    }
+
+    @Transactional
     public void deleteMessage(Long userId, Long messageId) {
         Message message = findMessage(messageId);
         validateDeletable(message, userId);
@@ -137,12 +150,30 @@ public class MessageService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
     }
 
+    private void validateEditable(Message message, Long userId) {
+        if (!message.getUser().getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.NOT_MESSAGE_OF_USER);
+        }
+        if (message.isDeleted()) {
+            throw new CustomException(ErrorCode.MESSAGE_ALREADY_DELETED);
+        }
+        if (message.getMessageType() == MessageType.FILE) {
+            throw new CustomException(ErrorCode.CANNOT_EDIT_FILE_MESSAGE);
+        }
+        if (message.getSendAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED);
+        }
+    }
+
     private void validateDeletable(Message message, Long userId) {
         if (!message.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.NOT_MESSAGE_OF_USER);
         }
         if (message.isDeleted()) {
             throw new CustomException(ErrorCode.MESSAGE_ALREADY_DELETED);
+        }
+        if (message.getSendAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED);
         }
     }
 

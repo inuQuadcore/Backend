@@ -1,7 +1,9 @@
 package com.everybuddy.domain.message.controller;
 
 import com.everybuddy.domain.message.dto.ChatMessageRequest;
+import com.everybuddy.domain.message.dto.MessageResponse;
 import com.everybuddy.domain.message.dto.MessageSyncResponse;
+import com.everybuddy.domain.message.dto.UpdateMessageRequest;
 import com.everybuddy.domain.message.service.MessageService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.MessageApiSpecification;
@@ -31,6 +33,16 @@ public class MessageController implements MessageApiSpecification {
 
         messageService.sendMessage(userDetails.getUserId(), request, file);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{messageId}")
+    public ResponseEntity<MessageResponse> updateMessage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long messageId,
+            @Valid @RequestBody UpdateMessageRequest request) {
+
+        MessageResponse response = messageService.updateMessage(userDetails.getUserId(), messageId, request);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{messageId}")

@@ -9,6 +9,7 @@ import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class TranslateMessageService {
     private final TranslatedMessageRepository translatedMessageRepository;
     private final UserRepository userRepository;
     private final RestClient fastApiRestClient;
+    private final ObjectMapper objectMapper;
 
     public TranslateTextResponse translateText(Long userId, TranslateTextRequest request) {
         Language sourceLang = Language.fromCode(request.getSourceLanguage())
@@ -99,8 +101,7 @@ public class TranslateMessageService {
                         FastApiErrorResponse errorResponse;
                         try {
                             byte[] body = res.getBody().readAllBytes();
-                            errorResponse = new com.fasterxml.jackson.databind.ObjectMapper()
-                                    .readValue(body, FastApiErrorResponse.class);
+                            errorResponse = objectMapper.readValue(body, FastApiErrorResponse.class);
                         } catch (IOException e) {
                             throw new CustomException(ErrorCode.TRANSLATE_SERVICE_UNAVAILABLE);
                         }

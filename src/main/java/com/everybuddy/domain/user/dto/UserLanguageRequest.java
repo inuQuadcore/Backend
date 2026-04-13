@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -35,10 +36,18 @@ public class UserLanguageRequest {
         return Objects.hash(language);
     }
 
-    public static UserLanguageRequest of(String language, Integer level) {
-        UserLanguageRequest request = new UserLanguageRequest();
-        request.language = language;
-        request.level = level;
-        return request;
+    private UserLanguageRequest() {}
+
+    @Builder
+    private UserLanguageRequest(String language, Integer level) {
+        this.language = language;
+        this.level = level;
+    }
+
+    public static UserLanguageRequest ofForTest(String language, Integer level) {
+        return UserLanguageRequest.builder()
+                .language(language)
+                .level(level)
+                .build();
     }
 }

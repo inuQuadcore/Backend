@@ -20,13 +20,15 @@ public class CreateChatRoomRequest {
     @NotEmpty(message = "채팅방 참여자를 선택해주세요.")
     private List<Long> participantIds;
 
+    private CreateChatRoomRequest() {}
+
     @Builder
     private CreateChatRoomRequest(String roomName, List<Long> participantIds) {
         this.roomName = roomName;
         this.participantIds = participantIds;
     }
 
-    public static CreateChatRoomRequest of(String roomName, List<Long> participantIds) {
+    public static CreateChatRoomRequest ofForTest(String roomName, List<Long> participantIds) {
         return CreateChatRoomRequest.builder()
                 .roomName(roomName)
                 .participantIds(participantIds)

@@ -102,7 +102,7 @@ class ChatRoomServiceTest {
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
-                    CreateChatRoomRequest.of("테스트방", List.of(2L)));
+                    CreateChatRoomRequest.ofForTest("테스트방", List.of(2L)));
 
             // then
             assertAll(
@@ -135,7 +135,7 @@ class ChatRoomServiceTest {
             // given: participantIds가 빈 리스트 → validateParticipants가 바로 List.of() 반환
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
-                    CreateChatRoomRequest.of("테스트방", List.of()));
+                    CreateChatRoomRequest.ofForTest("테스트방", List.of()));
 
             // then
             assertAll(
@@ -158,7 +158,7 @@ class ChatRoomServiceTest {
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
-                    CreateChatRoomRequest.of("테스트방", List.of(2L, 3L)));
+                    CreateChatRoomRequest.ofForTest("테스트방", List.of(2L, 3L)));
 
             // then
             assertAll(
@@ -186,7 +186,7 @@ class ChatRoomServiceTest {
         void creatorNotFound() {
             // given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
-            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -202,7 +202,7 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 999L))).thenReturn(List.of(participant1));
-            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L, 999L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L, 999L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -222,7 +222,7 @@ class ChatRoomServiceTest {
         void deletedUserCannotCreateChatRoom() {
             // given
             when(userRepository.findById(4L)).thenReturn(Optional.of(deletedUser));
-            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -238,7 +238,7 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 4L))).thenReturn(List.of(participant1, deletedUser));
-            CreateChatRoomRequest request = CreateChatRoomRequest.of("테스트방", List.of(2L, 4L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L, 4L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,

@@ -10,6 +10,6 @@ public class FirebaseTokenService {
 
     public FirebaseTokenResponse createFirebaseToken(Long userId) throws FirebaseAuthException {
         String uid = String.valueOf(userId);
-        return new FirebaseTokenResponse(FirebaseAuth.getInstance().createCustomToken(uid));
+        return FirebaseTokenResponse.of(FirebaseAuth.getInstance().createCustomToken(uid));
     }
 }

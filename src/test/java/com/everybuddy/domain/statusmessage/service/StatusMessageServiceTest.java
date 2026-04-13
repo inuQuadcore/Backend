@@ -62,7 +62,7 @@ class StatusMessageServiceTest {
             when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("오늘 날씨 너무 좋다!");
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.ofForTest("오늘 날씨 너무 좋다!");
             statusMessageService.createStatusMessage(1L, request);
 
             ArgumentCaptor<StatusMessage> captor = ArgumentCaptor.forClass(StatusMessage.class);
@@ -81,7 +81,7 @@ class StatusMessageServiceTest {
             when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(expiredMessage));
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("새 메시지");
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.ofForTest("새 메시지");
             statusMessageService.createStatusMessage(1L, request);
 
             assertTrue(expiredMessage.isDeleted());
@@ -102,7 +102,7 @@ class StatusMessageServiceTest {
                     1L, user, "기존 메시지", LocalDateTime.now().minusHours(1));
             when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(existing));
 
-            CreateStatusMessageRequest request = CreateStatusMessageRequest.of("새 메시지");
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.ofForTest("새 메시지");
             CustomException ex = assertThrows(CustomException.class,
                     () -> statusMessageService.createStatusMessage(1L, request));
 
@@ -122,7 +122,7 @@ class StatusMessageServiceTest {
                     1L, user, "기존 메시지", LocalDateTime.now().minusHours(1));
             when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(statusMessage));
 
-            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.of("수정된 메시지");
+            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.ofForTest("수정된 메시지");
             statusMessageService.updateStatusMessage(1L, request);
 
             assertEquals("수정된 메시지", statusMessage.getContent());
@@ -138,7 +138,7 @@ class StatusMessageServiceTest {
         void failNotFound() {
             when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
 
-            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.of("수정된 메시지");
+            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.ofForTest("수정된 메시지");
             CustomException ex = assertThrows(CustomException.class,
                     () -> statusMessageService.updateStatusMessage(1L, request));
 
@@ -152,7 +152,7 @@ class StatusMessageServiceTest {
                     1L, user, "기존 메시지", LocalDateTime.now().minusHours(25));
             when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.of(statusMessage));
 
-            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.of("수정된 메시지");
+            UpdateStatusMessageRequest request = UpdateStatusMessageRequest.ofForTest("수정된 메시지");
             CustomException ex = assertThrows(CustomException.class,
                     () -> statusMessageService.updateStatusMessage(1L, request));
 

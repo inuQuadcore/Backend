@@ -16,13 +16,15 @@ public class ChatMessageRequest {
     @Schema(description = "메시지 내용 (파일 메시지인 경우 생략 가능)", example = "안녕하세요!")
     private String content;
 
+    private ChatMessageRequest() {}
+
     @Builder
     private ChatMessageRequest(Long chatRoomId, String content) {
         this.chatRoomId = chatRoomId;
         this.content = content;
     }
 
-    public static ChatMessageRequest of(Long chatRoomId, String content) {
+    public static ChatMessageRequest ofForTest(Long chatRoomId, String content) {
         return ChatMessageRequest.builder()
                 .chatRoomId(chatRoomId)
                 .content(content)

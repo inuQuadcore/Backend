@@ -87,7 +87,7 @@ class UserServiceTest {
         @DisplayName("TC-1-1. 텍스트 필드만 수정 (이미지 없음)")
         void updateTextFieldsOnly() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of("김철수", "1995-06-15", "FEMALE", "USA", "안녕하세요");
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest("김철수", "1995-06-15", "FEMALE", "USA", "안녕하세요");
 
             // when
             UserProfileResponse response = userService.updateProfile(1L, request, null);
@@ -110,7 +110,7 @@ class UserServiceTest {
         @DisplayName("TC-1-2. 일부 필드만 수정 (null 필드는 기존 값 유지)")
         void updatePartialFields() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of("김철수", null, null, null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest("김철수", null, null, null, null);
 
             // when
             UserProfileResponse response = userService.updateProfile(1L, request, null);
@@ -128,7 +128,7 @@ class UserServiceTest {
         @DisplayName("TC-1-3. 이미지 포함 수정, 기존 이미지 없음")
         void updateWithNewImageNoExistingImage() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, null, null, null, null);
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage)).thenReturn("profiles/user-1/new.jpg");
@@ -149,7 +149,7 @@ class UserServiceTest {
             // given: 기존 프로필 이미지 세팅
             user.updateProfile(null, null, null, null, null, "profiles/user-1/old.jpg");
 
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, null, null, null, null);
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage)).thenReturn("profiles/user-1/new.jpg");
@@ -176,7 +176,7 @@ class UserServiceTest {
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
             // when & then
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, null, null, null, null);
             CustomException ex = assertThrows(CustomException.class,
                     () -> userService.updateProfile(999L, request, null));
 
@@ -198,7 +198,7 @@ class UserServiceTest {
         @DisplayName("TC-3-1. 잘못된 gender 값 → INVALID_INPUT_VALUE")
         void invalidGender() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, "INVALID_GENDER", null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, null, "INVALID_GENDER", null, null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -211,7 +211,7 @@ class UserServiceTest {
         @DisplayName("TC-3-2. 잘못된 country 값 → INVALID_INPUT_VALUE")
         void invalidCountry() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, "INVALID_COUNTRY", null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, null, null, "INVALID_COUNTRY", null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -224,7 +224,7 @@ class UserServiceTest {
         @DisplayName("TC-3-3. 잘못된 birthday 형식 → INVALID_INPUT_VALUE")
         void invalidBirthday() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, "2000/01/01", null, null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, "2000/01/01", null, null, null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -247,7 +247,7 @@ class UserServiceTest {
         @DisplayName("TC-4-1. S3 업로드 실패 → S3_CONNECTION_ERROR, DB 업데이트 안 됨")
         void s3UploadFails() {
             // given
-            UpdateProfileRequest request = UpdateProfileRequest.of(null, null, null, null, null);
+            UpdateProfileRequest request = UpdateProfileRequest.ofForTest(null, null, null, null, null);
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage))
@@ -311,7 +311,7 @@ class UserServiceTest {
             when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.ENGLISH))
                     .thenReturn(Optional.of(userLanguage));
 
-            UserLanguageRequest request = UserLanguageRequest.of("ENGLISH", 4);
+            UserLanguageRequest request = UserLanguageRequest.ofForTest("ENGLISH", 4);
 
             // when
             userService.updateLanguageLevel(1L, request);
@@ -329,7 +329,7 @@ class UserServiceTest {
         @DisplayName("TC-8-1. 잘못된 language 값 → INVALID_INPUT_VALUE")
         void invalidLanguage() {
             // given
-            UserLanguageRequest request = UserLanguageRequest.of("INVALID_LANGUAGE", null);
+            UserLanguageRequest request = UserLanguageRequest.ofForTest("INVALID_LANGUAGE", null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -345,7 +345,7 @@ class UserServiceTest {
             when(userLanguageRepository.findByUserUserIdAndLanguage(1L, Language.JAPANESE))
                     .thenReturn(Optional.empty());
 
-            UserLanguageRequest request = UserLanguageRequest.of("JAPANESE", null);
+            UserLanguageRequest request = UserLanguageRequest.ofForTest("JAPANESE", null);
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -368,7 +368,7 @@ class UserServiceTest {
         @DisplayName("TC-9-1. 유효한 태그 목록 전달 → delete 먼저 호출 후 saveAll, 태그 올바르게 변환됨")
         void updateTagsSuccess() {
             // given
-            UpdateTagsRequest request = UpdateTagsRequest.of(List.of("SPORTS", "INTJ", "MOVIES"));
+            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of("SPORTS", "INTJ", "MOVIES"));
 
             // when
             userService.updateTags(1L, request);
@@ -392,7 +392,7 @@ class UserServiceTest {
         @DisplayName("TC-9-2. 빈 리스트 전달 → 기존 태그 전체 삭제, saveAll에 빈 리스트 전달")
         void updateTagsWithEmptyList() {
             // given
-            UpdateTagsRequest request = UpdateTagsRequest.of(List.of());
+            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of());
 
             // when
             userService.updateTags(1L, request);
@@ -415,7 +415,7 @@ class UserServiceTest {
             // given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            UpdateTagsRequest request = UpdateTagsRequest.of(List.of());
+            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of());
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -431,7 +431,7 @@ class UserServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            UpdateTagsRequest request = UpdateTagsRequest.of(List.of("SPORTS", "INVALID_TAG"));
+            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of("SPORTS", "INVALID_TAG"));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,

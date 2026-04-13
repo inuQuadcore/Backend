@@ -2,6 +2,7 @@ package com.everybuddy.domain.user.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
@@ -24,13 +25,24 @@ public class UpdateProfileRequest {
     @Size(max = 150, message = "자기소개는 150자 이내로 입력해주세요.")
     private String bio;
 
-    public static UpdateProfileRequest of(String name, String birthday, String gender, String country, String bio) {
-        UpdateProfileRequest request = new UpdateProfileRequest();
-        request.name = name;
-        request.birthday = birthday;
-        request.gender = gender;
-        request.country = country;
-        request.bio = bio;
-        return request;
+    private UpdateProfileRequest() {}
+
+    @Builder
+    private UpdateProfileRequest(String name, String birthday, String gender, String country, String bio) {
+        this.name = name;
+        this.birthday = birthday;
+        this.gender = gender;
+        this.country = country;
+        this.bio = bio;
+    }
+
+    public static UpdateProfileRequest ofForTest(String name, String birthday, String gender, String country, String bio) {
+        return UpdateProfileRequest.builder()
+                .name(name)
+                .birthday(birthday)
+                .gender(gender)
+                .country(country)
+                .bio(bio)
+                .build();
     }
 }

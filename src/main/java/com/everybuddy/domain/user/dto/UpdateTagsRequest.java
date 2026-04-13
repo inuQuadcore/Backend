@@ -2,6 +2,7 @@ package com.everybuddy.domain.user.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
@@ -14,9 +15,16 @@ public class UpdateTagsRequest {
     @NotEmpty(message = "태그를 하나 이상 선택해주세요.")
     private List<String> tags;
 
-    public static UpdateTagsRequest of(List<String> tags) {
-        UpdateTagsRequest request = new UpdateTagsRequest();
-        request.tags = tags;
-        return request;
+    private UpdateTagsRequest() {}
+
+    @Builder
+    private UpdateTagsRequest(List<String> tags) {
+        this.tags = tags;
+    }
+
+    public static UpdateTagsRequest ofForTest(List<String> tags) {
+        return UpdateTagsRequest.builder()
+                .tags(tags)
+                .build();
     }
 }

@@ -3,6 +3,7 @@ package com.everybuddy.domain.statusmessage.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
@@ -14,9 +15,16 @@ public class UpdateStatusMessageRequest {
     @Schema(description = "상태메시지 내용", example = "오늘 날씨 너무 좋다!")
     private String content;
 
-    public static UpdateStatusMessageRequest of(String content) {
-        UpdateStatusMessageRequest request = new UpdateStatusMessageRequest();
-        request.content = content;
-        return request;
+    private UpdateStatusMessageRequest() {}
+
+    @Builder
+    private UpdateStatusMessageRequest(String content) {
+        this.content = content;
+    }
+
+    public static UpdateStatusMessageRequest ofForTest(String content) {
+        return UpdateStatusMessageRequest.builder()
+                .content(content)
+                .build();
     }
 }

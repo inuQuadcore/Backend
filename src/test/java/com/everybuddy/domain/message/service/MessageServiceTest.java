@@ -74,7 +74,7 @@ class MessageServiceTest {
 
         testChatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");
 
-        textRequest = ChatMessageRequest.of(1L, "안녕하세요");
+        textRequest = ChatMessageRequest.ofForTest(1L, "안녕하세요");
     }
 
     // ===== 테스트 헬퍼 메서드 =====
@@ -138,7 +138,7 @@ class MessageServiceTest {
             setupCommonMocksForSendSuccess();
             setupFileUploadMocks("test.jpg");
 
-            ChatMessageRequest fileRequest = ChatMessageRequest.of(1L, null);
+            ChatMessageRequest fileRequest = ChatMessageRequest.ofForTest(1L, null);
             MockMultipartFile file = new MockMultipartFile(
                     "file", "test.jpg", "image/jpeg", "test content".getBytes()
             );
@@ -174,7 +174,7 @@ class MessageServiceTest {
             setupCommonMocksForSendSuccess();
             setupFileUploadMocks("test.jpg");
 
-            ChatMessageRequest fileRequest = ChatMessageRequest.of(1L, "");
+            ChatMessageRequest fileRequest = ChatMessageRequest.ofForTest(1L, "");
             MockMultipartFile file = new MockMultipartFile(
                     "file", "test.jpg", "image/jpeg", "test content".getBytes()
             );
@@ -219,7 +219,7 @@ class MessageServiceTest {
         @DisplayName("TC-2-2. 존재하지 않는 채팅방")
         void chatRoomNotFound() {
             // given
-            ChatMessageRequest request = ChatMessageRequest.of(999L, "안녕하세요");
+            ChatMessageRequest request = ChatMessageRequest.ofForTest(999L, "안녕하세요");
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(999L)).thenReturn(Optional.empty());
@@ -257,7 +257,7 @@ class MessageServiceTest {
         @DisplayName("TC-3-1. 파일과 텍스트 동시 전송")
         void cannotSendFileAndTextTogether() {
             // given
-            ChatMessageRequest request = ChatMessageRequest.of(1L, "파일 설명");
+            ChatMessageRequest request = ChatMessageRequest.ofForTest(1L, "파일 설명");
             MockMultipartFile file = new MockMultipartFile(
                     "file", "test.jpg", "image/jpeg", "test content".getBytes()
             );
@@ -284,7 +284,7 @@ class MessageServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
-            ChatMessageRequest request = ChatMessageRequest.of(1L, content);
+            ChatMessageRequest request = ChatMessageRequest.ofForTest(1L, content);
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
@@ -307,7 +307,7 @@ class MessageServiceTest {
             when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
 
             // when & then
-            ChatMessageRequest request = ChatMessageRequest.of(1L, null);
+            ChatMessageRequest request = ChatMessageRequest.ofForTest(1L, null);
             CustomException exception = assertThrows(CustomException.class,
                     () -> messageService.sendMessage(1L, request, emptyFile));
 
@@ -681,7 +681,7 @@ class MessageServiceTest {
             // given
             Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
                     "원본 내용", LocalDateTime.now().minusMinutes(2));
-            UpdateMessageRequest request = UpdateMessageRequest.of("수정된 내용");
+            UpdateMessageRequest request = UpdateMessageRequest.ofForTest("수정된 내용");
             ArgumentCaptor<MessageUpdatedEvent> eventCaptor = ArgumentCaptor.forClass(MessageUpdatedEvent.class);
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
@@ -713,7 +713,7 @@ class MessageServiceTest {
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.ofForTest("수정 시도")));
 
             assertEquals(ErrorCode.NOT_MESSAGE_OF_USER, exception.getErrorCode());
             verify(eventPublisher, never()).publishEvent(any());
@@ -731,7 +731,7 @@ class MessageServiceTest {
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.ofForTest("수정 시도")));
 
             assertEquals(ErrorCode.MESSAGE_ALREADY_DELETED, exception.getErrorCode());
             verify(eventPublisher, never()).publishEvent(any());
@@ -748,7 +748,7 @@ class MessageServiceTest {
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.ofForTest("수정 시도")));
 
             assertEquals(ErrorCode.CANNOT_EDIT_FILE_MESSAGE, exception.getErrorCode());
             verify(eventPublisher, never()).publishEvent(any());
@@ -765,7 +765,7 @@ class MessageServiceTest {
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
-                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.of("수정 시도")));
+                    () -> messageService.updateMessage(testUser.getUserId(), 1L, UpdateMessageRequest.ofForTest("수정 시도")));
 
             assertEquals(ErrorCode.MESSAGE_EDIT_TIME_EXCEEDED, exception.getErrorCode());
             verify(eventPublisher, never()).publishEvent(any());

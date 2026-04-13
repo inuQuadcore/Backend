@@ -10,10 +10,10 @@ import lombok.Getter;
 public class UserTagResponse {
 
     @Schema(description = "태그", example = "SPORTS")
-    private String tag;
+    private final String tag;
 
     @Schema(description = "태그 카테고리", example = "HOBBY")
-    private String category;
+    private final String category;
 
     @Builder
     private UserTagResponse(String tag, String category) {

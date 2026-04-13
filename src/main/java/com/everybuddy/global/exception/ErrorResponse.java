@@ -7,13 +7,20 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 
 
-@Builder
 @Getter
 public class ErrorResponse {
-    private Integer code;
-    private String name;
-    private String message;
-    private Map<String, String> errors;
+    private final Integer code;
+    private final String name;
+    private final String message;
+    private final Map<String, String> errors;
+
+    @Builder
+    private ErrorResponse(Integer code, String name, String message, Map<String, String> errors) {
+        this.code = code;
+        this.name = name;
+        this.message = message;
+        this.errors = errors;
+    }
 
     //비즈니스 로직 예외처리
     public static ResponseEntity<ErrorResponse> toResponseEntity(ErrorCode errorCode) {

@@ -1,6 +1,7 @@
 package com.everybuddy.domain.discover.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class FilterDiscoverResponse {
     @Schema(description = "다음 페이지 커서 (마지막 userId)", example = "50")
     private final Long nextCursor;
 
+    @Builder
     private FilterDiscoverResponse(List<DiscoveredUserResponse> users, boolean hasNext, Long nextCursor) {
         this.users = users;
         this.hasNext = hasNext;
@@ -25,6 +27,10 @@ public class FilterDiscoverResponse {
     }
 
     public static FilterDiscoverResponse of(List<DiscoveredUserResponse> users, boolean hasNext, Long nextCursor) {
-        return new FilterDiscoverResponse(users, hasNext, nextCursor);
+        return FilterDiscoverResponse.builder()
+                .users(users)
+                .hasNext(hasNext)
+                .nextCursor(nextCursor)
+                .build();
     }
 }

@@ -33,13 +33,4 @@ public class FriendStatusMessageResponse {
                 .build();
     }
 
-    public static FriendStatusMessageResponse of(Long statusMessageId, String profileImageUrl, String nickname, String content, String timeAgo) {
-        return FriendStatusMessageResponse.builder()
-                .statusMessageId(statusMessageId)
-                .profileImageUrl(profileImageUrl)
-                .nickname(nickname)
-                .content(content)
-                .timeAgo(timeAgo)
-                .build();
-    }
 }

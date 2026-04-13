@@ -1,5 +1,6 @@
 package com.everybuddy.domain.statusmessage.dto;
 
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
@@ -11,6 +12,7 @@ public class FriendStatusMessageListResponse {
     private final Long nextCursor;
     private final boolean hasNext;
 
+    @Builder
     private FriendStatusMessageListResponse(List<FriendStatusMessageResponse> statusMessages, Long nextCursor, boolean hasNext) {
         this.statusMessages = statusMessages;
         this.nextCursor = nextCursor;
@@ -18,6 +20,10 @@ public class FriendStatusMessageListResponse {
     }
 
     public static FriendStatusMessageListResponse of(List<FriendStatusMessageResponse> statusMessages, Long nextCursor, boolean hasNext) {
-        return new FriendStatusMessageListResponse(statusMessages, nextCursor, hasNext);
+        return FriendStatusMessageListResponse.builder()
+                .statusMessages(statusMessages)
+                .nextCursor(nextCursor)
+                .hasNext(hasNext)
+                .build();
     }
 }

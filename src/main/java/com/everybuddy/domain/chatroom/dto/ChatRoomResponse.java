@@ -9,24 +9,33 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Builder
 @Schema(description = "채팅방 응답")
 public class ChatRoomResponse {
 
     @Schema(description = "채팅방 ID", example = "1")
-    private Long chatRoomId;
+    private final Long chatRoomId;
 
     @Schema(description = "채팅방 이름", example = "스터디 그룹")
-    private String roomName;
+    private final String roomName;
 
     @Schema(description = "생성 시간", example = "2026-01-12T10:30:00")
-    private LocalDateTime createdAt;
+    private final LocalDateTime createdAt;
 
     @Schema(description = "참여자 ID 목록", example = "[1, 2, 3]")
-    private List<Long> participantIds;
+    private final List<Long> participantIds;
 
     @Schema(description = "읽지 않은 메시지 수", example = "5")
-    private Long unreadCount;
+    private final Long unreadCount;
+
+    @Builder
+    private ChatRoomResponse(Long chatRoomId, String roomName, LocalDateTime createdAt,
+                             List<Long> participantIds, Long unreadCount) {
+        this.chatRoomId = chatRoomId;
+        this.roomName = roomName;
+        this.createdAt = createdAt;
+        this.participantIds = participantIds;
+        this.unreadCount = unreadCount;
+    }
 
     public static ChatRoomResponse from(ChatRoom chatRoom, List<Long> participantIds) {
         return ChatRoomResponse.builder()

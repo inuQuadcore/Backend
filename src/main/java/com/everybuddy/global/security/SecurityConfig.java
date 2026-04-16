@@ -18,6 +18,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.Arrays;
 
 @Configuration
@@ -26,7 +28,10 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    // private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @Value("${swagger.server-url}")
+    private String swaggerUrl;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -34,14 +39,20 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)  // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()    // 인증 API 허용
-                        .requestMatchers("/swagger-ui/**").permitAll()  // Swagger UI 허용
-                        .requestMatchers("/v3/api-docs/**").permitAll() // Swagger API 문서 허용
-                        .anyRequest().permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/auth/oauth/google",
+                                "/api/v1/auth/oauth/google/register"
+                        ).permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .anyRequest().authenticated()
                 )
-//                .exceptionHandling(exception -> exception
-//                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-//                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtTokenFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
@@ -58,8 +69,7 @@ public class SecurityConfig {
         configuration.setMaxAge(3600L);
 
         //허용할 도메인
-//        configuration.setAllowedOrigins(Arrays.asList(
-//        ));
+        configuration.setAllowedOrigins(Arrays.asList(swaggerUrl));
 
         //모든 경로에 적용
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

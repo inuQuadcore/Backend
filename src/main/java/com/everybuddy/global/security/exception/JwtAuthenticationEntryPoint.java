@@ -33,7 +33,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(errorCode.getHttpStatus().value());
 
         // 로깅처리
-        CustomLogger.warnLog("인증 실패 - ErrorCode: " + errorCode.name(), errorCode);
+        CustomLogger.warnLog("인증 실패 - ErrorCode: " + errorCode.name() + ", URI: " + request.getRequestURI(), errorCode);
 
         // 응답의 콘텐츠 타입을 JSON 형식으로 지정
         response.setContentType("application/json;charset=UTF-8");

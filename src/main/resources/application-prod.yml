@@ -26,8 +26,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 logging:
   level:
@@ -65,3 +65,6 @@ management:
         http.server.requests: true
 swagger:
   server-url: ${SERVER_URL}
+
+triton:
+  base-url: ${TRITON_BASE_URL}

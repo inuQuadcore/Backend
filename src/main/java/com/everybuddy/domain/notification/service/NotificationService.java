@@ -1,26 +1,66 @@
 package com.everybuddy.domain.notification.service;
 
+import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.notification.dto.HasUnreadResponse;
+import com.everybuddy.domain.notification.dto.NotificationContent;
 import com.everybuddy.domain.notification.dto.NotificationListResponse;
 import com.everybuddy.domain.notification.dto.NotificationResponse;
 import com.everybuddy.domain.notification.entity.Notification;
+import com.everybuddy.domain.notification.entity.NotificationType;
 import com.everybuddy.domain.notification.repository.NotificationRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.firebase.FcmSender;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationMessageResolver messageResolver;
+    private final FcmSender fcmSender;
+    private final ObjectMapper objectMapper;
+
+    public void createForFriendAdd(FriendAddedEvent event) {
+        NotificationContent content = messageResolver.resolveFriendAdded(event.getFromUser());
+        String payload = serializePayload(Map.of("fromUserId", event.getFromUser().getUserId()));
+
+        notificationRepository.save(Notification.of(
+                event.getToUser(),
+                NotificationType.FRIEND_ADDED,
+                content.getTitle(),
+                content.getBody(),
+                payload
+        ));
+
+        Map<String, String> data = Map.of(
+                "type", NotificationType.FRIEND_ADDED.name(),
+                "fromUserId", String.valueOf(event.getFromUser().getUserId())
+        );
+        fcmSender.sendToUsers(List.of(event.getToUser().getUserId()), content, data);
+    }
+
+    private String serializePayload(Map<String, Object> map) {
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            log.error("알림 payload 직렬화 실패 - map={}", map, e);
+            return "{}";
+        }
+    }
 
     @Transactional(readOnly = true)
     public NotificationListResponse getList(Long userId, Long before, int limit) {

@@ -26,7 +26,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class FirebaseEventHandler {
+public class ChatRtdbEventHandler {
 
     private final FirebaseDatabase firebaseDatabase;
     private final StorageService storageService;

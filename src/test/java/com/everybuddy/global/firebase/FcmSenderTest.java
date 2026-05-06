@@ -109,7 +109,7 @@ class FcmSenderTest {
             }
 
             verify(messaging).sendEachForMulticast(any(MulticastMessage.class));
-            verify(fcmTokenRepository, never()).deleteByToken(any());
+            verify(fcmTokenRepository, never()).deleteAll(org.mockito.ArgumentMatchers.<List<FcmToken>>any());
         }
     }
 
@@ -118,11 +118,11 @@ class FcmSenderTest {
     class InvalidTokenCleanup {
 
         @Test
-        @DisplayName("UNREGISTERED 응답 토큰은 deleteByToken")
+        @DisplayName("UNREGISTERED 응답 토큰만 deleteAll로 삭제")
         void deletesUnregisteredToken() throws FirebaseMessagingException {
-            FcmToken token1 = FcmToken.createForTest(10L, user1, "valid-token");
-            FcmToken token2 = FcmToken.createForTest(11L, user2, "expired-token");
-            when(fcmTokenRepository.findAllByUserIdIn(List.of(1L, 2L))).thenReturn(List.of(token1, token2));
+            FcmToken validToken = FcmToken.createForTest(10L, user1, "valid-token");
+            FcmToken expiredToken = FcmToken.createForTest(11L, user2, "expired-token");
+            when(fcmTokenRepository.findAllByUserIdIn(List.of(1L, 2L))).thenReturn(List.of(validToken, expiredToken));
 
             FirebaseMessaging messaging = mock(FirebaseMessaging.class);
             SendResponse success = mock(SendResponse.class);
@@ -139,12 +139,11 @@ class FcmSenderTest {
                 fcmSender.sendToUsers(List.of(1L, 2L), content, Map.of());
             }
 
-            verify(fcmTokenRepository).deleteByToken("expired-token");
-            verify(fcmTokenRepository, never()).deleteByToken("valid-token");
+            verify(fcmTokenRepository).deleteAll(List.of(expiredToken));
         }
 
         @Test
-        @DisplayName("INVALID_ARGUMENT 응답 토큰도 deleteByToken")
+        @DisplayName("INVALID_ARGUMENT 응답 토큰도 deleteAll로 삭제")
         void deletesInvalidArgumentToken() throws FirebaseMessagingException {
             FcmToken token = FcmToken.createForTest(10L, user1, "invalid-token");
             when(fcmTokenRepository.findAllByUserIdIn(List.of(1L))).thenReturn(List.of(token));
@@ -161,11 +160,11 @@ class FcmSenderTest {
                 fcmSender.sendToUsers(List.of(1L), content, Map.of());
             }
 
-            verify(fcmTokenRepository).deleteByToken("invalid-token");
+            verify(fcmTokenRepository).deleteAll(List.of(token));
         }
 
         @Test
-        @DisplayName("다른 에러 코드는 토큰 보존")
+        @DisplayName("다른 에러 코드는 토큰 보존 (deleteAll 호출 안 함)")
         void preservesTokenOnOtherErrors() throws FirebaseMessagingException {
             FcmToken token = FcmToken.createForTest(10L, user1, "transient-error-token");
             when(fcmTokenRepository.findAllByUserIdIn(List.of(1L))).thenReturn(List.of(token));
@@ -182,7 +181,7 @@ class FcmSenderTest {
                 fcmSender.sendToUsers(List.of(1L), content, Map.of());
             }
 
-            verify(fcmTokenRepository, never()).deleteByToken(any());
+            verify(fcmTokenRepository, never()).deleteAll(org.mockito.ArgumentMatchers.<List<FcmToken>>any());
         }
     }
 

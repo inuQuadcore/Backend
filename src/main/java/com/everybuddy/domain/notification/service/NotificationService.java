@@ -10,7 +10,6 @@ import com.everybuddy.domain.notification.entity.NotificationType;
 import com.everybuddy.domain.notification.repository.NotificationRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.everybuddy.global.firebase.FcmSender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -31,26 +30,19 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMessageBuilder messageBuilder;
-    private final FcmSender fcmSender;
     private final ObjectMapper objectMapper;
 
-    public void createForFriendAdd(FriendAddedEvent event) {
+    public Notification createForFriendAdd(FriendAddedEvent event) {
         NotificationContent content = messageBuilder.resolveFriendAdded(event.getFromUser());
         String payload = serializePayload(Map.of("fromUserId", event.getFromUser().getUserId()));
 
-        notificationRepository.save(Notification.of(
+        return notificationRepository.save(Notification.of(
                 event.getToUser(),
                 NotificationType.FRIEND_ADDED,
                 content.getTitle(),
                 content.getBody(),
                 payload
         ));
-
-        Map<String, String> data = Map.of(
-                "type", NotificationType.FRIEND_ADDED.name(),
-                "fromUserId", String.valueOf(event.getFromUser().getUserId())
-        );
-        fcmSender.sendToUsers(List.of(event.getToUser().getUserId()), content, data);
     }
 
     private String serializePayload(Map<String, Object> map) {

@@ -13,8 +13,8 @@ import com.google.firebase.messaging.SendResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +25,6 @@ public class FcmSender {
 
     private final FcmTokenRepository fcmTokenRepository;
 
-    @Transactional
     public void sendToUsers(List<Long> userIds, NotificationContent content, Map<String, String> data) {
         if (userIds.isEmpty()) {
             return;
@@ -48,13 +47,14 @@ public class FcmSender {
 
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-            cleanupInvalidTokens(response, tokenValues);
+            cleanupInvalidTokens(response, tokens);
         } catch (FirebaseMessagingException e) {
             log.error("FCM 일괄 발송 실패 - userIds={}", userIds, e);
         }
     }
 
-    private void cleanupInvalidTokens(BatchResponse response, List<String> tokens) {
+    private void cleanupInvalidTokens(BatchResponse response, List<FcmToken> tokens) {
+        List<FcmToken> invalid = new ArrayList<>();
         List<SendResponse> responses = response.getResponses();
         for (int i = 0; i < responses.size(); i++) {
             SendResponse sendResp = responses.get(i);
@@ -63,8 +63,11 @@ public class FcmSender {
             }
             MessagingErrorCode errorCode = sendResp.getException().getMessagingErrorCode();
             if (errorCode == MessagingErrorCode.UNREGISTERED || errorCode == MessagingErrorCode.INVALID_ARGUMENT) {
-                fcmTokenRepository.deleteByToken(tokens.get(i));
+                invalid.add(tokens.get(i));
             }
+        }
+        if (!invalid.isEmpty()) {
+            fcmTokenRepository.deleteAll(invalid);
         }
     }
 }

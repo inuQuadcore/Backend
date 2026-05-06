@@ -12,7 +12,6 @@ import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.everybuddy.global.firebase.FcmSender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +28,6 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -50,7 +48,6 @@ class NotificationServiceTest {
 
     @Mock private NotificationRepository notificationRepository;
     @Mock private NotificationMessageBuilder messageBuilder;
-    @Mock private FcmSender fcmSender;
     @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
@@ -231,32 +228,26 @@ class NotificationServiceTest {
     class CreateForFriendAdd {
 
         @Test
-        @DisplayName("Notification 저장 + FcmSender 발송 (수신자=toUser, 본문=resolver 결과)")
-        void savesAndSends() {
+        @DisplayName("Notification 저장 후 saved 반환 (수신자=toUser, 본문=builder 결과)")
+        void savesAndReturnsSaved() {
             NotificationContent content = NotificationContent.of("새로운 친구", "홍길동님이 친구로 추가했어요.");
             when(messageBuilder.resolveFriendAdded(me)).thenReturn(content);
+            when(notificationRepository.save(org.mockito.ArgumentMatchers.any(Notification.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
 
             FriendAddedEvent event = FriendAddedEvent.of(me, other);
-            notificationService.createForFriendAdd(event);
+            Notification saved = notificationService.createForFriendAdd(event);
 
             ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
             verify(notificationRepository).save(notificationCaptor.capture());
-            Notification saved = notificationCaptor.getValue();
+            Notification captured = notificationCaptor.getValue();
             assertAll(
-                    () -> assertEquals(2L, saved.getRecipient().getUserId()),
-                    () -> assertEquals(NotificationType.FRIEND_ADDED, saved.getType()),
-                    () -> assertEquals("새로운 친구", saved.getTitle()),
-                    () -> assertEquals("홍길동님이 친구로 추가했어요.", saved.getBody()),
-                    () -> assertTrue(saved.getPayload().contains("\"fromUserId\":1"))
-            );
-
-            ArgumentCaptor<List<Long>> userIdsCaptor = ArgumentCaptor.forClass(List.class);
-            ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
-            verify(fcmSender).sendToUsers(userIdsCaptor.capture(), eq(content), dataCaptor.capture());
-            assertAll(
-                    () -> assertEquals(List.of(2L), userIdsCaptor.getValue()),
-                    () -> assertEquals("FRIEND_ADDED", dataCaptor.getValue().get("type")),
-                    () -> assertEquals("1", dataCaptor.getValue().get("fromUserId"))
+                    () -> assertEquals(2L, captured.getRecipient().getUserId()),
+                    () -> assertEquals(NotificationType.FRIEND_ADDED, captured.getType()),
+                    () -> assertEquals("새로운 친구", captured.getTitle()),
+                    () -> assertEquals("홍길동님이 친구로 추가했어요.", captured.getBody()),
+                    () -> assertTrue(captured.getPayload().contains("\"fromUserId\":1")),
+                    () -> assertEquals(captured, saved)
             );
         }
     }

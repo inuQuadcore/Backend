@@ -41,7 +41,7 @@ public class FcmSender {
                         .setTitle(content.getTitle())
                         .setBody(content.getBody())
                         .build())
-                .putAllData(data == null ? Map.of() : data)
+                .putAllData(data)
                 .addAllTokens(tokenValues)
                 .build();
 

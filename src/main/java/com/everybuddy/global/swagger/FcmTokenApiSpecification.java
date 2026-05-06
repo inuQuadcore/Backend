@@ -28,6 +28,16 @@ public interface FcmTokenApiSpecification {
 
             **호출 안 하면 생기는 문제**
             - 토큰이 백엔드에 없으면 푸시가 절대 가지 않습니다. 인앱 알림은 보이는데 푸시가 안 오는 증상이 발생합니다.
+
+            **푸시 수신 시 data 페이로드 형식**
+            FCM 푸시의 `data` 페이로드는 클라이언트가 알림 클릭 시 라우팅에 사용합니다. notification(title/body)은 OS 트레이가 자동 표시하고, data는 앱에서 코드로 처리합니다.
+
+            - 친구추가 알림: `{ "fromUserId": "<친구 추가한 사용자 ID>" }`
+              - 클릭 시 fromUserId로 친구 프로필 화면 라우팅 권장.
+            - 채팅 메시지 알림: `{ "chatRoomId": "<채팅방 ID>", "messageId": "<메시지 ID>", "senderId": "<발신자 ID>" }`
+              - 클릭 시 chatRoomId로 해당 채팅방 라우팅 권장.
+
+            모든 값은 문자열로 전달됩니다 (FCM data 제약). FE에서 필요 시 숫자로 파싱하세요.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "FCM 토큰 등록 성공"),

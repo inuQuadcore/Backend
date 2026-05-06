@@ -1,4 +1,4 @@
-package com.everybuddy.global.event;
+package com.everybuddy.global.firebase;
 
 import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
@@ -10,8 +10,6 @@ import com.everybuddy.domain.notification.service.NotificationMessageResolver;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.User;
-import com.everybuddy.global.firebase.FcmSender;
-import com.everybuddy.global.firebase.ViewingSyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,10 +1,8 @@
-package com.everybuddy.global.event;
+package com.everybuddy.global.firebase;
 
 import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.notification.dto.NotificationContent;
 import com.everybuddy.domain.notification.service.NotificationMessageResolver;
-import com.everybuddy.global.firebase.FcmSender;
-import com.everybuddy.global.firebase.ViewingSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;

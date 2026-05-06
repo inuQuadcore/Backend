@@ -30,12 +30,12 @@ import java.util.Map;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final NotificationMessageResolver messageResolver;
+    private final NotificationMessageBuilder messageBuilder;
     private final FcmSender fcmSender;
     private final ObjectMapper objectMapper;
 
     public void createForFriendAdd(FriendAddedEvent event) {
-        NotificationContent content = messageResolver.resolveFriendAdded(event.getFromUser());
+        NotificationContent content = messageBuilder.resolveFriendAdded(event.getFromUser());
         String payload = serializePayload(Map.of("fromUserId", event.getFromUser().getUserId()));
 
         notificationRepository.save(Notification.of(

@@ -7,9 +7,8 @@ import com.everybuddy.domain.user.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
-public class KoreanNotificationMessageResolver implements NotificationMessageResolver {
+public class NotificationMessageBuilder {
 
-    @Override
     public NotificationContent resolveFriendAdded(User fromUser) {
         return NotificationContent.of(
                 "새로운 친구",
@@ -17,7 +16,6 @@ public class KoreanNotificationMessageResolver implements NotificationMessageRes
         );
     }
 
-    @Override
     public NotificationContent resolveChatMessage(Message message) {
         return NotificationContent.of(
                 message.getUser().getName(),

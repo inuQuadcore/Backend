@@ -2,7 +2,7 @@ package com.everybuddy.global.firebase;
 
 import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.notification.dto.NotificationContent;
-import com.everybuddy.domain.notification.service.NotificationMessageResolver;
+import com.everybuddy.domain.notification.service.NotificationMessageBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -18,7 +18,7 @@ public class ChatPushEventHandler {
     private static final String DATA_TYPE_CHAT_MESSAGE = "CHAT_MESSAGE";
 
     private final ViewingSyncService viewingSyncService;
-    private final NotificationMessageResolver messageResolver;
+    private final NotificationMessageBuilder messageBuilder;
     private final FcmSender fcmSender;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -36,7 +36,7 @@ public class ChatPushEventHandler {
             return;
         }
 
-        NotificationContent content = messageResolver.resolveChatMessage(event.getMessage());
+        NotificationContent content = messageBuilder.resolveChatMessage(event.getMessage());
         Map<String, String> data = Map.of(
                 "type", DATA_TYPE_CHAT_MESSAGE,
                 "chatRoomId", String.valueOf(chatRoomId),

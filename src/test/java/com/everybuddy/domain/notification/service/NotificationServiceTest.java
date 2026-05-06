@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 class NotificationServiceTest {
 
     @Mock private NotificationRepository notificationRepository;
-    @Mock private NotificationMessageResolver messageResolver;
+    @Mock private NotificationMessageBuilder messageBuilder;
     @Mock private FcmSender fcmSender;
     @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -234,7 +234,7 @@ class NotificationServiceTest {
         @DisplayName("Notification 저장 + FcmSender 발송 (수신자=toUser, 본문=resolver 결과)")
         void savesAndSends() {
             NotificationContent content = NotificationContent.of("새로운 친구", "홍길동님이 친구로 추가했어요.");
-            when(messageResolver.resolveFriendAdded(me)).thenReturn(content);
+            when(messageBuilder.resolveFriendAdded(me)).thenReturn(content);
 
             FriendAddedEvent event = FriendAddedEvent.of(me, other);
             notificationService.createForFriendAdd(event);

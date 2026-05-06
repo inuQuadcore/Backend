@@ -22,10 +22,10 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@DisplayName("KoreanNotificationMessageResolver 단위 테스트")
-class KoreanNotificationMessageResolverTest {
+@DisplayName("NotificationMessageBuilder 단위 테스트")
+class NotificationMessageBuilderTest {
 
-    private final KoreanNotificationMessageResolver resolver = new KoreanNotificationMessageResolver();
+    private final NotificationMessageBuilder builder = new NotificationMessageBuilder();
 
     private final User sender = User.createForTest(1L, "user1", "홍길동", "password",
             Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
@@ -34,7 +34,7 @@ class KoreanNotificationMessageResolverTest {
     @Test
     @DisplayName("친구추가 알림 본문은 '<이름>님이 친구로 추가했어요.' 형식")
     void resolveFriendAdded() {
-        NotificationContent content = resolver.resolveFriendAdded(sender);
+        NotificationContent content = builder.resolveFriendAdded(sender);
 
         assertAll(
                 () -> assertEquals("새로운 친구", content.getTitle()),
@@ -48,7 +48,7 @@ class KoreanNotificationMessageResolverTest {
         Message message = Message.createForTest(500L, chatRoom, sender, MessageType.TEXT, "안녕하세요",
                 LocalDateTime.of(2026, 5, 5, 10, 0));
 
-        NotificationContent content = resolver.resolveChatMessage(message);
+        NotificationContent content = builder.resolveChatMessage(message);
 
         assertAll(
                 () -> assertEquals("홍길동", content.getTitle()),
@@ -64,7 +64,7 @@ class KoreanNotificationMessageResolverTest {
         Message message = Message.createWithMediaForTest(500L, chatRoom, sender, media, MessageType.FILE,
                 LocalDateTime.of(2026, 5, 5, 10, 0));
 
-        NotificationContent content = resolver.resolveChatMessage(message);
+        NotificationContent content = builder.resolveChatMessage(message);
 
         assertAll(
                 () -> assertEquals("홍길동", content.getTitle()),

@@ -6,7 +6,7 @@ import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.notification.dto.NotificationContent;
-import com.everybuddy.domain.notification.service.NotificationMessageResolver;
+import com.everybuddy.domain.notification.service.NotificationMessageBuilder;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.User;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 class ChatPushEventHandlerTest {
 
     @Mock private ViewingSyncService viewingSyncService;
-    @Mock private NotificationMessageResolver messageResolver;
+    @Mock private NotificationMessageBuilder messageBuilder;
     @Mock private FcmSender fcmSender;
 
     @InjectMocks
@@ -76,7 +76,7 @@ class ChatPushEventHandlerTest {
     @DisplayName("발신자 본인은 푸시 대상에서 제외된다")
     void excludesSenderFromTargets() {
         when(viewingSyncService.isViewing(any(), any())).thenReturn(false);
-        when(messageResolver.resolveChatMessage(message)).thenReturn(content);
+        when(messageBuilder.resolveChatMessage(message)).thenReturn(content);
         MessageSentEvent event = eventWithParticipants(sender, recipient1, recipient2);
 
         handler.handleMessageSent(event);
@@ -95,7 +95,7 @@ class ChatPushEventHandlerTest {
     void excludesViewingUsersFromTargets() {
         when(viewingSyncService.isViewing(2L, 100L)).thenReturn(true);
         when(viewingSyncService.isViewing(3L, 100L)).thenReturn(false);
-        when(messageResolver.resolveChatMessage(message)).thenReturn(content);
+        when(messageBuilder.resolveChatMessage(message)).thenReturn(content);
         MessageSentEvent event = eventWithParticipants(sender, recipient1, recipient2);
 
         handler.handleMessageSent(event);
@@ -112,7 +112,7 @@ class ChatPushEventHandlerTest {
         handler.handleMessageSent(event);
 
         verify(fcmSender, never()).sendToUsers(any(), any(), any());
-        verify(messageResolver, never()).resolveChatMessage(any());
+        verify(messageBuilder, never()).resolveChatMessage(any());
     }
 
     @Test
@@ -123,14 +123,14 @@ class ChatPushEventHandlerTest {
         handler.handleMessageSent(event);
 
         verify(fcmSender, never()).sendToUsers(any(), any(), any());
-        verify(messageResolver, never()).resolveChatMessage(any());
+        verify(messageBuilder, never()).resolveChatMessage(any());
     }
 
     @Test
     @DisplayName("정상 발송: data 페이로드에 type, chatRoomId, messageId, senderId가 포함된다")
     void sendsWithCorrectDataPayload() {
         when(viewingSyncService.isViewing(any(), any())).thenReturn(false);
-        when(messageResolver.resolveChatMessage(message)).thenReturn(content);
+        when(messageBuilder.resolveChatMessage(message)).thenReturn(content);
         MessageSentEvent event = eventWithParticipants(sender, recipient1);
 
         handler.handleMessageSent(event);

@@ -5,14 +5,12 @@ import com.everybuddy.domain.notification.dto.HasUnreadResponse;
 import com.everybuddy.domain.notification.dto.NotificationContent;
 import com.everybuddy.domain.notification.dto.NotificationListResponse;
 import com.everybuddy.domain.notification.entity.Notification;
-import com.everybuddy.domain.notification.entity.NotificationType;
 import com.everybuddy.domain.notification.repository.NotificationRepository;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 
@@ -35,8 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,7 +47,6 @@ class NotificationServiceTest {
 
     @Mock private NotificationRepository notificationRepository;
     @Mock private NotificationMessageBuilder messageBuilder;
-    @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private NotificationService notificationService;
@@ -171,7 +169,7 @@ class NotificationServiceTest {
         @DisplayName("본인 알림이면 readAt 설정")
         void marksOwnNotificationAsRead() {
             Notification notification = Notification.createForTest(
-                    100L, me, NotificationType.FRIEND_ADDED, "t", "b",
+                    100L, me, other, "b",
                     LocalDateTime.now().minusMinutes(10), null);
             when(notificationRepository.findById(100L)).thenReturn(Optional.of(notification));
 
@@ -185,7 +183,7 @@ class NotificationServiceTest {
         void doesNotOverwriteAlreadyRead() {
             LocalDateTime previouslyReadAt = LocalDateTime.now().minusMinutes(5);
             Notification notification = Notification.createForTest(
-                    100L, me, NotificationType.FRIEND_ADDED, "t", "b",
+                    100L, me, other, "b",
                     LocalDateTime.now().minusMinutes(10), previouslyReadAt);
             when(notificationRepository.findById(100L)).thenReturn(Optional.of(notification));
 
@@ -198,7 +196,7 @@ class NotificationServiceTest {
         @DisplayName("타인의 알림이면 NOTIFICATION_NOT_FOUND")
         void throwsWhenNotOwnNotification() {
             Notification notification = Notification.createForTest(
-                    100L, other, NotificationType.FRIEND_ADDED, "t", "b",
+                    100L, other, me, "b",
                     LocalDateTime.now().minusMinutes(10), null);
             when(notificationRepository.findById(100L)).thenReturn(Optional.of(notification));
 
@@ -228,26 +226,22 @@ class NotificationServiceTest {
     class CreateForFriendAdd {
 
         @Test
-        @DisplayName("Notification 저장 후 saved 반환 (수신자=toUser, 본문=builder 결과)")
-        void savesAndReturnsSaved() {
+        @DisplayName("Notification 저장 후 빌더가 만든 content 반환")
+        void savesAndReturnsContent() {
             NotificationContent content = NotificationContent.of("새로운 친구", "홍길동님이 친구로 추가했어요.");
             when(messageBuilder.resolveFriendAdded(me)).thenReturn(content);
-            when(notificationRepository.save(org.mockito.ArgumentMatchers.any(Notification.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
 
             FriendAddedEvent event = FriendAddedEvent.of(me, other);
-            Notification saved = notificationService.createForFriendAdd(event);
+            NotificationContent returned = notificationService.createForFriendAdd(event);
 
             ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
             verify(notificationRepository).save(notificationCaptor.capture());
             Notification captured = notificationCaptor.getValue();
             assertAll(
-                    () -> assertEquals(2L, captured.getRecipient().getUserId()),
-                    () -> assertEquals(NotificationType.FRIEND_ADDED, captured.getType()),
-                    () -> assertEquals("새로운 친구", captured.getTitle()),
+                    () -> assertEquals(2L, captured.getToUser().getUserId()),
+                    () -> assertEquals(1L, captured.getFromUser().getUserId()),
                     () -> assertEquals("홍길동님이 친구로 추가했어요.", captured.getBody()),
-                    () -> assertTrue(captured.getPayload().contains("\"fromUserId\":1")),
-                    () -> assertEquals(captured, saved)
+                    () -> assertSame(content, returned)
             );
         }
     }
@@ -261,12 +255,12 @@ class NotificationServiceTest {
         void delegatesToRepository() {
             notificationService.markAllRead(1L);
 
-            verify(notificationRepository).markAllReadByRecipientUserId(eq(1L), org.mockito.ArgumentMatchers.any(LocalDateTime.class));
+            verify(notificationRepository).markAllReadByRecipientUserId(eq(1L), any(LocalDateTime.class));
         }
     }
 
-    private Notification notification(Long id, String title) {
-        return Notification.createForTest(id, me, NotificationType.FRIEND_ADDED, title, "body",
+    private Notification notification(Long id, String body) {
+        return Notification.createForTest(id, me, other, body,
                 LocalDateTime.now().minusMinutes(id), null);
     }
 }

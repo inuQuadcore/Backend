@@ -15,8 +15,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatPushEventHandler {
 
-    private static final String DATA_TYPE_CHAT_MESSAGE = "CHAT_MESSAGE";
-
     private final ViewingSyncService viewingSyncService;
     private final NotificationMessageBuilder messageBuilder;
     private final FcmSender fcmSender;
@@ -38,7 +36,6 @@ public class ChatPushEventHandler {
 
         NotificationContent content = messageBuilder.resolveChatMessage(event.getMessage());
         Map<String, String> data = Map.of(
-                "type", DATA_TYPE_CHAT_MESSAGE,
                 "chatRoomId", String.valueOf(chatRoomId),
                 "messageId", String.valueOf(event.getMessage().getMessageId()),
                 "senderId", String.valueOf(senderId)

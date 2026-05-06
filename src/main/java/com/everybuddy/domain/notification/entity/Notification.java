@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "notification", indexes = {
-        @Index(name = "idx_notification_recipient_id", columnList = "recipient_id, notification_id")
+        @Index(name = "idx_notification_to_user_id", columnList = "to_user_id, notification_id")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class Notification {
@@ -25,21 +25,15 @@ public class Notification {
     private Long notificationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipient_id", nullable = false)
-    private User recipient;
+    @JoinColumn(name = "to_user_id", nullable = false)
+    private User toUser;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private NotificationType type;
-
-    @Column(nullable = false, length = 100)
-    private String title;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "from_user_id")
+    private User fromUser;
 
     @Column(nullable = false, length = 200)
     private String body;
-
-    @Column(columnDefinition = "TEXT")
-    private String payload;
 
     private LocalDateTime readAt;
 
@@ -48,30 +42,25 @@ public class Notification {
     private LocalDateTime createdAt;
 
     @Builder
-    private Notification(User recipient, NotificationType type, String title, String body, String payload) {
-        this.recipient = recipient;
-        this.type = type;
-        this.title = title;
+    private Notification(User toUser, User fromUser, String body) {
+        this.toUser = toUser;
+        this.fromUser = fromUser;
         this.body = body;
-        this.payload = payload;
     }
 
-    public static Notification of(User recipient, NotificationType type, String title, String body, String payload) {
+    public static Notification of(User toUser, User fromUser, String body) {
         return Notification.builder()
-                .recipient(recipient)
-                .type(type)
-                .title(title)
+                .toUser(toUser)
+                .fromUser(fromUser)
                 .body(body)
-                .payload(payload)
                 .build();
     }
 
-    public static Notification createForTest(Long notificationId, User recipient, NotificationType type,
-                                             String title, String body, LocalDateTime createdAt, LocalDateTime readAt) {
+    public static Notification createForTest(Long notificationId, User toUser, User fromUser, String body,
+                                             LocalDateTime createdAt, LocalDateTime readAt) {
         Notification notification = Notification.builder()
-                .recipient(recipient)
-                .type(type)
-                .title(title)
+                .toUser(toUser)
+                .fromUser(fromUser)
                 .body(body)
                 .build();
         notification.notificationId = notificationId;
@@ -91,6 +80,6 @@ public class Notification {
     }
 
     public boolean isOwnedBy(Long userId) {
-        return this.recipient.getUserId().equals(userId);
+        return this.toUser.getUserId().equals(userId);
     }
 }

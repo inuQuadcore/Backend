@@ -14,14 +14,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Query("""
             SELECT n FROM Notification n
-            WHERE n.recipient.userId = :userId
+            WHERE n.toUser.userId = :userId
             ORDER BY n.notificationId DESC
             """)
     List<Notification> findRecentByRecipientUserId(@Param("userId") Long userId, Pageable pageable);
 
     @Query("""
             SELECT n FROM Notification n
-            WHERE n.recipient.userId = :userId
+            WHERE n.toUser.userId = :userId
               AND n.notificationId < :before
             ORDER BY n.notificationId DESC
             """)
@@ -34,7 +34,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("""
             SELECT CASE WHEN COUNT(n) > 0 THEN true ELSE false END
             FROM Notification n
-            WHERE n.recipient.userId = :userId
+            WHERE n.toUser.userId = :userId
               AND n.readAt IS NULL
             """)
     boolean existsUnreadByRecipientUserId(@Param("userId") Long userId);
@@ -43,7 +43,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("""
             UPDATE Notification n
             SET n.readAt = :readAt
-            WHERE n.recipient.userId = :userId
+            WHERE n.toUser.userId = :userId
               AND n.readAt IS NULL
             """)
     int markAllReadByRecipientUserId(@Param("userId") Long userId, @Param("readAt") LocalDateTime readAt);

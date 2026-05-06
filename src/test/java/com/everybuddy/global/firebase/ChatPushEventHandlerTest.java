@@ -127,7 +127,7 @@ class ChatPushEventHandlerTest {
     }
 
     @Test
-    @DisplayName("정상 발송: data 페이로드에 type, chatRoomId, messageId, senderId가 포함된다")
+    @DisplayName("정상 발송: data 페이로드에 chatRoomId, messageId, senderId가 포함된다")
     void sendsWithCorrectDataPayload() {
         when(viewingSyncService.isViewing(any(), any())).thenReturn(false);
         when(messageBuilder.resolveChatMessage(message)).thenReturn(content);
@@ -139,7 +139,6 @@ class ChatPushEventHandlerTest {
         verify(fcmSender).sendToUsers(eq(List.of(2L)), eq(content), dataCaptor.capture());
         Map<String, String> data = dataCaptor.getValue();
         assertAll(
-                () -> assertEquals("CHAT_MESSAGE", data.get("type")),
                 () -> assertEquals("100", data.get("chatRoomId")),
                 () -> assertEquals("500", data.get("messageId")),
                 () -> assertEquals("1", data.get("senderId"))

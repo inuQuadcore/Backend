@@ -29,7 +29,7 @@ public interface NotificationApiSpecification {
             - hasNext=false이면 마지막 페이지입니다.
 
             **노출되는 알림 종류**
-            - 친구추가 알림 (`FRIEND_ADDED`): 누군가 본인을 친구로 추가했을 때.
+            - 친구추가 알림: 누군가 본인을 친구로 추가했을 때. fromUserId로 친구 프로필 라우팅.
             - 채팅 메시지는 이 리스트에 포함되지 않습니다 (FCM 푸시만 발송, DB 저장 X).
             """)
     @ApiResponses({
@@ -42,17 +42,15 @@ public interface NotificationApiSpecification {
                         "notifications": [
                             {
                                 "notificationId": 42,
-                                "type": "FRIEND_ADDED",
-                                "title": "새로운 친구",
                                 "body": "홍길동님이 친구로 추가했어요.",
+                                "fromUserId": 7,
                                 "timeAgo": "5분 전",
                                 "isRead": false
                             },
                             {
                                 "notificationId": 38,
-                                "type": "FRIEND_ADDED",
-                                "title": "새로운 친구",
                                 "body": "김철수님이 친구로 추가했어요.",
+                                "fromUserId": 12,
                                 "timeAgo": "2일 전",
                                 "isRead": true
                             }

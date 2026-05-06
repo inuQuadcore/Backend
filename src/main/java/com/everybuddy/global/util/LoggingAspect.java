@@ -20,23 +20,43 @@ public class LoggingAspect {
     @Pointcut("execution(* com.everybuddy.domain.*.service.*.*(..))")
     public void serviceLayer() {}
 
+    @Pointcut("execution(* com.everybuddy.domain.*.event.*.*(..))")
+    public void eventHandlerLayer() {}
+
+    @Pointcut("execution(* com.everybuddy.global.firebase.*.*(..))")
+    public void firebaseLayer() {}
+
     @Around("controllerLayer()")
     public Object logController(ProceedingJoinPoint joinPoint) throws Throwable {
-        return logExecution(joinPoint, "컨트롤러", getCurrentUserId());
+        return logExecution(joinPoint, "컨트롤러", true, getCurrentUserId());
     }
 
     @Around("serviceLayer()")
     public Object logService(ProceedingJoinPoint joinPoint) throws Throwable {
-        return logExecution(joinPoint, "서비스", null);
+        return logExecution(joinPoint, "서비스", false, null);
     }
 
-    private Object logExecution(ProceedingJoinPoint joinPoint, String layer, String userId) throws Throwable {
+    @Around("eventHandlerLayer()")
+    public Object logEventHandler(ProceedingJoinPoint joinPoint) throws Throwable {
+        return logExecution(joinPoint, "이벤트", false, null);
+    }
+
+    @Around("firebaseLayer()")
+    public Object logFirebase(ProceedingJoinPoint joinPoint) throws Throwable {
+        return logExecution(joinPoint, "인프라", false, null);
+    }
+
+    private Object logExecution(ProceedingJoinPoint joinPoint, String layer, boolean asInfo, String userId) throws Throwable {
         String methodName = joinPoint.getSignature().toShortString();
 
-        if (userId != null) {
-            log.info("[{} 호출] {} - 사용자: {}", layer, methodName, userId);
+        if (asInfo) {
+            if (userId != null) {
+                log.info("[{} 호출] {} - 사용자: {}", layer, methodName, userId);
+            } else {
+                log.info("[{} 호출] {}", layer, methodName);
+            }
         } else {
-            log.info("[{} 호출] {}", layer, methodName);
+            log.debug("[{} 호출] {}", layer, methodName);
         }
 
         long startTime = System.currentTimeMillis();
@@ -44,7 +64,11 @@ public class LoggingAspect {
         try {
             Object result = joinPoint.proceed();
             long executionTime = System.currentTimeMillis() - startTime;
-            log.info("[{} 완료] {} - 실행시간: {}ms", layer, methodName, executionTime);
+            if (asInfo) {
+                log.info("[{} 완료] {} - 실행시간: {}ms", layer, methodName, executionTime);
+            } else {
+                log.debug("[{} 완료] {} - 실행시간: {}ms", layer, methodName, executionTime);
+            }
             return result;
         } catch (Exception e) {
             long executionTime = System.currentTimeMillis() - startTime;

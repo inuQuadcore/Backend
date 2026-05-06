@@ -65,15 +65,16 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public NotificationListResponse getList(Long userId, Long before, int limit) {
         List<Notification> results = fetchNotifications(userId, before, limit);
+        return toPagedResponse(results, limit);
+    }
 
+    private NotificationListResponse toPagedResponse(List<Notification> results, int limit) {
         boolean hasNext = results.size() > limit;
         List<Notification> page = hasNext ? results.subList(0, limit) : results;
         Long nextCursor = page.isEmpty() ? null : page.getLast().getNotificationId();
-
         List<NotificationResponse> responses = page.stream()
                 .map(NotificationResponse::from)
                 .toList();
-
         return NotificationListResponse.of(responses, nextCursor, hasNext);
     }
 

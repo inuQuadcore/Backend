@@ -21,11 +21,16 @@ public class FcmTokenService {
 
     public void register(Long userId, FcmTokenRegisterRequest request) {
         User user = findUser(userId);
+        String token = request.getToken();
+
+        fcmTokenRepository.findByToken(token)
+                .filter(existing -> !existing.getUser().getUserId().equals(userId))
+                .ifPresent(fcmTokenRepository::delete);
 
         fcmTokenRepository.findByUser(user)
                 .ifPresentOrElse(
-                        existing -> existing.updateToken(request.getToken()),
-                        () -> fcmTokenRepository.save(FcmToken.of(user, request.getToken()))
+                        existing -> existing.updateToken(token),
+                        () -> fcmTokenRepository.save(FcmToken.of(user, token))
                 );
     }
 

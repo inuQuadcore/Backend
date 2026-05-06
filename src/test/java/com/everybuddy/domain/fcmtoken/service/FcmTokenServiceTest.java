@@ -95,6 +95,47 @@ class FcmTokenServiceTest {
             assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
             verify(fcmTokenRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("같은 토큰이 다른 유저에게 등록되어 있으면 그 row 삭제 후 본인 토큰 신규 저장 (계정 전환 시나리오)")
+        void cleansUpOtherUserTokenBeforeSavingOwn() {
+            User otherUser = User.createForTest(2L, "other", "김철수", "password",
+                    Country.KOREA, Gender.MALE, LocalDate.of(1991, 1, 1));
+            FcmToken otherUserToken = FcmToken.createForTest(20L, otherUser, "shared-token");
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(fcmTokenRepository.findByToken("shared-token")).thenReturn(Optional.of(otherUserToken));
+            when(fcmTokenRepository.findByUser(user)).thenReturn(Optional.empty());
+
+            FcmTokenRegisterRequest request = FcmTokenRegisterRequest.ofForTest("shared-token");
+            fcmTokenService.register(1L, request);
+
+            verify(fcmTokenRepository).delete(otherUserToken);
+
+            ArgumentCaptor<FcmToken> savedCaptor = ArgumentCaptor.forClass(FcmToken.class);
+            verify(fcmTokenRepository).save(savedCaptor.capture());
+            assertAll(
+                    () -> assertEquals(1L, savedCaptor.getValue().getUser().getUserId()),
+                    () -> assertEquals("shared-token", savedCaptor.getValue().getToken())
+            );
+        }
+
+        @Test
+        @DisplayName("같은 토큰이 본인에게 이미 등록되어 있으면 정리하지 않음 (멱등 재호출)")
+        void doesNotCleanUpOwnToken() {
+            FcmToken existing = FcmToken.createForTest(10L, user, "same-token");
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(fcmTokenRepository.findByToken("same-token")).thenReturn(Optional.of(existing));
+            when(fcmTokenRepository.findByUser(user)).thenReturn(Optional.of(existing));
+
+            FcmTokenRegisterRequest request = FcmTokenRegisterRequest.ofForTest("same-token");
+            fcmTokenService.register(1L, request);
+
+            verify(fcmTokenRepository, never()).delete(any(FcmToken.class));
+            verify(fcmTokenRepository, never()).save(any());
+            assertEquals("same-token", existing.getToken());
+        }
     }
 
     @Nested

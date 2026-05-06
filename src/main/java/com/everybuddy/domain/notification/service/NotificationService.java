@@ -41,16 +41,6 @@ public class NotificationService {
         return toPagedResponse(results, limit);
     }
 
-    private NotificationListResponse toPagedResponse(List<Notification> results, int limit) {
-        boolean hasNext = results.size() > limit;
-        List<Notification> page = hasNext ? results.subList(0, limit) : results;
-        Long nextCursor = page.isEmpty() ? null : page.getLast().getNotificationId();
-        List<NotificationResponse> responses = page.stream()
-                .map(NotificationResponse::from)
-                .toList();
-        return NotificationListResponse.of(responses, nextCursor, hasNext);
-    }
-
     @Transactional(readOnly = true)
     public HasUnreadResponse hasUnread(Long userId) {
         return HasUnreadResponse.of(notificationRepository.existsUnreadByRecipientUserId(userId));
@@ -61,7 +51,7 @@ public class NotificationService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND));
 
         if (!notification.isOwnedBy(userId)) {
-            throw new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND);
+            throw new CustomException(ErrorCode.NOT_NOTIFICATION_OF_USER);
         }
 
         notification.markAsRead();
@@ -77,5 +67,15 @@ public class NotificationService {
             return notificationRepository.findRecentByRecipientUserId(userId, pageRequest);
         }
         return notificationRepository.findByRecipientUserIdBeforeCursor(userId, before, pageRequest);
+    }
+
+    private NotificationListResponse toPagedResponse(List<Notification> results, int limit) {
+        boolean hasNext = results.size() > limit;
+        List<Notification> page = hasNext ? results.subList(0, limit) : results;
+        Long nextCursor = page.isEmpty() ? null : page.getLast().getNotificationId();
+        List<NotificationResponse> responses = page.stream()
+                .map(NotificationResponse::from)
+                .toList();
+        return NotificationListResponse.of(responses, nextCursor, hasNext);
     }
 }

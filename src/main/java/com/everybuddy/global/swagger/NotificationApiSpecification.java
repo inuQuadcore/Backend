@@ -122,7 +122,8 @@ public interface NotificationApiSpecification {
     );
 
     @Operation(summary = "알림 단건 읽음 처리", description = """
-            특정 알림을 읽음 처리합니다. 이미 읽은 알림은 그대로 둡니다 (멱등). 본인 알림이 아니면 404 반환.
+            특정 알림을 읽음 처리합니다. 이미 읽은 알림은 그대로 둡니다 (멱등).
+            존재하지 않는 알림 ID는 404, 본인 알림이 아닐 경우 403을 반환합니다.
             """)
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "읽음 처리 성공"),
@@ -140,7 +141,20 @@ public interface NotificationApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "404", description = "알림 없음 또는 본인 알림 아님",
+                    responseCode = "403", description = "본인 알림 아님",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 403,
+                        "name": "NOT_NOTIFICATION_OF_USER",
+                        "message": "자신의 알림만 읽음 처리할 수 있습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "알림 없음",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject("""

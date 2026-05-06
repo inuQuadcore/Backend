@@ -193,7 +193,7 @@ class NotificationServiceTest {
         }
 
         @Test
-        @DisplayName("타인의 알림이면 NOTIFICATION_NOT_FOUND")
+        @DisplayName("타인의 알림이면 NOT_NOTIFICATION_OF_USER (403)")
         void throwsWhenNotOwnNotification() {
             Notification notification = Notification.createForTest(
                     100L, other, me, "b",
@@ -204,7 +204,7 @@ class NotificationServiceTest {
                     () -> notificationService.markRead(1L, 100L));
 
             assertAll(
-                    () -> assertEquals(ErrorCode.NOTIFICATION_NOT_FOUND, exception.getErrorCode()),
+                    () -> assertEquals(ErrorCode.NOT_NOTIFICATION_OF_USER, exception.getErrorCode()),
                     () -> assertNull(notification.getReadAt())
             );
         }

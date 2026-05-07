@@ -22,7 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Tag(name = "번역 API", description = "텍스트 및 음성 번역 기능")
 public interface TranslateApiSpecification {
 
-    @Operation(summary = "텍스트 번역", description = "텍스트를 지정한 언어로 번역합니다. sourceLang을 생략하면 모델이 언어를 자동 감지합니다.")
+    @Operation(summary = "텍스트 번역", description = "원본 언어의 텍스트를 지정한 목표 언어로 번역합니다.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "번역 성공",

@@ -15,14 +15,4 @@ public enum Language {
     GERMAN("de");
 
     private final String code;
-
-    public static Language fromCode(String code) {
-        if (code == null || code.isBlank()) return null;
-        for (Language language : values()) {
-            if (language.code.equalsIgnoreCase(code)) {
-                return language;
-            }
-        }
-        return null;
-    }
 }

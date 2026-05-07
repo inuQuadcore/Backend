@@ -19,9 +19,9 @@ public class SpeechTranslateMultipart {
     private MultipartFile file;
 
     @Schema(
-            description = "번역 목표 언어 코드",
-            allowableValues = {"ko", "en", "ja", "zh", "es", "fr", "de"},
-            example = "ko"
+            description = "번역 목표 언어 (KOREAN, ENGLISH, JAPANESE, CHINESE, SPANISH, FRENCH, GERMAN)",
+            allowableValues = {"KOREAN", "ENGLISH", "JAPANESE", "CHINESE", "SPANISH", "FRENCH", "GERMAN"},
+            example = "KOREAN"
     )
     private String targetLang;
 }

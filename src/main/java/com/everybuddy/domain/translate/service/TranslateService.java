@@ -6,6 +6,7 @@ import com.everybuddy.domain.translate.dto.TextTranslateResponse;
 import com.everybuddy.domain.user.entity.Language;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.util.EnumConverter;
 import com.everybuddy.domain.translate.client.TritonClient;
 import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResult;
 import lombok.RequiredArgsConstructor;
@@ -34,29 +35,28 @@ public class TranslateService {
     private final TritonClient tritonClient;
 
     public TextTranslateResponse translateText(TextTranslateRequest request) {
-        Language targetLanguage = validateLanguage(request.getTargetLang());
-
-        String sourceLangCode = null;
-        if (request.getSourceLang() != null && !request.getSourceLang().isBlank()) {
-            sourceLangCode = validateLanguage(request.getSourceLang()).getCode();
-        }
+        Language targetLanguage = EnumConverter.stringToEnum(
+                request.getTargetLang(), Language.class, ErrorCode.UNSUPPORTED_LANGUAGE);
+        Language sourceLanguage = EnumConverter.stringToEnum(
+                request.getSourceLang(), Language.class, ErrorCode.UNSUPPORTED_LANGUAGE);
 
         String translatedText = tritonClient.translateText(
                 request.getText(),
-                sourceLangCode,
+                sourceLanguage.getCode(),
                 targetLanguage.getCode()
         );
 
         return TextTranslateResponse.builder()
                 .translatedText(translatedText)
-                .sourceLanguage(sourceLangCode)
+                .sourceLanguage(sourceLanguage.getCode())
                 .targetLanguage(targetLanguage.getCode())
                 .build();
     }
 
     public SpeechTranslateResponse translateSpeech(MultipartFile file, String targetLang) {
         validateAudioFile(file);
-        Language targetLanguage = validateLanguage(targetLang);
+        Language targetLanguage = EnumConverter.stringToEnum(
+                targetLang, Language.class, ErrorCode.UNSUPPORTED_LANGUAGE);
 
         byte[] audioBytes;
         try {
@@ -77,14 +77,6 @@ public class TranslateService {
                 .sourceLanguage(result.sourceLanguage())
                 .targetLanguage(targetLanguage.getCode())
                 .build();
-    }
-
-    private Language validateLanguage(String code) {
-        Language language = Language.fromCode(code);
-        if (language == null) {
-            throw new CustomException(ErrorCode.UNSUPPORTED_LANGUAGE);
-        }
-        return language;
     }
 
     private void validateAudioFile(MultipartFile file) {

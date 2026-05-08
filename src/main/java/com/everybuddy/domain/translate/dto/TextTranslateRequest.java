@@ -14,4 +14,12 @@ public class TextTranslateRequest {
 
     @NotBlank(message = "목표 언어를 입력해주세요.")
     private String targetLang;
+
+    public static TextTranslateRequest ofForTest(String text, String sourceLang, String targetLang) {
+        TextTranslateRequest request = new TextTranslateRequest();
+        request.text = text;
+        request.sourceLang = sourceLang;
+        request.targetLang = targetLang;
+        return request;
+    }
 }

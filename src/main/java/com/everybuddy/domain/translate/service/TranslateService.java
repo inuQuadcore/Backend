@@ -46,11 +46,11 @@ public class TranslateService {
                 targetLanguage.getCode()
         );
 
-        return TextTranslateResponse.builder()
-                .translatedText(translatedText)
-                .sourceLanguage(sourceLanguage.getCode())
-                .targetLanguage(targetLanguage.getCode())
-                .build();
+        return TextTranslateResponse.of(
+                translatedText,
+                sourceLanguage.getCode(),
+                targetLanguage.getCode()
+        );
     }
 
     public SpeechTranslateResponse translateSpeech(MultipartFile file, String targetLang) {
@@ -71,12 +71,12 @@ public class TranslateService {
                 targetLanguage.getCode()
         );
 
-        return SpeechTranslateResponse.builder()
-                .sourceText(result.sourceText())
-                .translatedText(result.translatedText())
-                .sourceLanguage(result.sourceLanguage())
-                .targetLanguage(targetLanguage.getCode())
-                .build();
+        return SpeechTranslateResponse.of(
+                result.sourceText(),
+                result.translatedText(),
+                result.sourceLanguage(),
+                targetLanguage.getCode()
+        );
     }
 
     private void validateAudioFile(MultipartFile file) {

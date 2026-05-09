@@ -181,7 +181,7 @@ class TranslateServiceTest {
         }
 
         @Test
-        @DisplayName("TC-4-6. file.getBytes()가 IOException → FILE_UPLOAD_FAILED")
+        @DisplayName("TC-4-6. file.getBytes()가 IOException → MULTIPART_READ_FAILED")
         void failBytesIOException() throws IOException {
             MultipartFile file = mock(MultipartFile.class);
             when(file.isEmpty()).thenReturn(false);
@@ -192,7 +192,7 @@ class TranslateServiceTest {
             CustomException ex = assertThrows(CustomException.class,
                     () -> translateService.translateSpeech(file, "KOREAN"));
 
-            assertEquals(ErrorCode.FILE_UPLOAD_FAILED, ex.getErrorCode());
+            assertEquals(ErrorCode.MULTIPART_READ_FAILED, ex.getErrorCode());
             verify(tritonClient, never()).translateSpeech(any(), any());
         }
     }

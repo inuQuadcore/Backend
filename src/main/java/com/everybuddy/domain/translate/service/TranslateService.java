@@ -59,7 +59,7 @@ public class TranslateService {
             audioBytes = file.getBytes();
         } catch (IOException e) {
             log.error("오디오 파일 읽기 실패", e);
-            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
+            throw new CustomException(ErrorCode.MULTIPART_READ_FAILED);
         }
 
         SpeechTranslationResult result = tritonClient.translateSpeech(

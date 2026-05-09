@@ -32,7 +32,7 @@ public enum ErrorCode {
     CANNOT_EDIT_FILE_MESSAGE(HttpStatus.BAD_REQUEST, 400, "파일 메시지는 수정할 수 없습니다."),
 
     //파일 업로드 관련
-    FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일을 업로드할 수 없습니다."),
+    MULTIPART_READ_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일 읽기에 실패했습니다."),
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, 400, "지원하지 않는 파일 형식입니다."),
     FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, 413, "파일 크기가 제한을 초과했습니다."),
     EMPTY_FILE(HttpStatus.BAD_REQUEST, 400, "빈 파일은 업로드할 수 없습니다."),

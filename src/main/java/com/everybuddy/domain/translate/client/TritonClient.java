@@ -54,8 +54,8 @@ public class TritonClient {
 
         TritonInferResponse response = call(T2TT_MODEL, request);
 
-        String result = response.extractString(OUTPUT_TRANSLATED_TEXT);
-        if (result == null || result.isBlank()) {
+        String result = response.getOutputValue(OUTPUT_TRANSLATED_TEXT);
+        if (result.isBlank()) {
             throw new CustomException(ErrorCode.MODEL_ERROR);
         }
         return result;
@@ -77,10 +77,9 @@ public class TritonClient {
 
         TritonInferResponse response = call(S2TT_MODEL, request);
 
-        String sourceText = response.extractString(OUTPUT_SOURCE_TEXT);
-        String translatedText = response.extractString(OUTPUT_TRANSLATED_TEXT);
-        if (sourceText == null || sourceText.isBlank()
-                || translatedText == null || translatedText.isBlank()) {
+        String sourceText = response.getOutputValue(OUTPUT_SOURCE_TEXT);
+        String translatedText = response.getOutputValue(OUTPUT_TRANSLATED_TEXT);
+        if (sourceText.isBlank() || translatedText.isBlank()) {
             throw new CustomException(ErrorCode.MODEL_ERROR);
         }
         return new SpeechTranslationResult(sourceText, translatedText);

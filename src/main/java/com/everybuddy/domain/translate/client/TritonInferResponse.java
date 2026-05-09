@@ -1,5 +1,7 @@
 package com.everybuddy.domain.translate.client;
 
+import com.everybuddy.global.exception.CustomException;
+import com.everybuddy.global.exception.ErrorCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -19,14 +21,19 @@ public class TritonInferResponse {
         private List<Object> data;
     }
 
-    public String extractString(String outputName) {
-        if (outputs == null) return null;
-        return outputs.stream()
+    public String getOutputValue(String outputName) {
+        if (outputs == null) {
+            throw new CustomException(ErrorCode.MODEL_ERROR);
+        }
+
+        OutputData output = outputs.stream()
                 .filter(o -> outputName.equals(o.getName()))
                 .findFirst()
-                .map(o -> o.getData() != null && !o.getData().isEmpty()
-                        ? String.valueOf(o.getData().get(0))
-                        : null)
-                .orElse(null);
+                .orElseThrow(() -> new CustomException(ErrorCode.MODEL_ERROR));
+
+        if (output.getData() == null || output.getData().isEmpty()) {
+            throw new CustomException(ErrorCode.MODEL_ERROR);
+        }
+        return String.valueOf(output.getData().getFirst());
     }
 }

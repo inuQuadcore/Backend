@@ -1,5 +1,6 @@
 package com.everybuddy.global.util;
 
+import com.everybuddy.global.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -46,6 +47,9 @@ public class LoggingAspect {
             long executionTime = System.currentTimeMillis() - startTime;
             log.info("[{} 완료] {} - 실행시간: {}ms", layer, methodName, executionTime);
             return result;
+        } catch (CustomException e) {
+            // CustomException은 GlobalExceptionHandler가 5xx/4xx 분기해 단일 로깅
+            throw e;
         } catch (Exception e) {
             long executionTime = System.currentTimeMillis() - startTime;
             log.error("[{} 실패] {} - 실행시간: {}ms, 예외: {}",

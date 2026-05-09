@@ -39,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -74,7 +75,7 @@ public class AuthService {
         userRepository.save(user);
 
         userPresenceRepository.save(UserPresence.of(user));
-        saveUserLanguages(user, request.getLanguages());
+        saveUserLanguages(user, request.getPrimaryLanguage(), request.getInterestLanguages());
         saveUserTags(user, request.getTags());
     }
 
@@ -122,7 +123,7 @@ public class AuthService {
     public LoginResponse registerWithGoogle(GoogleRegisterRequest request) {
         Claims claims = jwtTokenProvider.parseTempToken(request.getTempToken());
         User user = buildOAuthUser(claims, request);
-        saveOAuthUser(user, request.getTags(), request.getLanguages());
+        saveOAuthUser(user, request.getTags(), request.getPrimaryLanguage(), request.getInterestLanguages());
         return issueTokens(user);
     }
 
@@ -144,10 +145,10 @@ public class AuthService {
         return User.fromOAuth(name, email, providerId, Provider.GOOGLE, request);
     }
 
-    private void saveOAuthUser(User user, List<String> tags, List<UserLanguageRequest> languages) {
+    private void saveOAuthUser(User user, List<String> tags, String primaryLanguage, List<UserLanguageRequest> interestLanguages) {
         userRepository.save(user);
         userPresenceRepository.save(UserPresence.of(user));
-        saveUserLanguages(user, languages);
+        saveUserLanguages(user, primaryLanguage, interestLanguages);
         saveUserTags(user, tags);
     }
 
@@ -192,15 +193,23 @@ public class AuthService {
         }
     }
 
-    private void saveUserLanguages(User user, List<UserLanguageRequest> languages) {
-        List<UserLanguage> userLanguages = languages.stream()
+    private void saveUserLanguages(User user, String primaryLanguage, List<UserLanguageRequest> interestLanguages) {
+        Language primaryLang = EnumConverter.stringToEnum(primaryLanguage, Language.class, ErrorCode.INVALID_INPUT_VALUE);
+        UserLanguage primary = UserLanguage.of(user, primaryLang, 5, true);
+
+        List<UserLanguage> interests = interestLanguages.stream()
                 .distinct()
+                .filter(lr -> !primaryLanguage.equals(lr.getLanguage()))
                 .map(lr -> {
                     Language language = EnumConverter.stringToEnum(lr.getLanguage(), Language.class, ErrorCode.INVALID_INPUT_VALUE);
-                    return UserLanguage.of(user, language, lr.getLevel());
+                    return UserLanguage.of(user, language, lr.getLevel(), false);
                 })
                 .toList();
-        userLanguageRepository.saveAll(userLanguages);
+
+        List<UserLanguage> all = new ArrayList<>(interests.size() + 1);
+        all.add(primary);
+        all.addAll(interests);
+        userLanguageRepository.saveAll(all);
     }
 
     private void saveUserTags(User user, List<String> tags) {

@@ -312,7 +312,7 @@ public class S3FileService implements StorageService {
             throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
         } catch (IOException e) {
             log.error("파일 읽기 실패 - Key: {}, 원인: {}", key, e.getMessage(), e);
-            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
+            throw new CustomException(ErrorCode.MULTIPART_READ_FAILED);
         }
     }
 }

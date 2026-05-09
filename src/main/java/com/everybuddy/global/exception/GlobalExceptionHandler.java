@@ -23,10 +23,14 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 서비스계층 예외처리
+    // 서비스계층 예외처리: 5xx는 stack trace 포함 ERROR, 4xx는 WARN
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponse> handleCustomException(CustomException e) {
-        return CustomLogger.warnLog(e.getMessage(), e.getErrorCode());
+        ErrorCode errorCode = e.getErrorCode();
+        if (errorCode.getHttpStatus().is5xxServerError()) {
+            return CustomLogger.errorLog(e.getMessage(), errorCode, e);
+        }
+        return CustomLogger.warnLog(e.getMessage(), errorCode);
     }
 
     // 유효성 검사 예외처리

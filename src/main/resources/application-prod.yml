@@ -65,3 +65,6 @@ management:
         http.server.requests: true
 swagger:
   server-url: ${SERVER_URL}
+
+triton:
+  base-url: ${TRITON_BASE_URL}

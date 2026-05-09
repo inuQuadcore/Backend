@@ -77,6 +77,7 @@ public enum ErrorCode {
     INVALID_AUDIO_FORMAT(HttpStatus.BAD_REQUEST, 400, "지원하지 않는 오디오 형식입니다."),
     AUDIO_FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, 413, "오디오 파일 크기가 제한을 초과했습니다. (최대 50MB)"),
     MODEL_ERROR(HttpStatus.BAD_GATEWAY, 502, "번역 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
+    MODEL_REQUEST_INVALID(HttpStatus.BAD_GATEWAY, 502, "번역 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),
     MODEL_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, 504, "번역 요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."),
     MODEL_UNAVAILABLE(HttpStatus.BAD_GATEWAY, 502, "번역 서비스를 현재 사용할 수 없습니다. 잠시 후 다시 시도해주세요.");
 

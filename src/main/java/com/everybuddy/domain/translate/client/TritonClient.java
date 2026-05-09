@@ -2,7 +2,6 @@ package com.everybuddy.domain.translate.client;
 
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,7 +19,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @Component
 public class TritonClient {
 
@@ -98,23 +96,26 @@ public class TritonClient {
             );
             return response.getBody();
         } catch (HttpStatusCodeException e) {
-            log.error("Triton 오류 응답: {} - {}", e.getStatusCode().value(), e.getMessage());
-            if (e.getStatusCode().value() == 503) {
-                throw new CustomException(ErrorCode.MODEL_UNAVAILABLE);
+            int status = e.getStatusCode().value();
+            if (status == 503) {
+                throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
             }
-            throw new CustomException(ErrorCode.MODEL_ERROR);
+            if (status == 400 || status == 404) {
+                throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
+            }
+            throw new CustomException(ErrorCode.MODEL_ERROR, e);
         } catch (ResourceAccessException e) {
-            Throwable cause = findRootCause(e);
-            if (cause instanceof SocketTimeoutException ste) {
-                String msg = ste.getMessage() != null ? ste.getMessage().toLowerCase() : "";
-                if (msg.contains("read timed out") || msg.contains("read timeout")) {
-                    log.error("Triton 응답 타임아웃: {}", e.getMessage());
-                    throw new CustomException(ErrorCode.MODEL_TIMEOUT);
-                }
+            if (isReadTimeout(e)) {
+                throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
             }
-            log.error("Triton 연결 실패: {}", e.getMessage());
-            throw new CustomException(ErrorCode.MODEL_UNAVAILABLE);
+            throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
         }
+    }
+
+    private boolean isReadTimeout(ResourceAccessException e) {
+        return e.getCause() instanceof SocketTimeoutException ste
+                && ste.getMessage() != null
+                && ste.getMessage().toLowerCase().contains("read timed out");
     }
 
     private TritonInferRequest.Input textInput(String name, String value) {
@@ -133,11 +134,4 @@ public class TritonClient {
                 .build();
     }
 
-    private Throwable findRootCause(Throwable t) {
-        Throwable cause = t;
-        while (cause.getCause() != null) {
-            cause = cause.getCause();
-        }
-        return cause;
-    }
 }

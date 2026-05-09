@@ -8,6 +8,7 @@ import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.util.EnumConverter;
 import com.everybuddy.domain.translate.client.TritonClient;
+import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -61,12 +62,12 @@ public class TranslateService {
             throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
 
-        String translatedText = tritonClient.translateSpeech(
+        SpeechTranslationResult result = tritonClient.translateSpeech(
                 audioBytes,
                 targetLanguage.getCode()
         );
 
-        return SpeechTranslateResponse.of(translatedText);
+        return SpeechTranslateResponse.of(result.sourceText(), result.translatedText());
     }
 
     private void validateAudioFile(MultipartFile file) {

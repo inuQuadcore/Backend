@@ -28,6 +28,7 @@ public class TritonClient {
     private static final String S2TT_MODEL = "/v2/models/gemma_s2tt/infer";
 
     private static final String OUTPUT_TRANSLATED_TEXT = "TRANSLATED_TEXT";
+    private static final String OUTPUT_SOURCE_TEXT = "SOURCE_TEXT";
 
     private final String baseUrl;
     private final RestTemplate restTemplate;
@@ -48,7 +49,7 @@ public class TritonClient {
                         textInput("SOURCE_LANGUAGE", sourceLang != null ? sourceLang : ""),
                         textInput("TARGET_LANGUAGE", targetLang)
                 ))
-                .outputs(List.of(translatedTextOutput()))
+                .outputs(List.of(output(OUTPUT_TRANSLATED_TEXT)))
                 .build();
 
         TritonInferResponse response = call(T2TT_MODEL, request);
@@ -60,7 +61,7 @@ public class TritonClient {
         return result;
     }
 
-    public String translateSpeech(byte[] audioBytes, String targetLang) {
+    public SpeechTranslationResult translateSpeech(byte[] audioBytes, String targetLang) {
         String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
 
         TritonInferRequest request = TritonInferRequest.builder()
@@ -68,17 +69,24 @@ public class TritonClient {
                         textInput("AUDIO_BYTES", base64Audio),
                         textInput("TARGET_LANGUAGE", targetLang)
                 ))
-                .outputs(List.of(translatedTextOutput()))
+                .outputs(List.of(
+                        output(OUTPUT_SOURCE_TEXT),
+                        output(OUTPUT_TRANSLATED_TEXT)
+                ))
                 .build();
 
         TritonInferResponse response = call(S2TT_MODEL, request);
 
+        String sourceText = response.extractString(OUTPUT_SOURCE_TEXT);
         String translatedText = response.extractString(OUTPUT_TRANSLATED_TEXT);
-        if (translatedText == null || translatedText.isBlank()) {
+        if (sourceText == null || sourceText.isBlank()
+                || translatedText == null || translatedText.isBlank()) {
             throw new CustomException(ErrorCode.MODEL_ERROR);
         }
-        return translatedText;
+        return new SpeechTranslationResult(sourceText, translatedText);
     }
+
+    public record SpeechTranslationResult(String sourceText, String translatedText) {}
 
     private TritonInferResponse call(String path, TritonInferRequest request) {
         HttpHeaders headers = new HttpHeaders();
@@ -119,9 +127,9 @@ public class TritonClient {
                 .build();
     }
 
-    private TritonInferRequest.Output translatedTextOutput() {
+    private TritonInferRequest.Output output(String name) {
         return TritonInferRequest.Output.builder()
-                .name(OUTPUT_TRANSLATED_TEXT)
+                .name(name)
                 .parameters(Map.of("binary_data", false))
                 .build();
     }

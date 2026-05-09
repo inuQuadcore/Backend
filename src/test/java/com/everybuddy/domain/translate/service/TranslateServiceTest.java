@@ -1,6 +1,7 @@
 package com.everybuddy.domain.translate.service;
 
 import com.everybuddy.domain.translate.client.TritonClient;
+import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResult;
 import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,7 +87,7 @@ class TranslateServiceTest {
     class TranslateSpeechSuccessCases {
 
         @Test
-        @DisplayName("TC-3-1. 정상 번역 - 응답 DTO에 번역 결과 매핑")
+        @DisplayName("TC-3-1. 정상 번역 - 응답 DTO에 STT 원문과 번역 결과 매핑")
         void success() throws IOException {
             byte[] audioBytes = "fake-audio-data".getBytes();
             MultipartFile file = mock(MultipartFile.class);
@@ -94,11 +96,15 @@ class TranslateServiceTest {
             when(file.getContentType()).thenReturn("audio/wav");
             when(file.getBytes()).thenReturn(audioBytes);
 
-            when(tritonClient.translateSpeech(audioBytes, "ko")).thenReturn("안녕 세계");
+            when(tritonClient.translateSpeech(audioBytes, "ko"))
+                    .thenReturn(new SpeechTranslationResult("Hello world", "안녕 세계"));
 
             SpeechTranslateResponse response = translateService.translateSpeech(file, "KOREAN");
 
-            assertEquals("안녕 세계", response.getTranslatedText());
+            assertAll(
+                    () -> assertEquals("Hello world", response.getSourceText()),
+                    () -> assertEquals("안녕 세계", response.getTranslatedText())
+            );
         }
     }
 

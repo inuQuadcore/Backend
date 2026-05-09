@@ -9,17 +9,9 @@ public class TextTranslateRequest {
     @NotBlank(message = "번역할 텍스트를 입력해주세요.")
     private String text;
 
-    @NotBlank(message = "원본 언어를 입력해주세요.")
-    private String sourceLang;
-
-    @NotBlank(message = "목표 언어를 입력해주세요.")
-    private String targetLang;
-
-    public static TextTranslateRequest ofForTest(String text, String sourceLang, String targetLang) {
+    public static TextTranslateRequest ofForTest(String text) {
         TextTranslateRequest request = new TextTranslateRequest();
         request.text = text;
-        request.sourceLang = sourceLang;
-        request.targetLang = targetLang;
         return request;
     }
 }

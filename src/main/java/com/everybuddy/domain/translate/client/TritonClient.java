@@ -42,11 +42,11 @@ public class TritonClient {
         this.restTemplate = new RestTemplate(factory);
     }
 
-    public String translateText(String text, String sourceLang, String targetLang) {
+    public String translateText(String text, String targetLang) {
         TritonInferRequest request = TritonInferRequest.builder()
                 .inputs(List.of(
                         textInput("TEXT", text),
-                        textInput("SOURCE_LANGUAGE", sourceLang != null ? sourceLang : ""),
+                        textInput("SOURCE_LANGUAGE", ""),
                         textInput("TARGET_LANGUAGE", targetLang)
                 ))
                 .outputs(List.of(output(OUTPUT_TRANSLATED_TEXT)))

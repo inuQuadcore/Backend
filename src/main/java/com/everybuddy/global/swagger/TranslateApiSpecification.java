@@ -4,6 +4,8 @@ import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
 import com.everybuddy.global.exception.ErrorResponse;
+import com.everybuddy.global.security.UserDetailsImpl;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -15,14 +17,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "번역 API", description = "텍스트 및 음성 번역 기능")
 public interface TranslateApiSpecification {
 
-    @Operation(summary = "텍스트 번역", description = "원본 언어의 텍스트를 지정한 목표 언어로 번역합니다.")
+    @Operation(summary = "텍스트 번역", description = "텍스트를 사용자의 주 언어로 번역합니다. 원본 언어는 모델이 자동 감지합니다.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "번역 성공",
@@ -103,12 +104,13 @@ public interface TranslateApiSpecification {
             )
     })
     ResponseEntity<TextTranslateResponse> translateText(
-            @Valid @RequestBody(required = true) TextTranslateRequest request
+            @Valid @RequestBody(required = true) TextTranslateRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     );
 
     @Operation(
             summary = "음성 번역",
-            description = "오디오 파일을 업로드하면 음성을 인식하고 지정한 언어로 번역합니다. 원본 언어는 모델이 자동 감지합니다.",
+            description = "오디오 파일을 업로드하면 음성을 인식하고 사용자의 주 언어로 번역합니다. 원본 언어는 모델이 자동 감지합니다.",
             requestBody = @RequestBody(
                     required = true,
                     content = @Content(
@@ -215,6 +217,6 @@ public interface TranslateApiSpecification {
     })
     ResponseEntity<SpeechTranslateResponse> translateSpeech(
             @RequestPart MultipartFile file,
-            @RequestParam String targetLang
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     );
 }

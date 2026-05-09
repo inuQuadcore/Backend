@@ -4,11 +4,13 @@ import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
 import com.everybuddy.domain.translate.service.TranslateService;
+import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.TranslateApiSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,18 +23,19 @@ public class TranslateController implements TranslateApiSpecification {
 
     @PostMapping("/text")
     public ResponseEntity<TextTranslateResponse> translateText(
-            @Valid @RequestBody TextTranslateRequest request) {
+            @Valid @RequestBody TextTranslateRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        TextTranslateResponse response = translateService.translateText(request);
+        TextTranslateResponse response = translateService.translateText(request, userDetails.getUserId());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "/speech", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SpeechTranslateResponse> translateSpeech(
             @RequestPart MultipartFile file,
-            @RequestParam String targetLang) {
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        SpeechTranslateResponse response = translateService.translateSpeech(file, targetLang);
+        SpeechTranslateResponse response = translateService.translateSpeech(file, userDetails.getUserId());
         return ResponseEntity.ok(response);
     }
 }

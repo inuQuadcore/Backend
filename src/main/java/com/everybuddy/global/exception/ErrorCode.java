@@ -73,6 +73,7 @@ public enum ErrorCode {
 
     // 번역 관련
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, 400, "지원하지 않는 언어 코드입니다."),
+    USER_PRIMARY_LANGUAGE_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, 500, "사용자의 주 언어 정보를 찾을 수 없습니다."),
     INVALID_AUDIO_FORMAT(HttpStatus.BAD_REQUEST, 400, "지원하지 않는 오디오 형식입니다."),
     AUDIO_FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, 413, "오디오 파일 크기가 제한을 초과했습니다. (최대 50MB)"),
     MODEL_ERROR(HttpStatus.BAD_GATEWAY, 502, "번역 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."),

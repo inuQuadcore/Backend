@@ -1,14 +1,14 @@
 package com.everybuddy.domain.translate.service;
 
+import com.everybuddy.domain.translate.client.TritonClient;
+import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResult;
 import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
-import com.everybuddy.domain.user.entity.Language;
+import com.everybuddy.domain.user.entity.UserLanguage;
+import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.everybuddy.global.util.EnumConverter;
-import com.everybuddy.domain.translate.client.TritonClient;
-import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,26 +33,19 @@ public class TranslateService {
     );
 
     private final TritonClient tritonClient;
+    private final UserLanguageRepository userLanguageRepository;
 
-    public TextTranslateResponse translateText(TextTranslateRequest request) {
-        Language targetLanguage = EnumConverter.stringToEnum(
-                request.getTargetLang(), Language.class, ErrorCode.UNSUPPORTED_LANGUAGE);
-        Language sourceLanguage = EnumConverter.stringToEnum(
-                request.getSourceLang(), Language.class, ErrorCode.UNSUPPORTED_LANGUAGE);
+    public TextTranslateResponse translateText(TextTranslateRequest request, Long userId) {
+        String targetCode = resolvePrimaryLanguageCode(userId);
 
-        String translatedText = tritonClient.translateText(
-                request.getText(),
-                sourceLanguage.getCode(),
-                targetLanguage.getCode()
-        );
+        String translatedText = tritonClient.translateText(request.getText(), targetCode);
 
         return TextTranslateResponse.of(translatedText);
     }
 
-    public SpeechTranslateResponse translateSpeech(MultipartFile file, String targetLang) {
+    public SpeechTranslateResponse translateSpeech(MultipartFile file, Long userId) {
         validateAudioFile(file);
-        Language targetLanguage = EnumConverter.stringToEnum(
-                targetLang, Language.class, ErrorCode.UNSUPPORTED_LANGUAGE);
+        String targetCode = resolvePrimaryLanguageCode(userId);
 
         byte[] audioBytes;
         try {
@@ -62,12 +55,15 @@ public class TranslateService {
             throw new CustomException(ErrorCode.MULTIPART_READ_FAILED);
         }
 
-        SpeechTranslationResult result = tritonClient.translateSpeech(
-                audioBytes,
-                targetLanguage.getCode()
-        );
+        SpeechTranslationResult result = tritonClient.translateSpeech(audioBytes, targetCode);
 
         return SpeechTranslateResponse.of(result.sourceText(), result.translatedText());
+    }
+
+    private String resolvePrimaryLanguageCode(Long userId) {
+        UserLanguage primary = userLanguageRepository.findByUserUserIdAndIsPrimaryTrue(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_PRIMARY_LANGUAGE_NOT_FOUND));
+        return primary.getLanguage().getCode();
     }
 
     private void validateAudioFile(MultipartFile file) {

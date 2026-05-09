@@ -32,7 +32,11 @@ public abstract class BaseProfileRequest {
     @NotEmpty(message = "관심 태그를 하나 이상 선택해주세요.")
     private List<String> tags;
 
+    @Schema(description = "주 언어 (번역 기본 대상 언어, 자동으로 level 5 처리)", example = "KOREAN")
+    @NotBlank(message = "주 언어를 선택해주세요.")
+    private String primaryLanguage;
+
     @Schema(description = "관심 언어 목록")
     @NotEmpty(message = "관심 언어를 하나 이상 선택해주세요.")
-    private List<UserLanguageRequest> languages;
+    private List<UserLanguageRequest> interestLanguages;
 }

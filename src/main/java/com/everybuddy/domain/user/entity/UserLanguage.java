@@ -32,22 +32,27 @@ public class UserLanguage {
     @Column(nullable = false)
     private int level;
 
+    @Column(nullable = false)
+    private boolean isPrimary;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    private UserLanguage(User user, Language language, int level) {
+    private UserLanguage(User user, Language language, int level, boolean isPrimary) {
         this.user = user;
         this.language = language;
         this.level = level;
+        this.isPrimary = isPrimary;
     }
 
-    public static UserLanguage of(User user, Language language, int level) {
+    public static UserLanguage of(User user, Language language, int level, boolean isPrimary) {
         return UserLanguage.builder()
                 .user(user)
                 .language(language)
                 .level(level)
+                .isPrimary(isPrimary)
                 .build();
     }
 

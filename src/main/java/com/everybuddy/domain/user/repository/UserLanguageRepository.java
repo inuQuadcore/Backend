@@ -13,6 +13,8 @@ public interface UserLanguageRepository extends JpaRepository<UserLanguage, Long
 
     Optional<UserLanguage> findByUserUserIdAndLanguage(Long userId, Language language);
 
+    Optional<UserLanguage> findByUserUserIdAndIsPrimaryTrue(Long userId);
+
     @Query("SELECT ul FROM UserLanguage ul WHERE ul.user.userId = :userId")
     List<UserLanguage> findAllByUserId(@Param("userId") Long userId);
 

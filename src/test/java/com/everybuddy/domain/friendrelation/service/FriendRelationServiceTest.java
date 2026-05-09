@@ -167,7 +167,7 @@ class FriendRelationServiceTest {
         void successWithFriends() {
             FriendRelation relation = FriendRelation.of(userA, userB);
 
-            UserLanguage language = UserLanguage.of(userB, Language.ENGLISH, 3);
+            UserLanguage language = UserLanguage.of(userB, Language.ENGLISH, 3, false);
             UserTag tag = UserTag.of(userB, Tag.SPORTS);
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));

@@ -71,7 +71,7 @@ class UserServiceTest {
                 Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
         deletedUser.softDelete();
 
-        userLanguage = UserLanguage.of(user, Language.ENGLISH, 2);
+        userLanguage = UserLanguage.of(user, Language.ENGLISH, 2, false);
     }
 
     @Nested
@@ -592,8 +592,8 @@ class UserServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
             List<UserLanguage> userLanguages = List.of(
-                    UserLanguage.of(user, Language.ENGLISH, 3),
-                    UserLanguage.of(user, Language.JAPANESE, 2)
+                    UserLanguage.of(user, Language.ENGLISH, 3, false),
+                    UserLanguage.of(user, Language.JAPANESE, 2, false)
             );
             when(userLanguageRepository.findAllByUserId(1L)).thenReturn(userLanguages);
 

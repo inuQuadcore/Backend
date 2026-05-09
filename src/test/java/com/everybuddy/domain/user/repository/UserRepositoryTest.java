@@ -150,8 +150,8 @@ class UserRepositoryTest {
         @Test
         @DisplayName("language 필터 - 해당 언어 가진 유저만 반환")
         void languageFilter() {
-            userLanguageRepository.save(UserLanguage.of(userA, Language.ENGLISH, 3));
-            userLanguageRepository.save(UserLanguage.of(userB, Language.JAPANESE, 2));
+            userLanguageRepository.save(UserLanguage.of(userA, Language.ENGLISH, 3, false));
+            userLanguageRepository.save(UserLanguage.of(userB, Language.JAPANESE, 2, false));
 
             List<User> result = findFiltered(List.of(requester.getUserId()), null, null, null, null,
                     List.of(Language.ENGLISH), List.of(), false, false, null, null);

@@ -6,27 +6,16 @@ import lombok.Getter;
 @Getter
 public class SpeechTranslateResponse {
 
-    private final String sourceText;
     private final String translatedText;
-    private final String sourceLanguage;
-    private final String targetLanguage;
 
     @Builder
-    private SpeechTranslateResponse(String sourceText, String translatedText,
-                                    String sourceLanguage, String targetLanguage) {
-        this.sourceText = sourceText;
+    private SpeechTranslateResponse(String translatedText) {
         this.translatedText = translatedText;
-        this.sourceLanguage = sourceLanguage;
-        this.targetLanguage = targetLanguage;
     }
 
-    public static SpeechTranslateResponse of(String sourceText, String translatedText,
-                                             String sourceLanguage, String targetLanguage) {
+    public static SpeechTranslateResponse of(String translatedText) {
         return SpeechTranslateResponse.builder()
-                .sourceText(sourceText)
                 .translatedText(translatedText)
-                .sourceLanguage(sourceLanguage)
-                .targetLanguage(targetLanguage)
                 .build();
     }
 }

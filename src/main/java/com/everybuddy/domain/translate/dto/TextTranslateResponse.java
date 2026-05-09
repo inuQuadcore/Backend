@@ -7,21 +7,15 @@ import lombok.Getter;
 public class TextTranslateResponse {
 
     private final String translatedText;
-    private final String sourceLanguage;
-    private final String targetLanguage;
 
     @Builder
-    private TextTranslateResponse(String translatedText, String sourceLanguage, String targetLanguage) {
+    private TextTranslateResponse(String translatedText) {
         this.translatedText = translatedText;
-        this.sourceLanguage = sourceLanguage;
-        this.targetLanguage = targetLanguage;
     }
 
-    public static TextTranslateResponse of(String translatedText, String sourceLanguage, String targetLanguage) {
+    public static TextTranslateResponse of(String translatedText) {
         return TextTranslateResponse.builder()
                 .translatedText(translatedText)
-                .sourceLanguage(sourceLanguage)
-                .targetLanguage(targetLanguage)
                 .build();
     }
 }

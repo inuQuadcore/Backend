@@ -27,14 +27,7 @@ public class TritonClient {
     private static final String T2TT_MODEL = "/v2/models/gemma_t2tt/infer";
     private static final String S2TT_MODEL = "/v2/models/gemma_s2tt/infer";
 
-    private static final List<String> T2TT_OUTPUTS = List.of(
-            "SOURCE_TEXT", "SOURCE_LANGUAGE", "TRANSLATED_TEXT",
-            "TARGET_LANGUAGE", "RAW_RESPONSE", "INFERENCE_SECONDS"
-    );
-    private static final List<String> S2TT_OUTPUTS = List.of(
-            "SOURCE_TEXT", "SOURCE_LANGUAGE", "TRANSLATED_TEXT",
-            "TARGET_LANGUAGE", "RAW_RESPONSE", "INFERENCE_SECONDS"
-    );
+    private static final String OUTPUT_TRANSLATED_TEXT = "TRANSLATED_TEXT";
 
     private final String baseUrl;
     private final RestTemplate restTemplate;
@@ -55,19 +48,19 @@ public class TritonClient {
                         textInput("SOURCE_LANGUAGE", sourceLang != null ? sourceLang : ""),
                         textInput("TARGET_LANGUAGE", targetLang)
                 ))
-                .outputs(buildOutputs(T2TT_OUTPUTS))
+                .outputs(List.of(translatedTextOutput()))
                 .build();
 
         TritonInferResponse response = call(T2TT_MODEL, request);
 
-        String result = response.extractString("TRANSLATED_TEXT");
+        String result = response.extractString(OUTPUT_TRANSLATED_TEXT);
         if (result == null || result.isBlank()) {
             throw new CustomException(ErrorCode.MODEL_ERROR);
         }
         return result;
     }
 
-    public SpeechTranslationResult translateSpeech(byte[] audioBytes, String targetLang) {
+    public String translateSpeech(byte[] audioBytes, String targetLang) {
         String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
 
         TritonInferRequest request = TritonInferRequest.builder()
@@ -75,20 +68,16 @@ public class TritonClient {
                         textInput("AUDIO_BYTES", base64Audio),
                         textInput("TARGET_LANGUAGE", targetLang)
                 ))
-                .outputs(buildOutputs(S2TT_OUTPUTS))
+                .outputs(List.of(translatedTextOutput()))
                 .build();
 
         TritonInferResponse response = call(S2TT_MODEL, request);
 
-        String sourceText = response.extractString("SOURCE_TEXT");
-        String translatedText = response.extractString("TRANSLATED_TEXT");
-        String sourceLanguage = response.extractString("SOURCE_LANGUAGE");
-
-        if (sourceText == null || sourceText.isBlank()
-                || translatedText == null || translatedText.isBlank()) {
+        String translatedText = response.extractString(OUTPUT_TRANSLATED_TEXT);
+        if (translatedText == null || translatedText.isBlank()) {
             throw new CustomException(ErrorCode.MODEL_ERROR);
         }
-        return new SpeechTranslationResult(sourceText, translatedText, sourceLanguage);
+        return translatedText;
     }
 
     private TritonInferResponse call(String path, TritonInferRequest request) {
@@ -130,13 +119,11 @@ public class TritonClient {
                 .build();
     }
 
-    private List<TritonInferRequest.Output> buildOutputs(List<String> names) {
-        return names.stream()
-                .map(name -> TritonInferRequest.Output.builder()
-                        .name(name)
-                        .parameters(Map.of("binary_data", false))
-                        .build())
-                .toList();
+    private TritonInferRequest.Output translatedTextOutput() {
+        return TritonInferRequest.Output.builder()
+                .name(OUTPUT_TRANSLATED_TEXT)
+                .parameters(Map.of("binary_data", false))
+                .build();
     }
 
     private Throwable findRootCause(Throwable t) {
@@ -146,10 +133,4 @@ public class TritonClient {
         }
         return cause;
     }
-
-    public record SpeechTranslationResult(
-            String sourceText,
-            String translatedText,
-            String sourceLanguage
-    ) {}
 }

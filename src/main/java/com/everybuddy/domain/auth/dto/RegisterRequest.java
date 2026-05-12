@@ -1,7 +1,6 @@
 package com.everybuddy.domain.auth.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 
@@ -20,8 +19,4 @@ public class RegisterRequest extends BaseProfileRequest {
     @Schema(description = "이름", example = "홍길동")
     @NotBlank(message = "이름을 입력해주세요.")
     private String name;
-
-    @Schema(description = "개인정보 동의 여부", example = "true")
-    @AssertTrue(message = "개인정보 동의가 필요합니다.")
-    private boolean checked;
 }

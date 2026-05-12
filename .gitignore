@@ -42,3 +42,4 @@ application.yml
 .claude
 /src/main/resources/firebase
 CLAUDE.md
+docs/api/

@@ -2,6 +2,7 @@ package com.everybuddy.domain.auth.dto;
 
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -11,6 +12,10 @@ import java.util.List;
 
 @Getter
 public abstract class BaseProfileRequest {
+
+    @Schema(description = "개인정보 동의 여부", example = "true")
+    @AssertTrue(message = "개인정보 동의가 필요합니다.")
+    private boolean checked;
 
     @Schema(description = "국적", example = "KOREA")
     @NotBlank(message = "국적을 선택해주세요.")

@@ -14,7 +14,7 @@ import java.util.Objects;
 @Schema(description = "관심 언어 수준 수정 요청")
 public class UserLanguageRequest {
 
-    @Schema(description = "언어 (KOREAN, ENGLISH, JAPANESE, CHINESE, SPANISH, FRENCH, GERMAN)", example = "ENGLISH")
+    @Schema(description = "언어 (KOREAN, ENGLISH, JAPANESE, CHINESE, FRENCH, GERMAN, SPANISH, RUSSIAN)", example = "ENGLISH")
     @NotBlank(message = "언어를 선택해주세요.")
     private String language;
 

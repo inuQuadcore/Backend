@@ -9,7 +9,7 @@ import lombok.Getter;
 @Schema(description = "유저 태그 응답")
 public class UserTagResponse {
 
-    @Schema(description = "태그", example = "SPORTS")
+    @Schema(description = "태그", example = "WORKOUT")
     private final String tag;
 
     @Schema(description = "태그 카테고리", example = "HOBBY")

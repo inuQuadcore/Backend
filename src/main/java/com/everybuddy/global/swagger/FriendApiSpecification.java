@@ -35,7 +35,7 @@ public interface FriendApiSpecification {
                                     { "language": "ENGLISH", "level": 3 }
                                 ],
                                 "tags": [
-                                    { "tag": "SPORTS", "category": "HOBBY" }
+                                    { "tag": "WORKOUT", "category": "HOBBY" }
                                 ]
                             }
                         ]

@@ -49,7 +49,7 @@ class UserRepositoryTest {
     @BeforeEach
     void setUp() {
         requester = userRepository.save(User.createForTest(null, "loginReq", "Requester", "pw",
-                Country.USA, Gender.OTHER, LocalDate.of(1988, 7, 20)));
+                Country.USA, Gender.MALE, LocalDate.of(1988, 7, 20)));
         userA = userRepository.save(User.createForTest(null, "loginA", "A", "pw",
                 Country.KOREA, Gender.MALE, LocalDate.of(2000, 1, 1)));
         userB = userRepository.save(User.createForTest(null, "loginB", "B", "pw",
@@ -165,11 +165,11 @@ class UserRepositoryTest {
         @Test
         @DisplayName("tag 필터 - 해당 태그 가진 유저만 반환")
         void tagFilter() {
-            userTagRepository.save(UserTag.of(userA, Tag.SPORTS));
+            userTagRepository.save(UserTag.of(userA, Tag.WORKOUT));
             userTagRepository.save(UserTag.of(userB, Tag.MUSIC));
 
             List<User> result = findFiltered(List.of(requester.getUserId()), null, null, null, null,
-                    List.of(), List.of(Tag.SPORTS), false, false, null, null);
+                    List.of(), List.of(Tag.WORKOUT), false, false, null, null);
 
             assertAll(
                     () -> assertEquals(1, result.size()),

@@ -15,7 +15,7 @@ public class UpdateProfileRequest {
     @Schema(description = "생년월일 (yyyy-MM-dd)", example = "2000-01-01")
     private String birthday;
 
-    @Schema(description = "성별 (MALE, FEMALE, OTHER)", example = "MALE")
+    @Schema(description = "성별 (MALE, FEMALE)", example = "MALE")
     private String gender;
 
     @Schema(description = "국적 (KOREA, USA, ...)", example = "KOREA")

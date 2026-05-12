@@ -28,7 +28,7 @@ public abstract class BaseProfileRequest {
     @Size(max = 150, message = "자기소개는 150자 이내로 입력해주세요.")
     private String bio;
 
-    @Schema(description = "태그 목록", example = "[\"SPORTS\", \"INTJ\"]")
+    @Schema(description = "태그 목록", example = "[\"WORKOUT\", \"INTJ\"]")
     @NotEmpty(message = "관심 태그를 하나 이상 선택해주세요.")
     private List<String> tags;
 

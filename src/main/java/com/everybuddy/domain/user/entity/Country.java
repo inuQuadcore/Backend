@@ -3,11 +3,14 @@ package com.everybuddy.domain.user.entity;
 public enum Country {
     KOREA,
     USA,
-    JAPAN,
+    UK,
+    ITALY,
     CHINA,
-    SPAIN,
     FRANCE,
     GERMANY,
-    UK,
-    CANADA
+    SPAIN,
+    RUSSIA,
+    JAPAN,
+    BRAZIL,
+    AUSTRALIA
 }

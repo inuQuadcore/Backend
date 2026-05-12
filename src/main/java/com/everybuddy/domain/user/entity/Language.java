@@ -10,9 +10,10 @@ public enum Language {
     ENGLISH("en"),
     JAPANESE("ja"),
     CHINESE("zh"),
-    SPANISH("es"),
     FRENCH("fr"),
-    GERMAN("de");
+    GERMAN("de"),
+    SPANISH("es"),
+    RUSSIAN("ru");
 
     private final String code;
 }

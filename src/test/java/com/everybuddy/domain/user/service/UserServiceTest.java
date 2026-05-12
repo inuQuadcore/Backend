@@ -368,7 +368,7 @@ class UserServiceTest {
         @DisplayName("TC-9-1. 유효한 태그 목록 전달 → delete 먼저 호출 후 saveAll, 태그 올바르게 변환됨")
         void updateTagsSuccess() {
             // given
-            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of("SPORTS", "INTJ", "MOVIES"));
+            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of("WORKOUT", "INTJ", "MOVIE"));
 
             // when
             userService.updateTags(1L, request);
@@ -381,9 +381,9 @@ class UserServiceTest {
             List<UserTag> saved = userTagsCaptor.getValue();
             assertAll(
                     () -> assertEquals(3, saved.size()),
-                    () -> assertEquals(Tag.SPORTS, saved.get(0).getTag()),
+                    () -> assertEquals(Tag.WORKOUT, saved.get(0).getTag()),
                     () -> assertEquals(Tag.INTJ, saved.get(1).getTag()),
-                    () -> assertEquals(Tag.MOVIES, saved.get(2).getTag()),
+                    () -> assertEquals(Tag.MOVIE, saved.get(2).getTag()),
                     () -> saved.forEach(ut -> assertEquals(user, ut.getUser()))
             );
         }
@@ -431,7 +431,7 @@ class UserServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of("SPORTS", "INVALID_TAG"));
+            UpdateTagsRequest request = UpdateTagsRequest.ofForTest(List.of("WORKOUT", "INVALID_TAG"));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,

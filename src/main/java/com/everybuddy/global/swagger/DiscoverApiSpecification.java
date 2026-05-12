@@ -34,7 +34,7 @@ public interface DiscoverApiSpecification {
                                 "country": "KOREA",
                                 "bio": "반갑습니다!",
                                 "languages": [{ "language": "ENGLISH", "level": 3 }],
-                                "tags": [{ "tag": "SPORTS", "category": "HOBBY" }],
+                                "tags": [{ "tag": "WORKOUT", "category": "HOBBY" }],
                                 "lastSeenAt": "2024-03-01T12:00:00"
                             }
                         ]

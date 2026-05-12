@@ -168,7 +168,7 @@ class FriendRelationServiceTest {
             FriendRelation relation = FriendRelation.of(userA, userB);
 
             UserLanguage language = UserLanguage.of(userB, Language.ENGLISH, 3, false);
-            UserTag tag = UserTag.of(userB, Tag.SPORTS);
+            UserTag tag = UserTag.of(userB, Tag.WORKOUT);
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of(relation));
@@ -185,7 +185,7 @@ class FriendRelationServiceTest {
                     () -> assertEquals("ENGLISH", response.getFriends().getFirst().getLanguages().getFirst().getLanguage()),
                     () -> assertEquals(3, response.getFriends().getFirst().getLanguages().getFirst().getLevel()),
                     () -> assertEquals(1, response.getFriends().getFirst().getTags().size()),
-                    () -> assertEquals("SPORTS", response.getFriends().getFirst().getTags().getFirst().getTag())
+                    () -> assertEquals("WORKOUT", response.getFriends().getFirst().getTags().getFirst().getTag())
             );
         }
 

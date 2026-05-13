@@ -3,6 +3,7 @@ package com.everybuddy.domain.friendrelation.service;
 import com.everybuddy.domain.friendrelation.dto.FriendListResponse;
 import com.everybuddy.domain.friendrelation.dto.FriendResponse;
 import com.everybuddy.domain.friendrelation.entity.FriendRelation;
+import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
 import com.everybuddy.domain.user.dto.UserLanguageResponse;
@@ -16,6 +17,7 @@ import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import com.everybuddy.global.s3.service.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class FriendRelationService {
     private final UserRepository userRepository;
     private final UserProfileLoader userProfileLoader;
     private final StorageService storageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void addFriend(Long fromUserId, Long toUserId) {
         if (fromUserId.equals(toUserId)) {
@@ -50,6 +53,7 @@ public class FriendRelationService {
         }
 
         friendRelationRepository.save(FriendRelation.of(fromUser, toUser));
+        eventPublisher.publishEvent(FriendAddedEvent.of(fromUser, toUser));
     }
 
     @Transactional(readOnly = true)

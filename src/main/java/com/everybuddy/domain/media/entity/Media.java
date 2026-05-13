@@ -103,4 +103,20 @@ public class Media {
     public boolean isDeleted(){
         return this.deletedAt != null;
     }
+
+    /**
+     * 테스트용 정적 팩토리 메서드
+     * mediaType만 지정하면 나머지 필드는 기본값으로 채워집니다.
+     */
+    public static Media createForTest(MediaType mediaType) {
+        return Media.builder()
+                .uploader(null)
+                .chatRoom(null)
+                .fileKey("test-file-key")
+                .originalFilename("test-file")
+                .fileSize(1L)
+                .contentType("application/octet-stream")
+                .mediaType(mediaType)
+                .build();
+    }
 }

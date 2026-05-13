@@ -1,9 +1,10 @@
 package com.everybuddy.domain.statusmessage.dto;
 
 import com.everybuddy.domain.statusmessage.entity.StatusMessage;
-import com.everybuddy.global.util.TimeAgoUtil;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.LocalDateTime;
 
 @Getter
 public class FriendStatusMessageResponse {
@@ -12,15 +13,15 @@ public class FriendStatusMessageResponse {
     private final String profileImageUrl;
     private final String nickname;
     private final String content;
-    private final String timeAgo;
+    private final LocalDateTime updatedAt;
 
     @Builder
-    private FriendStatusMessageResponse(Long statusMessageId, String profileImageUrl, String nickname, String content, String timeAgo) {
+    private FriendStatusMessageResponse(Long statusMessageId, String profileImageUrl, String nickname, String content, LocalDateTime updatedAt) {
         this.statusMessageId = statusMessageId;
         this.profileImageUrl = profileImageUrl;
         this.nickname = nickname;
         this.content = content;
-        this.timeAgo = timeAgo;
+        this.updatedAt = updatedAt;
     }
 
     public static FriendStatusMessageResponse from(StatusMessage statusMessage, String profileImageUrl) {
@@ -29,7 +30,7 @@ public class FriendStatusMessageResponse {
                 .profileImageUrl(profileImageUrl)
                 .nickname(statusMessage.getUser().getName())
                 .content(statusMessage.getContent())
-                .timeAgo(TimeAgoUtil.format(statusMessage.getUpdatedAt()))
+                .updatedAt(statusMessage.getUpdatedAt())
                 .build();
     }
 

@@ -38,6 +38,11 @@ public class RefreshToken {
         return new RefreshToken(user, token, expiresAt);
     }
 
+    public void update(String token, LocalDateTime expiresAt) {
+        this.token = token;
+        this.expiresAt = expiresAt;
+    }
+
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(this.expiresAt);
     }

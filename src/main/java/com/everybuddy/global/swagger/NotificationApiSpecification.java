@@ -44,14 +44,14 @@ public interface NotificationApiSpecification {
                                 "notificationId": 42,
                                 "body": "홍길동님이 친구로 추가했어요.",
                                 "fromUserId": 7,
-                                "timeAgo": "5분 전",
+                                "createdAt": "2026-05-13T14:25:00",
                                 "isRead": false
                             },
                             {
                                 "notificationId": 38,
                                 "body": "김철수님이 친구로 추가했어요.",
                                 "fromUserId": 12,
-                                "timeAgo": "2일 전",
+                                "createdAt": "2026-05-11T09:10:00",
                                 "isRead": true
                             }
                         ],

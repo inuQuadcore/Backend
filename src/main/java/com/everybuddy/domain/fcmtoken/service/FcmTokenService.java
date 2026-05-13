@@ -25,7 +25,10 @@ public class FcmTokenService {
 
         fcmTokenRepository.findByToken(token)
                 .filter(existing -> !existing.getUser().getUserId().equals(userId))
-                .ifPresent(fcmTokenRepository::delete);
+                .ifPresent(otherUserToken -> {
+                    fcmTokenRepository.delete(otherUserToken);
+                    fcmTokenRepository.flush();
+                });
 
         fcmTokenRepository.findByUser(user)
                 .ifPresentOrElse(

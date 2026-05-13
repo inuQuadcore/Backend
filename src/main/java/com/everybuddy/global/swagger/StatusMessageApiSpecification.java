@@ -149,7 +149,7 @@ public interface StatusMessageApiSpecification {
                     {
                         "statusMessageId": 42,
                         "content": "오늘도 화이팅!",
-                        "timeAgo": "3시간 전"
+                        "updatedAt": "2026-05-13T11:30:00"
                     }
                     """)
                     )
@@ -210,14 +210,14 @@ public interface StatusMessageApiSpecification {
                                 "profileImageUrl": "https://cdn.example.com/profiles/user-1/photo.jpg",
                                 "nickname": "홍길동",
                                 "content": "오늘도 화이팅!",
-                                "timeAgo": "3시간 전"
+                                "updatedAt": "2026-05-13T11:30:00"
                             },
                             {
                                 "statusMessageId": 38,
                                 "profileImageUrl": null,
                                 "nickname": "김철수",
                                 "content": "날씨가 너무 좋다",
-                                "timeAgo": "1일 전"
+                                "updatedAt": "2026-05-12T14:20:00"
                             }
                         ],
                         "nextCursor": 38,

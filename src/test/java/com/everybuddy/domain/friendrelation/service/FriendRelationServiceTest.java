@@ -2,6 +2,7 @@ package com.everybuddy.domain.friendrelation.service;
 
 import com.everybuddy.domain.friendrelation.dto.FriendListResponse;
 import com.everybuddy.domain.friendrelation.entity.FriendRelation;
+import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
 import com.everybuddy.domain.user.entity.Country;
@@ -25,6 +26,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,7 @@ class FriendRelationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private UserProfileLoader userProfileLoader;
     @Mock private StorageService storageService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private FriendRelationService friendRelationService;
@@ -70,7 +74,7 @@ class FriendRelationServiceTest {
     class AddFriendSuccessCases {
 
         @Test
-        @DisplayName("TC-1-1. 친구 추가 성공")
+        @DisplayName("TC-1-1. 친구 추가 성공 + FriendAddedEvent 발행")
         void success() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(userRepository.findById(2L)).thenReturn(Optional.of(userB));
@@ -79,11 +83,18 @@ class FriendRelationServiceTest {
 
             friendRelationService.addFriend(1L, 2L);
 
-            ArgumentCaptor<FriendRelation> captor = ArgumentCaptor.forClass(FriendRelation.class);
-            verify(friendRelationRepository).save(captor.capture());
+            ArgumentCaptor<FriendRelation> relationCaptor = ArgumentCaptor.forClass(FriendRelation.class);
+            verify(friendRelationRepository).save(relationCaptor.capture());
             assertAll(
-                    () -> assertEquals(1L, captor.getValue().getFromUser().getUserId()),
-                    () -> assertEquals(2L, captor.getValue().getToUser().getUserId())
+                    () -> assertEquals(1L, relationCaptor.getValue().getFromUser().getUserId()),
+                    () -> assertEquals(2L, relationCaptor.getValue().getToUser().getUserId())
+            );
+
+            ArgumentCaptor<FriendAddedEvent> eventCaptor = ArgumentCaptor.forClass(FriendAddedEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertAll(
+                    () -> assertEquals(1L, eventCaptor.getValue().getFromUser().getUserId()),
+                    () -> assertEquals(2L, eventCaptor.getValue().getToUser().getUserId())
             );
         }
     }

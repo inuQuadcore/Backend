@@ -103,9 +103,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
-        User user = stored.getUser();
-        refreshTokenRepository.deleteByUser(user);
-        return issueTokens(user);
+        return issueTokens(stored.getUser());
     }
 
     public void logout(String refreshTokenStr) {
@@ -152,8 +150,6 @@ public class AuthService {
     }
 
     private LoginResponse issueTokens(User user) {
-        refreshTokenRepository.deleteByUser(user);
-
         String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
 
@@ -162,7 +158,11 @@ public class AuthService {
         LocalDateTime refreshTokenExpiresAt = LocalDateTime.now()
                 .plusSeconds(jwtTokenProvider.getRefreshTokenValidityInMilliseconds() / 1000);
 
-        refreshTokenRepository.save(RefreshToken.of(user, refreshToken, refreshTokenExpiresAt));
+        refreshTokenRepository.findByUser(user)
+                .ifPresentOrElse(
+                        existing -> existing.update(refreshToken, refreshTokenExpiresAt),
+                        () -> refreshTokenRepository.save(RefreshToken.of(user, refreshToken, refreshTokenExpiresAt))
+                );
 
         return LoginResponse.of(user.getUserId(), accessToken, accessTokenExpiresAt,
                 refreshToken, refreshTokenExpiresAt);

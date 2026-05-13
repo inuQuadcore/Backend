@@ -30,6 +30,8 @@ public enum ErrorCode {
     NOT_MESSAGE_OF_USER(HttpStatus.FORBIDDEN, 403, "자신의 메시지만 수정/삭제할 수 있습니다."),
     MESSAGE_EDIT_TIME_EXCEEDED(HttpStatus.FORBIDDEN, 403, "메시지 수정/삭제 가능 시간이 지났습니다. (최대 5분)"),
     CANNOT_EDIT_FILE_MESSAGE(HttpStatus.BAD_REQUEST, 400, "파일 메시지는 수정할 수 없습니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "알림을 찾을 수 없습니다."),
+    NOT_NOTIFICATION_OF_USER(HttpStatus.FORBIDDEN, 403, "자신의 알림만 읽음 처리할 수 있습니다."),
 
     //파일 업로드 관련
     MULTIPART_READ_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 500, "파일 읽기에 실패했습니다."),

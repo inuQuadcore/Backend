@@ -17,6 +17,10 @@ public abstract class BaseProfileRequest {
     @AssertTrue(message = "개인정보 동의가 필요합니다.")
     private boolean checked;
 
+    @Schema(description = "이름", example = "홍길동")
+    @NotBlank(message = "이름을 입력해주세요.")
+    private String name;
+
     @Schema(description = "국적", example = "KOREA")
     @NotBlank(message = "국적을 선택해주세요.")
     private String country;

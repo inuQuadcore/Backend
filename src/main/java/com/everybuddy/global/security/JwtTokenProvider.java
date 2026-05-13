@@ -130,14 +130,13 @@ public class JwtTokenProvider {
         return this.refreshTokenValidityInMilliseconds;
     }
 
-    public String createTempToken(String providerId, Provider provider, String email, String name) {
+    public String createTempToken(String providerId, Provider provider, String email) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(providerId)
                 .claim("type", "TEMP")
                 .claim("provider", provider.name())
                 .claim("email", email)
-                .claim("name", name)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + tempTokenValidityInMilliseconds))
                 .signWith(key)

@@ -15,8 +15,4 @@ public class RegisterRequest extends BaseProfileRequest {
     @Schema(description = "비밀번호", example = "password123!")
     @NotBlank(message = "비밀번호를 입력해주세요.")
     private String password;
-
-    @Schema(description = "이름", example = "홍길동")
-    @NotBlank(message = "이름을 입력해주세요.")
-    private String name;
 }

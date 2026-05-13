@@ -116,7 +116,7 @@ public class AuthService {
     // 2. ID 토큰이 유효하다면 신규 유저는 tempToken 발급, 기존 유저는 로그인(액세스/리프레쉬 토큰 발급)
     public GoogleLoginResponse authenticateWithGoogle(String idToken) {
         GoogleIdToken.Payload payload = verifyGoogleIdToken(idToken);
-        return resolveGoogleUser(payload.getSubject(), payload.getEmail(), (String) payload.get("name"));
+        return resolveGoogleUser(payload.getSubject(), payload.getEmail());
     }
 
     // 서버에서 발급해준 tempToken을 이용해 유효한 사용자라는 것을 증명, 회원가입 후 액세스/리프레쉬 토큰 발급
@@ -127,22 +127,21 @@ public class AuthService {
         return issueTokens(user);
     }
 
-    private GoogleLoginResponse resolveGoogleUser(String providerId, String email, String name) {
+    private GoogleLoginResponse resolveGoogleUser(String providerId, String email) {
         return userRepository.findByProviderAndProviderId(Provider.GOOGLE, providerId)
                 .map(user -> GoogleLoginResponse.existingUser(issueTokens(user)))
                 .orElseGet(() -> GoogleLoginResponse.newUser(
-                        jwtTokenProvider.createTempToken(providerId, Provider.GOOGLE, email, name)));
+                        jwtTokenProvider.createTempToken(providerId, Provider.GOOGLE, email)));
     }
 
     private User buildOAuthUser(Claims claims, GoogleRegisterRequest request) {
         String providerId = claims.getSubject();
-        String name = claims.get("name", String.class);
         String email = claims.get("email", String.class);
 
         validateDuplicateLoginId(email);
         validateDuplicateOAuthUser(Provider.GOOGLE, providerId);
 
-        return User.fromOAuth(name, email, providerId, Provider.GOOGLE, request);
+        return User.fromOAuth(request.getName(), email, providerId, Provider.GOOGLE, request);
     }
 
     private void saveOAuthUser(User user, List<String> tags, String primaryLanguage, List<UserLanguageRequest> interestLanguages) {

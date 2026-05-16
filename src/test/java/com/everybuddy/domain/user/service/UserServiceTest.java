@@ -18,6 +18,7 @@ import com.everybuddy.domain.user.entity.UserTag;
 import com.everybuddy.domain.auth.repository.RefreshTokenRepository;
 import com.everybuddy.domain.auth.service.FirebaseTokenService;
 import com.everybuddy.domain.fcmtoken.repository.FcmTokenRepository;
+import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.domain.user.repository.UserTagRepository;
@@ -55,6 +56,7 @@ class UserServiceTest {
     @Mock private UserTagRepository userTagRepository;
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private FcmTokenRepository fcmTokenRepository;
+    @Mock private FriendRelationRepository friendRelationRepository;
     @Mock private FirebaseTokenService firebaseTokenService;
     @Mock private StorageService storageService;
 
@@ -542,7 +544,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("TC-13-1. 본인 조회 → birthday 채워짐, 다른 필드 정상 반환")
+        @DisplayName("TC-13-1. 본인 조회 → birthday 채워짐, isFriend=null")
         void getOwnProfile() {
             // given
             when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
@@ -559,15 +561,18 @@ class UserServiceTest {
                     () -> assertEquals(LocalDate.of(1995, 5, 5), response.getBirthday()),
                     () -> assertEquals("FEMALE", response.getGender()),
                     () -> assertNull(response.getBio()),
-                    () -> assertEquals(0, response.getConsecutiveDays())
+                    () -> assertEquals(0, response.getConsecutiveDays()),
+                    () -> assertNull(response.getIsFriend())
             );
+            verify(friendRelationRepository, never()).existsFriendRelationBetween(any(), any());
         }
 
         @Test
-        @DisplayName("TC-13-2. 타인 조회 → birthday null, 다른 필드는 동일하게 반환")
-        void getOtherUserProfile() {
+        @DisplayName("TC-13-2. 타인 조회 (친구 아님) → birthday null, isFriend=false")
+        void getOtherUserProfileNotFriend() {
             // given
             when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+            when(friendRelationRepository.existsFriendRelationBetween(1L, 3L)).thenReturn(false);
 
             // when
             UserProfileViewResponse response = userService.getUserProfile(3L, 1L);
@@ -581,12 +586,27 @@ class UserServiceTest {
                     () -> assertNull(response.getBirthday()),
                     () -> assertEquals("FEMALE", response.getGender()),
                     () -> assertNull(response.getBio()),
-                    () -> assertEquals(0, response.getConsecutiveDays())
+                    () -> assertEquals(0, response.getConsecutiveDays()),
+                    () -> assertEquals(Boolean.FALSE, response.getIsFriend())
             );
         }
 
         @Test
-        @DisplayName("TC-13-3. 본인/타인 모두 consecutiveDays 반환 (오늘 출석 → 저장된 값)")
+        @DisplayName("TC-13-3. 타인 조회 (친구) → isFriend=true")
+        void getOtherUserProfileFriend() {
+            // given
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+            when(friendRelationRepository.existsFriendRelationBetween(1L, 3L)).thenReturn(true);
+
+            // when
+            UserProfileViewResponse response = userService.getUserProfile(3L, 1L);
+
+            // then
+            assertEquals(Boolean.TRUE, response.getIsFriend());
+        }
+
+        @Test
+        @DisplayName("TC-13-4. 본인/타인 모두 consecutiveDays 반환 (오늘 출석 → 저장된 값)")
         void consecutiveDaysReturnedRegardlessOfOwner() {
             // given
             targetUser.recordAttendance(LocalDate.now(java.time.ZoneId.of("Asia/Seoul")));

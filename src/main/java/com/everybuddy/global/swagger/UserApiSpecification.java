@@ -32,7 +32,7 @@ import java.util.List;
 @Tag(name = "유저 API", description = "유저 프로필 관련 기능")
 public interface UserApiSpecification {
 
-    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 birthday가 채워져 반환되고, 타인 userId를 전달하면 birthday는 null로 반환됩니다. consecutiveDays는 본인/타인 무관하게 항상 반환됩니다.")
+    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 birthday가 채워지고 isFriend는 null로 반환됩니다. 타인 userId를 전달하면 birthday는 null이고 isFriend에 친구 여부(true/false)가 반환됩니다. consecutiveDays는 항상 반환됩니다.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "조회 성공",

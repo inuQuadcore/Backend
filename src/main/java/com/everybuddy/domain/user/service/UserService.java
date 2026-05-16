@@ -3,6 +3,7 @@ package com.everybuddy.domain.user.service;
 import com.everybuddy.domain.auth.repository.RefreshTokenRepository;
 import com.everybuddy.domain.auth.service.FirebaseTokenService;
 import com.everybuddy.domain.fcmtoken.repository.FcmTokenRepository;
+import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
@@ -47,6 +48,7 @@ public class UserService {
     private final UserTagRepository userTagRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final FcmTokenRepository fcmTokenRepository;
+    private final FriendRelationRepository friendRelationRepository;
     private final FirebaseTokenService firebaseTokenService;
     private final StorageService storageService;
 
@@ -75,8 +77,10 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserProfileViewResponse getUserProfile(Long userId, Long requesterId) {
         User user = findActiveUser(userId);
+        boolean isOwner = requesterId.equals(userId);
         int consecutiveDays = user.getCurrentConsecutiveDays(LocalDate.now(KST));
-        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()), requesterId.equals(userId), consecutiveDays);
+        Boolean isFriend = isOwner ? null : friendRelationRepository.existsFriendRelationBetween(requesterId, userId);
+        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()), isOwner, consecutiveDays, isFriend);
     }
 
     public void recordAttendance(Long userId) {

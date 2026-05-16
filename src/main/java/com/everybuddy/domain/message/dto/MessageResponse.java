@@ -46,11 +46,13 @@ public class MessageResponse {
         this.mediaType = mediaType;
     }
 
+    private static final String DELETED_USER_NAME = "삭제된 유저";
+
     public static MessageResponse from(Message message, String fileUrl) {
         MessageResponseBuilder builder = MessageResponse.builder()
                 .messageId(message.getMessageId())
                 .userId(message.getUser().getUserId())
-                .userName(message.getUser().getName())
+                .userName(message.getUser().isDeleted() ? DELETED_USER_NAME : message.getUser().getName())
                 .messageType(message.getMessageType().name())
                 .content(message.getContent())
                 .sendAt(message.getSendAt());

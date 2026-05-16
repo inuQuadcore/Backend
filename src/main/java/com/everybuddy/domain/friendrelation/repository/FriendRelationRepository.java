@@ -24,8 +24,9 @@ public interface FriendRelationRepository extends JpaRepository<FriendRelation, 
     @Query("SELECT fr FROM FriendRelation fr " +
             "JOIN FETCH fr.fromUser " +
             "JOIN FETCH fr.toUser " +
-            "WHERE fr.fromUser.userId = :userId OR fr.toUser.userId = :userId")
-    List<FriendRelation> findAllFriends(@Param("userId") Long userId);
+            "WHERE (fr.fromUser.userId = :userId AND fr.toUser.deletedAt IS NULL) " +
+            "OR (fr.toUser.userId = :userId AND fr.fromUser.deletedAt IS NULL)")
+    List<FriendRelation> findAllActiveFriends(@Param("userId") Long userId);
 
     @Query("SELECT CASE WHEN fr.fromUser.userId = :userId THEN fr.toUser.userId " +
             "ELSE fr.fromUser.userId END " +

@@ -182,7 +182,7 @@ class FriendRelationServiceTest {
             UserTag tag = UserTag.of(userB, Tag.WORKOUT);
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
-            when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of(relation));
+            when(friendRelationRepository.findAllActiveFriends(1L)).thenReturn(List.of(relation));
             when(userProfileLoader.loadLanguagesByUserId(List.of(2L))).thenReturn(Map.of(2L, List.of(language)));
             when(userProfileLoader.loadTagsByUserId(List.of(2L))).thenReturn(Map.of(2L, List.of(tag)));
 
@@ -204,7 +204,7 @@ class FriendRelationServiceTest {
         @DisplayName("TC-3-2. 친구가 없을 때 → 빈 리스트 반환")
         void successWithNoFriends() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
-            when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of());
+            when(friendRelationRepository.findAllActiveFriends(1L)).thenReturn(List.of());
 
             FriendListResponse response = friendRelationService.getFriends(1L);
 
@@ -218,7 +218,7 @@ class FriendRelationServiceTest {
             FriendRelation relation2 = FriendRelation.of(userA, userC);
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
-            when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of(relation1, relation2));
+            when(friendRelationRepository.findAllActiveFriends(1L)).thenReturn(List.of(relation1, relation2));
 
             FriendListResponse response = friendRelationService.getFriends(1L);
 
@@ -231,7 +231,7 @@ class FriendRelationServiceTest {
             FriendRelation relation = FriendRelation.of(userA, userB);
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
-            when(friendRelationRepository.findAllFriends(1L)).thenReturn(List.of(relation));
+            when(friendRelationRepository.findAllActiveFriends(1L)).thenReturn(List.of(relation));
             when(userProfileLoader.loadLanguagesByUserId(List.of(2L))).thenReturn(Map.of());
             when(userProfileLoader.loadTagsByUserId(List.of(2L))).thenReturn(Map.of());
 

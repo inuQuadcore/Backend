@@ -60,7 +60,7 @@ public class FriendRelationService {
     public FriendListResponse getFriends(Long userId) {
         findUser(userId);
 
-        List<FriendRelation> relations = friendRelationRepository.findAllFriends(userId);
+        List<FriendRelation> relations = friendRelationRepository.findAllActiveFriends(userId);
 
         return FriendListResponse.of(toFriendResponses(relations, userId));
     }

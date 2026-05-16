@@ -7,6 +7,7 @@ import com.everybuddy.global.swagger.FriendApiSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,5 +35,14 @@ public class FriendRelationController implements FriendApiSpecification {
 
         friendRelationService.addFriend(userDetails.getUserId(), toUserId);
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{toUserId}")
+    public ResponseEntity<Void> deleteFriend(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long toUserId) {
+
+        friendRelationService.deleteFriend(userDetails.getUserId(), toUserId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -259,4 +259,42 @@ class FriendRelationServiceTest {
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
     }
+
+    @Nested
+    @DisplayName("5. deleteFriend()")
+    class DeleteFriendCases {
+
+        @Test
+        @DisplayName("TC-5-1. 친구 관계 있음 → deleteFriendRelationBetween 호출, 알림 미발송")
+        void success() {
+            when(friendRelationRepository.existsFriendRelationBetween(1L, 2L)).thenReturn(true);
+
+            friendRelationService.deleteFriend(1L, 2L);
+
+            verify(friendRelationRepository).deleteFriendRelationBetween(1L, 2L);
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-5-2. 자기 자신 삭제 → CANNOT_DELETE_SELF, delete 호출 안 됨")
+        void failSelfDelete() {
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> friendRelationService.deleteFriend(1L, 1L));
+
+            assertEquals(ErrorCode.CANNOT_DELETE_SELF, ex.getErrorCode());
+            verify(friendRelationRepository, never()).deleteFriendRelationBetween(any(), any());
+        }
+
+        @Test
+        @DisplayName("TC-5-3. 친구 관계 없음 → FRIEND_NOT_FOUND, delete 호출 안 됨")
+        void failNotFriend() {
+            when(friendRelationRepository.existsFriendRelationBetween(1L, 2L)).thenReturn(false);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> friendRelationService.deleteFriend(1L, 2L));
+
+            assertEquals(ErrorCode.FRIEND_NOT_FOUND, ex.getErrorCode());
+            verify(friendRelationRepository, never()).deleteFriendRelationBetween(any(), any());
+        }
+    }
 }

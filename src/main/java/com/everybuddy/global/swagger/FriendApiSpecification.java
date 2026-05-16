@@ -146,4 +146,52 @@ public interface FriendApiSpecification {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long toUserId
     );
+
+    @Operation(summary = "친구 삭제", description = "특정 유저와의 친구 관계를 양방향으로 삭제합니다. 알림은 발송되지 않습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "친구 삭제 성공"),
+            @ApiResponse(
+                    responseCode = "400", description = "자기 자신을 친구에서 삭제 시도",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 400,
+                        "name": "CANNOT_DELETE_SELF",
+                        "message": "자기 자신을 친구에서 삭제할 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "친구 관계 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "FRIEND_NOT_FOUND",
+                        "message": "친구 관계를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<Void> deleteFriend(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long toUserId
+    );
 }

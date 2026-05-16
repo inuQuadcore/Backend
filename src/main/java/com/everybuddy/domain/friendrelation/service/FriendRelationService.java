@@ -56,6 +56,18 @@ public class FriendRelationService {
         eventPublisher.publishEvent(FriendAddedEvent.of(fromUser, toUser));
     }
 
+    public void deleteFriend(Long fromUserId, Long toUserId) {
+        if (fromUserId.equals(toUserId)) {
+            throw new CustomException(ErrorCode.CANNOT_DELETE_SELF);
+        }
+
+        if (!friendRelationRepository.existsFriendRelationBetween(fromUserId, toUserId)) {
+            throw new CustomException(ErrorCode.FRIEND_NOT_FOUND);
+        }
+
+        friendRelationRepository.deleteFriendRelationBetween(fromUserId, toUserId);
+    }
+
     @Transactional(readOnly = true)
     public FriendListResponse getFriends(Long userId) {
         findUser(userId);

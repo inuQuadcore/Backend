@@ -436,7 +436,7 @@ public interface UserApiSpecification {
                                     ),
                                     @Encoding(
                                             name = "profileImage",
-                                            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE
+                                            contentType = "image/*"
                                     )
                             }
                     )

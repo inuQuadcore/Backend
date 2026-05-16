@@ -30,7 +30,7 @@ public class FcmSender {
             return;
         }
 
-        List<FcmToken> tokens = fcmTokenRepository.findAllByUserIdIn(userIds);
+        List<FcmToken> tokens = fcmTokenRepository.findAllActiveByUserIdIn(userIds);
         if (tokens.isEmpty()) {
             return;
         }

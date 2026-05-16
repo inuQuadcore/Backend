@@ -32,7 +32,7 @@ import java.util.List;
 @Tag(name = "유저 API", description = "유저 프로필 관련 기능")
 public interface UserApiSpecification {
 
-    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 birthday가 채워져 반환되고, 타인 userId를 전달하면 birthday는 null로 반환됩니다.")
+    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 birthday가 채워져 반환되고, 타인 userId를 전달하면 birthday는 null로 반환됩니다. consecutiveDays는 본인/타인 무관하게 항상 반환됩니다.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "조회 성공",
@@ -289,6 +289,54 @@ public interface UserApiSpecification {
             )
     })
     ResponseEntity<Void> deleteUser(@AuthenticationPrincipal UserDetailsImpl userDetails);
+
+    @Operation(
+            summary = "출석 기록",
+            description = "현재 로그인한 유저의 출석을 기록합니다. KST 자정 기준으로 마지막 출석일이 어제면 연속 출석일수가 +1, 오늘이면 무시(no-op), 그 외면 1로 리셋됩니다. FE는 앱 진입 시 1회 호출하면 됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "기록 성공"),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<Void> recordAttendance(@AuthenticationPrincipal UserDetailsImpl userDetails);
 
     @Operation(summary = "관심 언어 수준 수정", description = "관심 언어 목록에 있는 언어의 수준(1~5)을 수정합니다.")
     @ApiResponses({

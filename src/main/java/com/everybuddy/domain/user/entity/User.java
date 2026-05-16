@@ -56,6 +56,11 @@ public class User {
     @Column(nullable = false)
     private LocalDate birthday;
 
+    private LocalDate lastAttendanceDate;
+
+    @Column(nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    private int consecutiveDays;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -123,6 +128,28 @@ public class User {
 
     public boolean isDeleted() {
         return this.deletedAt != null;
+    }
+
+    public void recordAttendance(LocalDate today) {
+        if (today.equals(lastAttendanceDate)) {
+            return;
+        }
+        if (lastAttendanceDate != null && today.minusDays(1).equals(lastAttendanceDate)) {
+            this.consecutiveDays = this.consecutiveDays + 1;
+        } else {
+            this.consecutiveDays = 1;
+        }
+        this.lastAttendanceDate = today;
+    }
+
+    public int getCurrentConsecutiveDays(LocalDate today) {
+        if (lastAttendanceDate == null) {
+            return 0;
+        }
+        if (lastAttendanceDate.equals(today) || lastAttendanceDate.equals(today.minusDays(1))) {
+            return consecutiveDays;
+        }
+        return 0;
     }
 
     /**

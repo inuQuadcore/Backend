@@ -33,8 +33,11 @@ public class UserProfileViewResponse {
     @Schema(description = "자기소개", example = "안녕하세요!")
     private final String bio;
 
+    @Schema(description = "연속 출석일수", example = "5")
+    private final int consecutiveDays;
+
     @Builder
-    private UserProfileViewResponse(String profileImageUrl, String country, String name, Integer age, LocalDate birthday, String gender, String bio) {
+    private UserProfileViewResponse(String profileImageUrl, String country, String name, Integer age, LocalDate birthday, String gender, String bio, int consecutiveDays) {
         this.profileImageUrl = profileImageUrl;
         this.country = country;
         this.name = name;
@@ -42,9 +45,10 @@ public class UserProfileViewResponse {
         this.birthday = birthday;
         this.gender = gender;
         this.bio = bio;
+        this.consecutiveDays = consecutiveDays;
     }
 
-    public static UserProfileViewResponse from(User user, String profileImageUrl, boolean isOwner) {
+    public static UserProfileViewResponse from(User user, String profileImageUrl, boolean isOwner, int consecutiveDays) {
         return UserProfileViewResponse.builder()
                 .profileImageUrl(profileImageUrl)
                 .country(user.getCountry().name())
@@ -53,6 +57,7 @@ public class UserProfileViewResponse {
                 .birthday(isOwner ? user.getBirthday() : null)
                 .gender(user.getGender().name())
                 .bio(user.getBio())
+                .consecutiveDays(consecutiveDays)
                 .build();
     }
 }

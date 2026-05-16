@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -35,6 +36,8 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final UserRepository userRepository;
     private final UserLanguageRepository userLanguageRepository;
@@ -66,7 +69,13 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserProfileViewResponse getUserProfile(Long userId, Long requesterId) {
         User user = findActiveUser(userId);
-        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()), requesterId.equals(userId));
+        int consecutiveDays = user.getCurrentConsecutiveDays(LocalDate.now(KST));
+        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()), requesterId.equals(userId), consecutiveDays);
+    }
+
+    public void recordAttendance(Long userId) {
+        User user = findActiveUser(userId);
+        user.recordAttendance(LocalDate.now(KST));
     }
 
     @Transactional(readOnly = true)

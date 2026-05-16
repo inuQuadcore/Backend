@@ -546,7 +546,8 @@ class UserServiceTest {
                     () -> assertEquals(Period.between(LocalDate.of(1995, 5, 5), LocalDate.now()).getYears(), response.getAge()),
                     () -> assertEquals(LocalDate.of(1995, 5, 5), response.getBirthday()),
                     () -> assertEquals("FEMALE", response.getGender()),
-                    () -> assertNull(response.getBio())
+                    () -> assertNull(response.getBio()),
+                    () -> assertEquals(0, response.getConsecutiveDays())
             );
         }
 
@@ -567,7 +568,26 @@ class UserServiceTest {
                     () -> assertEquals(Period.between(LocalDate.of(1995, 5, 5), LocalDate.now()).getYears(), response.getAge()),
                     () -> assertNull(response.getBirthday()),
                     () -> assertEquals("FEMALE", response.getGender()),
-                    () -> assertNull(response.getBio())
+                    () -> assertNull(response.getBio()),
+                    () -> assertEquals(0, response.getConsecutiveDays())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-13-3. 본인/타인 모두 consecutiveDays 반환 (오늘 출석 → 저장된 값)")
+        void consecutiveDaysReturnedRegardlessOfOwner() {
+            // given
+            targetUser.recordAttendance(LocalDate.now(java.time.ZoneId.of("Asia/Seoul")));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+
+            // when
+            UserProfileViewResponse ownerResponse = userService.getUserProfile(3L, 3L);
+            UserProfileViewResponse otherResponse = userService.getUserProfile(3L, 1L);
+
+            // then
+            assertAll(
+                    () -> assertEquals(1, ownerResponse.getConsecutiveDays()),
+                    () -> assertEquals(1, otherResponse.getConsecutiveDays())
             );
         }
 
@@ -693,6 +713,54 @@ class UserServiceTest {
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
             verify(userLanguageRepository, never()).findAllByUserId(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("17. recordAttendance()")
+    class RecordAttendanceCases {
+
+        @Test
+        @DisplayName("TC-17-1. 첫 출석 → User.consecutiveDays=1, lastAttendanceDate=오늘(KST)")
+        void firstAttendance() {
+            // given
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // when
+            userService.recordAttendance(1L);
+
+            // then
+            LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+            assertAll(
+                    () -> assertEquals(1, user.getConsecutiveDays()),
+                    () -> assertEquals(today, user.getLastAttendanceDate())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-17-2. 존재하지 않는 유저 → USER_NOT_FOUND")
+        void userNotFound() {
+            // given
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.recordAttendance(999L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("TC-17-3. 탈퇴한 유저 → USER_DELETED")
+        void userDeleted() {
+            // given
+            when(userRepository.findById(2L)).thenReturn(Optional.of(deletedUser));
+
+            // when & then
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> userService.recordAttendance(2L));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
         }
     }
 }

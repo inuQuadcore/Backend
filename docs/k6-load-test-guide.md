@@ -17,11 +17,11 @@ k6 결과는 모니터링 서버의 Prometheus로 전송되고 Grafana 대시보
   └─ k6 실행
        │ Prometheus remote write
        ▼
-모니터링 서버 (t3.micro) - 13.250.55.151
+모니터링 서버 (t3.micro)
   ├─ Prometheus :9090
   └─ Grafana    :3000
 
-백엔드 서버 (t3.medium) - api.everybuddy.cloud
+백엔드 서버 (t3.medium)
   └─ Spring Boot :8080
        └─ /actuator/prometheus (메트릭 노출)
 ```
@@ -84,7 +84,7 @@ k6 결과는 모니터링 서버의 Prometheus로 전송되고 Grafana 대시보
 | 항목 | 값 |
 |------|-----|
 | loginId | k6test@everybuddy.com |
-| password | Test1234! |
+| password | (팀 내부 공유) |
 | provider | LOCAL |
 
 > 테스트 전용 계정으로 DB에 등록되어 있다. Google OAuth가 아닌 로컬 계정을 사용하는 이유는 외부 의존성 없이 순수하게 백엔드 성능만 측정하기 위함이다.
@@ -145,7 +145,7 @@ k6 run scripts/auth.js
 
 ## Grafana 대시보드
 
-- 주소: `http://13.250.55.151:3000`
+- 주소: 모니터링 서버 3000포트 (팀 내부 공유)
 - 대시보드: **k6 Prometheus** (ID: 18030)
 
 k6 메트릭 외에 같은 Grafana에서 백엔드 서버의 JVM 힙, GC, DB 커넥션 풀, CPU/메모리도 함께 볼 수 있다. 부하 중 서버 자원 상태를 동시에 확인하는 것이 핵심이다.

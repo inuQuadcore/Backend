@@ -1,6 +1,14 @@
 #!/bin/bash
 
-PROMETHEUS_URL="http://13.250.55.151:9090/api/v1/write"
+if [ -f "$(dirname "$0")/.env" ]; then
+  export $(grep -v '^#' "$(dirname "$0")/.env" | xargs)
+fi
+
+if [ -z "$PROMETHEUS_URL" ]; then
+  echo "❌ PROMETHEUS_URL이 설정되지 않았습니다. k6/.env 파일을 확인해주세요."
+  exit 1
+fi
+
 SCRIPT=${1:-"scripts/auth.js"}
 
 echo "========================================"

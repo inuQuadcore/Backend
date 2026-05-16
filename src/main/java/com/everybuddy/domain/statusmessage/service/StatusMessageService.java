@@ -34,6 +34,9 @@ public class StatusMessageService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        if (user.isDeleted()) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
 
         statusMessageRepository.save(StatusMessage.of(user, request.getContent()));
     }

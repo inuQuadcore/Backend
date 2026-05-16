@@ -39,6 +39,19 @@ public interface StatusMessageApiSpecification {
                     )
             ),
             @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
                     responseCode = "409", description = "이미 상태메시지 존재",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
@@ -47,6 +60,19 @@ public interface StatusMessageApiSpecification {
                         "code": 409,
                         "name": "STATUS_MESSAGE_ALREADY_EXISTS",
                         "message": "이미 상태메시지가 존재합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
                     }
                     """)
                     )

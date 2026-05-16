@@ -109,6 +109,35 @@ class StatusMessageServiceTest {
             assertEquals(ErrorCode.STATUS_MESSAGE_ALREADY_EXISTS, ex.getErrorCode());
             verify(statusMessageRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("TC-2-2. 탈퇴한 유저 → USER_DELETED, 저장 호출 안 됨")
+        void failUserDeleted() {
+            user.softDelete();
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.ofForTest("새 메시지");
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> statusMessageService.createStatusMessage(1L, request));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(statusMessageRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("TC-2-3. 존재하지 않는 유저 → USER_NOT_FOUND, 저장 호출 안 됨")
+        void failUserNotFound() {
+            when(statusMessageRepository.findByUserId(1L)).thenReturn(Optional.empty());
+            when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+            CreateStatusMessageRequest request = CreateStatusMessageRequest.ofForTest("새 메시지");
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> statusMessageService.createStatusMessage(1L, request));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(statusMessageRepository, never()).save(any());
+        }
     }
 
     @Nested

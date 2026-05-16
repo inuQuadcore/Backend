@@ -530,13 +530,13 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("TC-13-1. 정상 조회 → profileImageUrl, country, name, age, gender, bio 반환")
-        void getUserProfileSuccess() {
+        @DisplayName("TC-13-1. 본인 조회 → birthday 채워짐, 다른 필드 정상 반환")
+        void getOwnProfile() {
             // given
             when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
 
             // when
-            UserProfileViewResponse response = userService.getUserProfile(3L);
+            UserProfileViewResponse response = userService.getUserProfile(3L, 3L);
 
             // then
             assertAll(
@@ -544,6 +544,28 @@ class UserServiceTest {
                     () -> assertEquals("USA", response.getCountry()),
                     () -> assertEquals("대상유저", response.getName()),
                     () -> assertEquals(Period.between(LocalDate.of(1995, 5, 5), LocalDate.now()).getYears(), response.getAge()),
+                    () -> assertEquals(LocalDate.of(1995, 5, 5), response.getBirthday()),
+                    () -> assertEquals("FEMALE", response.getGender()),
+                    () -> assertNull(response.getBio())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-13-2. 타인 조회 → birthday null, 다른 필드는 동일하게 반환")
+        void getOtherUserProfile() {
+            // given
+            when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
+
+            // when
+            UserProfileViewResponse response = userService.getUserProfile(3L, 1L);
+
+            // then
+            assertAll(
+                    () -> assertNull(response.getProfileImageUrl()),
+                    () -> assertEquals("USA", response.getCountry()),
+                    () -> assertEquals("대상유저", response.getName()),
+                    () -> assertEquals(Period.between(LocalDate.of(1995, 5, 5), LocalDate.now()).getYears(), response.getAge()),
+                    () -> assertNull(response.getBirthday()),
                     () -> assertEquals("FEMALE", response.getGender()),
                     () -> assertNull(response.getBio())
             );
@@ -563,7 +585,7 @@ class UserServiceTest {
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.getUserProfile(999L));
+                    () -> userService.getUserProfile(999L, 1L));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
@@ -576,7 +598,7 @@ class UserServiceTest {
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
-                    () -> userService.getUserProfile(2L));
+                    () -> userService.getUserProfile(2L, 1L));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
         }

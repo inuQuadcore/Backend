@@ -64,9 +64,9 @@ public class UserService {
 
 
     @Transactional(readOnly = true)
-    public UserProfileViewResponse getUserProfile(Long userId) {
+    public UserProfileViewResponse getUserProfile(Long userId, Long requesterId) {
         User user = findActiveUser(userId);
-        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()));
+        return UserProfileViewResponse.from(user, getProfileImageUrl(user.getProfile()), requesterId.equals(userId));
     }
 
     @Transactional(readOnly = true)

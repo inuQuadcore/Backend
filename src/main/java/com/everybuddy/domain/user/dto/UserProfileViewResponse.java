@@ -24,6 +24,9 @@ public class UserProfileViewResponse {
     @Schema(description = "나이", example = "25")
     private final Integer age;
 
+    @Schema(description = "생년월일 (본인 조회 시에만 채워짐, 타인 조회 시 null)", example = "2000-01-01")
+    private final LocalDate birthday;
+
     @Schema(description = "성별", example = "MALE")
     private final String gender;
 
@@ -31,21 +34,23 @@ public class UserProfileViewResponse {
     private final String bio;
 
     @Builder
-    private UserProfileViewResponse(String profileImageUrl, String country, String name, Integer age, String gender, String bio) {
+    private UserProfileViewResponse(String profileImageUrl, String country, String name, Integer age, LocalDate birthday, String gender, String bio) {
         this.profileImageUrl = profileImageUrl;
         this.country = country;
         this.name = name;
         this.age = age;
+        this.birthday = birthday;
         this.gender = gender;
         this.bio = bio;
     }
 
-    public static UserProfileViewResponse from(User user, String profileImageUrl) {
+    public static UserProfileViewResponse from(User user, String profileImageUrl, boolean isOwner) {
         return UserProfileViewResponse.builder()
                 .profileImageUrl(profileImageUrl)
                 .country(user.getCountry().name())
                 .name(user.getName())
                 .age(Period.between(user.getBirthday(), LocalDate.now()).getYears())
+                .birthday(isOwner ? user.getBirthday() : null)
                 .gender(user.getGender().name())
                 .bio(user.getBio())
                 .build();

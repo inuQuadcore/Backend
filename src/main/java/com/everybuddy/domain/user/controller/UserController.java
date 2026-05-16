@@ -29,9 +29,10 @@ public class UserController implements UserApiSpecification {
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfileViewResponse> getUserProfile(
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        UserProfileViewResponse response = userService.getUserProfile(userId);
+        UserProfileViewResponse response = userService.getUserProfile(userId, userDetails.getUserId());
         return ResponseEntity.ok(response);
     }
 

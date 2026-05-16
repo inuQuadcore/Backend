@@ -32,7 +32,7 @@ import java.util.List;
 @Tag(name = "유저 API", description = "유저 프로필 관련 기능")
 public interface UserApiSpecification {
 
-    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 본인 프로필을 조회합니다.")
+    @Operation(summary = "유저 프로필 조회", description = "특정 유저의 프로필을 조회합니다. 본인 userId를 전달하면 birthday가 채워져 반환되고, 타인 userId를 전달하면 birthday는 null로 반환됩니다.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "조회 성공",
@@ -79,7 +79,8 @@ public interface UserApiSpecification {
             )
     })
     ResponseEntity<UserProfileViewResponse> getUserProfile(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     );
 
     @Operation(summary = "유저 태그 조회", description = "특정 유저의 태그 목록을 조회합니다. 본인 userId를 전달하면 본인 태그를 조회합니다.")

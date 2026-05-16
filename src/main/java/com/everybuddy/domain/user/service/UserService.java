@@ -1,5 +1,8 @@
 package com.everybuddy.domain.user.service;
 
+import com.everybuddy.domain.auth.repository.RefreshTokenRepository;
+import com.everybuddy.domain.auth.service.FirebaseTokenService;
+import com.everybuddy.domain.fcmtoken.repository.FcmTokenRepository;
 import com.everybuddy.domain.user.dto.UpdateProfileRequest;
 import com.everybuddy.domain.user.dto.UpdateTagsRequest;
 import com.everybuddy.domain.user.dto.UserLanguageRequest;
@@ -42,6 +45,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserLanguageRepository userLanguageRepository;
     private final UserTagRepository userTagRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final FcmTokenRepository fcmTokenRepository;
+    private final FirebaseTokenService firebaseTokenService;
     private final StorageService storageService;
 
     public void updateLanguageLevel(Long userId, UserLanguageRequest request) {
@@ -97,6 +103,9 @@ public class UserService {
 
     public void deleteUser(Long userId) {
         User user = findUser(userId);
+        refreshTokenRepository.deleteByUser(user);
+        fcmTokenRepository.deleteByUser(user);
+        firebaseTokenService.revokeTokens(userId);
         user.softDelete();
     }
 

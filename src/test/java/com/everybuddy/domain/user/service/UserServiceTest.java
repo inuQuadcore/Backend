@@ -15,6 +15,9 @@ import com.everybuddy.domain.user.entity.Tag;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.entity.UserLanguage;
 import com.everybuddy.domain.user.entity.UserTag;
+import com.everybuddy.domain.auth.repository.RefreshTokenRepository;
+import com.everybuddy.domain.auth.service.FirebaseTokenService;
+import com.everybuddy.domain.fcmtoken.repository.FcmTokenRepository;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.domain.user.repository.UserTagRepository;
@@ -50,6 +53,9 @@ class UserServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private UserLanguageRepository userLanguageRepository;
     @Mock private UserTagRepository userTagRepository;
+    @Mock private RefreshTokenRepository refreshTokenRepository;
+    @Mock private FcmTokenRepository fcmTokenRepository;
+    @Mock private FirebaseTokenService firebaseTokenService;
     @Mock private StorageService storageService;
 
     @InjectMocks
@@ -269,7 +275,7 @@ class UserServiceTest {
     class DeleteUserSuccessCases {
 
         @Test
-        @DisplayName("TC-5-1. 정상 탈퇴 → softDelete 호출 검증")
+        @DisplayName("TC-5-1. 정상 탈퇴 → softDelete + RefreshToken/FcmToken 삭제 + Firebase 토큰 무효화 호출")
         void deleteUserSuccess() {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -279,6 +285,9 @@ class UserServiceTest {
 
             // then
             assertTrue(user.isDeleted());
+            verify(refreshTokenRepository).deleteByUser(user);
+            verify(fcmTokenRepository).deleteByUser(user);
+            verify(firebaseTokenService).revokeTokens(1L);
         }
     }
 
@@ -287,7 +296,7 @@ class UserServiceTest {
     class DeleteUserFailCases {
 
         @Test
-        @DisplayName("TC-6-1. 존재하지 않는 유저 → USER_NOT_FOUND")
+        @DisplayName("TC-6-1. 존재하지 않는 유저 → USER_NOT_FOUND, 토큰 삭제/무효화 호출 안 됨")
         void userNotFound() {
             // given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -297,6 +306,9 @@ class UserServiceTest {
                     () -> userService.deleteUser(999L));
 
             assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(refreshTokenRepository, never()).deleteByUser(any());
+            verify(fcmTokenRepository, never()).deleteByUser(any());
+            verify(firebaseTokenService, never()).revokeTokens(any());
         }
     }
 

@@ -16,6 +16,7 @@ public class MessageResponse {
     private final String userName;
     private final String messageType;
     private final String content;
+    private final String statusPreview;
     private final LocalDateTime sendAt;
     private final LocalDateTime editedAt;
 
@@ -33,13 +34,14 @@ public class MessageResponse {
 
     @Builder
     private MessageResponse(Long messageId, Long userId, String userName, String messageType,
-                            String content, LocalDateTime sendAt, LocalDateTime editedAt,
+                            String content, String statusPreview, LocalDateTime sendAt, LocalDateTime editedAt,
                             String fileUrl, String fileName, Long fileSize, String mediaType) {
         this.messageId = messageId;
         this.userId = userId;
         this.userName = userName;
         this.messageType = messageType;
         this.content = content;
+        this.statusPreview = statusPreview;
         this.sendAt = sendAt;
         this.editedAt = editedAt;
         this.fileUrl = fileUrl;
@@ -57,6 +59,7 @@ public class MessageResponse {
                 .userName(message.getUser().isDeleted() ? DELETED_USER_NAME : message.getUser().getName())
                 .messageType(message.getMessageType().name())
                 .content(message.getContent())
+                .statusPreview(message.getStatusPreview())
                 .sendAt(message.getSendAt())
                 .editedAt(message.getUpdatedAt());
 

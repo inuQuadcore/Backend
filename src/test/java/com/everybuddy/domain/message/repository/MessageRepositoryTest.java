@@ -51,7 +51,7 @@ class MessageRepositoryTest {
     }
 
     private Message saveMessage(String content) {
-        return messageRepository.save(Message.create(chatRoom, user, MessageType.TEXT, content));
+        return messageRepository.save(Message.create(chatRoom, user, MessageType.TEXT, content, null));
     }
 
     /**

@@ -69,7 +69,8 @@ public class MessageService {
 
         // DB 저장: 실패 시 이미 업로드된 S3 파일 보상 삭제
         try {
-            Message message = buildAndSaveMessage(user, chatRoom, messageType, request.getContent(), file, fileKey);
+            Message message = buildAndSaveMessage(user, chatRoom, messageType,
+                    request.getContent(), request.getStatusPreview(), file, fileKey);
             eventPublisher.publishEvent(buildMessageSentEvent(message, chatRoom.getChatRoomId()));
         } catch (DataAccessException e) {
             deleteUploadedFileQuietly(fileKey);
@@ -221,12 +222,13 @@ public class MessageService {
 
     // S3 fileKey를 받아 DB에 저장 (S3 업로드 책임 없음)
     private Message buildAndSaveMessage(User user, ChatRoom chatRoom, MessageType messageType,
-                                        String content, MultipartFile file, String fileKey) {
+                                        String content, String statusPreview,
+                                        MultipartFile file, String fileKey) {
         if (messageType == MessageType.FILE) {
             Media media = mediaRepository.save(Media.from(user, chatRoom, fileKey, file));
-            return messageRepository.save(Message.createWithMedia(chatRoom, user, media, messageType));
+            return messageRepository.save(Message.createWithMedia(chatRoom, user, media, messageType, statusPreview));
         }
-        return messageRepository.save(Message.create(chatRoom, user, messageType, content));
+        return messageRepository.save(Message.create(chatRoom, user, messageType, content, statusPreview));
     }
 
     // S3 보상 삭제: DB 저장 실패 시 호출. 삭제 실패는 로그만 남기고 원래 예외를 우선함

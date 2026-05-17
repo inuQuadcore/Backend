@@ -415,6 +415,7 @@ public interface MessageApiSpecification {
                                 "userName": "홍길동",
                                 "messageType": "TEXT",
                                 "content": "안녕하세요",
+                                "statusPreview": null,
                                 "sendAt": "2026-04-07T10:00:00",
                                 "editedAt": null
                             }
@@ -426,6 +427,7 @@ public interface MessageApiSpecification {
                                 "userName": "김철수",
                                 "messageType": "TEXT",
                                 "content": "수정된 내용",
+                                "statusPreview": null,
                                 "sendAt": "2026-04-07T09:55:00",
                                 "editedAt": "2026-04-07T09:58:00"
                             }

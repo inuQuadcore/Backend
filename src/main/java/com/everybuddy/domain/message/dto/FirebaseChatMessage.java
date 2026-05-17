@@ -14,6 +14,7 @@ public class FirebaseChatMessage {
     private final String userName;
     private final String messageType;
     private final String content;
+    private final String statusPreview;
     private final Long sendAt;
 
     // 파일 메시지 전용 필드 (TEXT 메시지일 때는 null로 JSON에서 제외됨)
@@ -30,12 +31,14 @@ public class FirebaseChatMessage {
     private final String mediaType;
 
     @Builder
-    private FirebaseChatMessage(Long userId, String userName, String messageType, String content, Long sendAt,
+    private FirebaseChatMessage(Long userId, String userName, String messageType, String content,
+                                String statusPreview, Long sendAt,
                                 String fileUrl, String fileName, Long fileSize, String mediaType) {
         this.userId = userId;
         this.userName = userName;
         this.messageType = messageType;
         this.content = content;
+        this.statusPreview = statusPreview;
         this.sendAt = sendAt;
         this.fileUrl = fileUrl;
         this.fileName = fileName;
@@ -49,6 +52,7 @@ public class FirebaseChatMessage {
                 .userName(message.getUser().getName())
                 .messageType(message.getMessageType().name())
                 .content(message.getContent())
+                .statusPreview(message.getStatusPreview())
                 .sendAt(message.getSendAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
 
         // FILE 메시지일 경우 파일 정보 추가

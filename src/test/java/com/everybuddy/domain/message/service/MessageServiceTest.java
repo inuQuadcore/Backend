@@ -36,6 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.everybuddy.domain.message.dto.MessageResponse;
 import com.everybuddy.domain.message.dto.MessageSyncResponse;
 import com.everybuddy.domain.message.dto.UpdateMessageRequest;
+import com.everybuddy.domain.message.event.MessageReadEvent;
 import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 
 import java.time.LocalDate;
@@ -497,7 +498,7 @@ class MessageServiceTest {
     class MarkAsReadCases {
 
         @Test
-        @DisplayName("TC-6-1. 메시지 읽음 처리 성공")
+        @DisplayName("TC-6-1. 메시지 읽음 처리 성공 + MessageReadEvent 발행")
         void markMessageAsReadSuccess() {
             // given
             Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
@@ -505,25 +506,32 @@ class MessageServiceTest {
             ChatPart chatPart = ChatPart.create(testUser, testChatRoom);
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
-            when(chatPartRepository.findByUserIdAndChatRoomId(testUser.getUserId(), 1L))
+            when(chatPartRepository.findByUserIdAndChatRoomId(testUser.getUserId(), testChatRoom.getChatRoomId()))
                     .thenReturn(Optional.of(chatPart));
 
             // when
             messageService.markAsRead(testUser.getUserId(), 1L);
 
-            // then: 마지막 읽은 메시지가 실제로 업데이트됐는지 확인
+            // then: 마지막 읽은 메시지 업데이트 + 이벤트 발행
             assertEquals(message, chatPart.getLastReadMessage());
+
+            ArgumentCaptor<MessageReadEvent> eventCaptor = ArgumentCaptor.forClass(MessageReadEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertAll(
+                    () -> assertEquals(testChatRoom.getChatRoomId(), eventCaptor.getValue().getChatRoomId()),
+                    () -> assertEquals(testUser.getUserId(), eventCaptor.getValue().getUserId())
+            );
         }
 
         @Test
-        @DisplayName("TC-6-2. 채팅방 미참여 유저의 읽음 처리 시도")
+        @DisplayName("TC-6-2. 채팅방 미참여 유저의 읽음 처리 시도 → 이벤트 미발행")
         void cannotMarkAsReadByNonParticipant() {
             // given
             Message message = Message.createForTest(1L, testChatRoom, testUser, MessageType.TEXT,
                     "읽을 메시지", LocalDateTime.now());
 
             when(messageRepository.findById(1L)).thenReturn(Optional.of(message));
-            when(chatPartRepository.findByUserIdAndChatRoomId(999L, 1L))
+            when(chatPartRepository.findByUserIdAndChatRoomId(999L, testChatRoom.getChatRoomId()))
                     .thenReturn(Optional.empty());
 
             // when & then
@@ -531,6 +539,7 @@ class MessageServiceTest {
                     () -> messageService.markAsRead(999L, 1L));
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(MessageReadEvent.class));
         }
     }
 

@@ -12,6 +12,7 @@ import com.everybuddy.domain.message.dto.UpdateMessageRequest;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.event.MessageDeletedEvent;
+import com.everybuddy.domain.message.event.MessageReadEvent;
 import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 import com.everybuddy.domain.message.repository.MessageRepository;
@@ -123,6 +124,8 @@ public class MessageService {
 
         // 마지막 읽은 메시지 업데이트
         chatPart.updateLastReadMessage(message);
+
+        eventPublisher.publishEvent(MessageReadEvent.of(chatRoomId, userId));
     }
 
     private User findActiveUser(Long userId) {

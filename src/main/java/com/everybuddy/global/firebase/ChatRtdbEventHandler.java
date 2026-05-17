@@ -7,6 +7,7 @@ import com.everybuddy.domain.message.dto.FirebaseChatMessage;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.event.MessageDeletedEvent;
+import com.everybuddy.domain.message.event.MessageReadEvent;
 import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 import com.everybuddy.global.s3.service.StorageService;
@@ -34,7 +35,16 @@ public class ChatRtdbEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleMessageSent(MessageSentEvent event) {
         saveMessageToFirebase(event.getMessage());
-        updateChatRoomMetadataInFirebase(event.getChatRoomId(), event.getChatParts(), buildMetadataUpdates(event.getMetadata()));
+        updateMetadataAndUnreadCountOnSend(event);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleMessageRead(MessageReadEvent event) {
+        String path = "users/" + event.getUserId() + "/chatrooms/" + event.getChatRoomId() + "/unreadCount";
+        addFirebaseCallback(
+                firebaseDatabase.getReference(path).setValueAsync(0),
+                "메시지 읽음 처리 unreadCount=0 userId=" + event.getUserId() + " chatRoomId=" + event.getChatRoomId()
+        );
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -102,6 +112,29 @@ public class ChatRtdbEventHandler {
         addFirebaseCallback(ref.setValueAsync(participantsMap), "채팅방 참여자 저장 chatRoomId=" + chatRoomId);
     }
 
+    private void updateMetadataAndUnreadCountOnSend(MessageSentEvent event) {
+        Long chatRoomId = event.getChatRoomId();
+        Long senderId = event.getMessage().getUser().getUserId();
+        Map<String, Object> metadataUpdates = buildMetadataUpdates(event.getMetadata());
+
+        Map<String, Object> multiPathUpdates = new HashMap<>();
+        for (ChatPart chatPart : event.getChatParts()) {
+            Long participantId = chatPart.getUser().getUserId();
+            String basePath = "users/" + participantId + "/chatrooms/" + chatRoomId;
+            for (Map.Entry<String, Object> entry : metadataUpdates.entrySet()) {
+                multiPathUpdates.put(basePath + "/" + entry.getKey(), entry.getValue());
+            }
+            if (!participantId.equals(senderId)) {
+                multiPathUpdates.put(basePath + "/unreadCount", incrementBy(1));
+            }
+        }
+
+        addFirebaseCallback(
+                firebaseDatabase.getReference().updateChildrenAsync(multiPathUpdates),
+                "메시지 전송 메타데이터 + unreadCount 업데이트 chatRoomId=" + chatRoomId
+        );
+    }
+
     private void updateChatRoomMetadataInFirebase(Long chatRoomId, List<ChatPart> chatParts, Map<String, Object> updates) {
         Map<String, Object> multiPathUpdates = new HashMap<>();
         for (ChatPart chatPart : chatParts) {
@@ -124,6 +157,10 @@ public class ChatRtdbEventHandler {
         updates.put("lastMessageSenderId", metadata.getLastMessageSenderId());
         updates.put("lastMessageSenderName", metadata.getLastMessageSenderName());
         return updates;
+    }
+
+    private static Object incrementBy(int delta) {
+        return Map.of(".sv", Map.of("increment", delta));
     }
 
     private void addFirebaseCallback(ApiFuture<Void> future, String context) {

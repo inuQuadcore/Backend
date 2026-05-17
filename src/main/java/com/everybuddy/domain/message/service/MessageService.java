@@ -80,12 +80,14 @@ public class MessageService {
     @Transactional(readOnly = true)
     public MessageSyncResponse getMessages(Long userId, Long chatRoomId, LocalDateTime since) {
         findActiveChatRoom(chatRoomId);
-        validateParticipation(userId, chatRoomId);
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_IN_CHATROOM));
+        LocalDateTime enterChatRoomAt = chatPart.getEnterChatRoomAt();
 
         return MessageSyncResponse.of(
-                resolveNewMessages(chatRoomId, since),
-                resolveUpdatedMessages(chatRoomId, since),
-                resolveDeletedIds(chatRoomId, since)
+                resolveNewMessages(chatRoomId, since, enterChatRoomAt),
+                resolveUpdatedMessages(chatRoomId, since, enterChatRoomAt),
+                resolveDeletedIds(chatRoomId, since, enterChatRoomAt)
         );
     }
 
@@ -242,18 +244,18 @@ public class MessageService {
         return lastMessageId.isPresent() && lastMessageId.get().equals(deletedMessageId);
     }
 
-    private List<MessageResponse> resolveNewMessages(Long chatRoomId, LocalDateTime since) {
-        return toResponseList(messageRepository.findNewMessages(chatRoomId, since));
+    private List<MessageResponse> resolveNewMessages(Long chatRoomId, LocalDateTime since, LocalDateTime enterChatRoomAt) {
+        return toResponseList(messageRepository.findNewMessages(chatRoomId, since, enterChatRoomAt));
     }
 
-    private List<MessageResponse> resolveUpdatedMessages(Long chatRoomId, LocalDateTime since) {
+    private List<MessageResponse> resolveUpdatedMessages(Long chatRoomId, LocalDateTime since, LocalDateTime enterChatRoomAt) {
         if (since == null) return List.of();
-        return toResponseList(messageRepository.findUpdatedMessages(chatRoomId, since));
+        return toResponseList(messageRepository.findUpdatedMessages(chatRoomId, since, enterChatRoomAt));
     }
 
-    private List<Long> resolveDeletedIds(Long chatRoomId, LocalDateTime since) {
+    private List<Long> resolveDeletedIds(Long chatRoomId, LocalDateTime since, LocalDateTime enterChatRoomAt) {
         if (since == null) return List.of();
-        return messageRepository.findDeletedMessageIds(chatRoomId, since);
+        return messageRepository.findDeletedMessageIds(chatRoomId, since, enterChatRoomAt);
     }
 
     private List<MessageResponse> toResponseList(List<Message> messages) {

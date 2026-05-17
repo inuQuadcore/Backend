@@ -33,6 +33,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("MessageRepository 슬라이스 테스트")
 class MessageRepositoryTest {
 
+    private static final LocalDateTime LONG_AGO = LocalDateTime.of(2000, 1, 1, 0, 0);
+
     @Autowired private MessageRepository messageRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private ChatRoomRepository chatRoomRepository;
@@ -76,7 +78,7 @@ class MessageRepositoryTest {
             saveMessage("msg1");
             saveMessage("msg2");
 
-            Long count = messageRepository.countUnreadMessages(chatRoom.getChatRoomId(), null);
+            Long count = messageRepository.countUnreadMessages(chatRoom.getChatRoomId(), null, LONG_AGO);
 
             assertEquals(2L, count);
         }
@@ -88,7 +90,7 @@ class MessageRepositoryTest {
             saveMessage("msg2");
             saveMessage("msg3");
 
-            Long count = messageRepository.countUnreadMessages(chatRoom.getChatRoomId(), m1.getMessageId());
+            Long count = messageRepository.countUnreadMessages(chatRoom.getChatRoomId(), m1.getMessageId(), LONG_AGO);
 
             assertEquals(2L, count);
         }
@@ -101,7 +103,7 @@ class MessageRepositoryTest {
             m2.softDelete();
             messageRepository.save(m2);
 
-            Long count = messageRepository.countUnreadMessages(chatRoom.getChatRoomId(), null);
+            Long count = messageRepository.countUnreadMessages(chatRoom.getChatRoomId(), null, LONG_AGO);
 
             assertEquals(1L, count);
         }
@@ -117,7 +119,7 @@ class MessageRepositoryTest {
             Message m1 = saveMessage("msg1");
             Message m2 = saveMessage("msg2");
 
-            List<Message> result = messageRepository.findNewMessages(chatRoom.getChatRoomId(), null);
+            List<Message> result = messageRepository.findNewMessages(chatRoom.getChatRoomId(), null, LONG_AGO);
 
             List<Long> ids = result.stream().map(Message::getMessageId).toList();
             assertAll(
@@ -133,7 +135,7 @@ class MessageRepositoryTest {
             saveMessage("msg2");
 
             List<Message> result = messageRepository.findNewMessages(
-                    chatRoom.getChatRoomId(), LocalDateTime.now().plusMinutes(1));
+                    chatRoom.getChatRoomId(), LocalDateTime.now().plusMinutes(1), LONG_AGO);
 
             assertTrue(result.isEmpty());
         }
@@ -146,7 +148,7 @@ class MessageRepositoryTest {
             m2.softDelete();
             messageRepository.save(m2);
 
-            List<Message> result = messageRepository.findNewMessages(chatRoom.getChatRoomId(), null);
+            List<Message> result = messageRepository.findNewMessages(chatRoom.getChatRoomId(), null, LONG_AGO);
 
             assertAll(
                     () -> assertEquals(1, result.size()),
@@ -171,7 +173,7 @@ class MessageRepositoryTest {
             saved.update("edited"); // updatedAt = now() > since
             messageRepository.save(saved);
 
-            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since);
+            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertAll(
                     () -> assertEquals(1, result.size()),
@@ -187,7 +189,7 @@ class MessageRepositoryTest {
 
             LocalDateTime since = LocalDateTime.now().minusHours(1);
 
-            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since);
+            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertTrue(result.isEmpty());
         }
@@ -205,7 +207,7 @@ class MessageRepositoryTest {
             saved.softDelete();
             messageRepository.save(saved);
 
-            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since);
+            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertTrue(result.isEmpty());
         }
@@ -220,7 +222,7 @@ class MessageRepositoryTest {
             // since = 1시간 전 → sendAt(now) > since 이므로 조건 미충족
             LocalDateTime since = LocalDateTime.now().minusHours(1);
 
-            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since);
+            List<Message> result = messageRepository.findUpdatedMessages(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertTrue(result.isEmpty());
         }
@@ -242,7 +244,7 @@ class MessageRepositoryTest {
             saved.softDelete(); // deletedAt = now() > since
             messageRepository.save(saved);
 
-            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since);
+            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertAll(
                     () -> assertEquals(1, result.size()),
@@ -258,7 +260,7 @@ class MessageRepositoryTest {
 
             LocalDateTime since = LocalDateTime.now().minusHours(1);
 
-            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since);
+            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertTrue(result.isEmpty());
         }
@@ -273,7 +275,7 @@ class MessageRepositoryTest {
             // since = 1시간 전 → sendAt(now) > since 이므로 조건 미충족
             LocalDateTime since = LocalDateTime.now().minusHours(1);
 
-            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since);
+            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertTrue(result.isEmpty());
         }
@@ -292,7 +294,7 @@ class MessageRepositoryTest {
             // deletedAt(now) > since(now + 1시간) 가 되도록 since를 미래로 설정
             LocalDateTime since = LocalDateTime.now().plusHours(1);
 
-            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since);
+            List<Long> result = messageRepository.findDeletedMessageIds(chatRoom.getChatRoomId(), since, LONG_AGO);
 
             assertTrue(result.isEmpty());
         }

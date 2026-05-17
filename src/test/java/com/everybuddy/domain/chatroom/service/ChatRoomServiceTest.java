@@ -36,6 +36,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -266,7 +268,7 @@ class ChatRoomServiceTest {
             // then
             assertTrue(responses.isEmpty());
             verify(chatPartRepository, never()).findByChatRoomIdsWithUser(any());
-            verify(messageRepository, never()).countUnreadMessages(any(), any());
+            verify(messageRepository, never()).countUnreadMessages(any(), any(), any());
         }
 
         @Test
@@ -279,7 +281,7 @@ class ChatRoomServiceTest {
                     .thenReturn(List.of(
                             ChatPart.create(creator, chatRoom),
                             ChatPart.create(participant1, chatRoom)));
-            when(messageRepository.countUnreadMessages(1L, null)).thenReturn(5L);
+            when(messageRepository.countUnreadMessages(eq(1L), isNull(), any(LocalDateTime.class))).thenReturn(5L);
 
             // when
             List<ChatRoomResponse> responses = chatRoomService.getMyChatRooms(1L);
@@ -292,7 +294,7 @@ class ChatRoomServiceTest {
                     () -> assertEquals(2, responses.get(0).getParticipantIds().size()),
                     () -> assertEquals(5L, responses.get(0).getUnreadCount())
             );
-            verify(messageRepository).countUnreadMessages(1L, null);
+            verify(messageRepository).countUnreadMessages(eq(1L), isNull(), any(LocalDateTime.class));
         }
 
         @Test
@@ -314,9 +316,9 @@ class ChatRoomServiceTest {
                             ChatPart.create(creator, chatRoom2),
                             ChatPart.create(participant2, chatRoom2),
                             ChatPart.create(creator, chatRoom3)));
-            when(messageRepository.countUnreadMessages(1L, null)).thenReturn(3L);
-            when(messageRepository.countUnreadMessages(2L, null)).thenReturn(7L);
-            when(messageRepository.countUnreadMessages(3L, null)).thenReturn(0L);
+            when(messageRepository.countUnreadMessages(eq(1L), isNull(), any(LocalDateTime.class))).thenReturn(3L);
+            when(messageRepository.countUnreadMessages(eq(2L), isNull(), any(LocalDateTime.class))).thenReturn(7L);
+            when(messageRepository.countUnreadMessages(eq(3L), isNull(), any(LocalDateTime.class))).thenReturn(0L);
 
             // when
             List<ChatRoomResponse> responses = chatRoomService.getMyChatRooms(1L);
@@ -328,9 +330,9 @@ class ChatRoomServiceTest {
                     () -> assertEquals(7L, responses.get(1).getUnreadCount()),
                     () -> assertEquals(0L, responses.get(2).getUnreadCount())
             );
-            verify(messageRepository).countUnreadMessages(1L, null);
-            verify(messageRepository).countUnreadMessages(2L, null);
-            verify(messageRepository).countUnreadMessages(3L, null);
+            verify(messageRepository).countUnreadMessages(eq(1L), isNull(), any(LocalDateTime.class));
+            verify(messageRepository).countUnreadMessages(eq(2L), isNull(), any(LocalDateTime.class));
+            verify(messageRepository).countUnreadMessages(eq(3L), isNull(), any(LocalDateTime.class));
         }
 
         @Test
@@ -345,7 +347,7 @@ class ChatRoomServiceTest {
             when(chatPartRepository.findByUserIdWithChatRoom(1L)).thenReturn(List.of(chatPart));
             when(chatPartRepository.findByChatRoomIdsWithUser(List.of(1L)))
                     .thenReturn(List.of(ChatPart.create(creator, chatRoom)));
-            when(messageRepository.countUnreadMessages(1L, 10L)).thenReturn(3L);
+            when(messageRepository.countUnreadMessages(eq(1L), eq(10L), any(LocalDateTime.class))).thenReturn(3L);
 
             // when
             List<ChatRoomResponse> responses = chatRoomService.getMyChatRooms(1L);
@@ -355,7 +357,7 @@ class ChatRoomServiceTest {
                     () -> assertEquals(1, responses.size()),
                     () -> assertEquals(3L, responses.get(0).getUnreadCount())
             );
-            verify(messageRepository).countUnreadMessages(1L, 10L);
+            verify(messageRepository).countUnreadMessages(eq(1L), eq(10L), any(LocalDateTime.class));
         }
     }
 

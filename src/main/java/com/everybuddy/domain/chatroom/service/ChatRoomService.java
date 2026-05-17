@@ -162,7 +162,7 @@ public class ChatRoomService {
                     ? chatPart.getLastReadMessage().getMessageId()
                     : null;
 
-            Long unreadCount = messageRepository.countUnreadMessages(chatRoomId, lastReadMessageId);
+            Long unreadCount = messageRepository.countUnreadMessages(chatRoomId, lastReadMessageId, chatPart.getEnterChatRoomAt());
 
             ChatRoomResponse response = ChatRoomResponse.from(
                     chatPart.getChatRoom(),

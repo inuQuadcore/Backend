@@ -66,6 +66,21 @@ public class ChatRtdbEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatRoomCreated(ChatRoomCreatedEvent event) {
         saveParticipantsToFirebase(event.getChatRoomId(), event.getParticipantIds());
+        initializeUserChatRoomNodes(event.getChatRoomId(), event.getParticipantIds());
+    }
+
+    private void initializeUserChatRoomNodes(Long chatRoomId, List<Long> participantIds) {
+        long enterChatRoomAt = System.currentTimeMillis();
+        Map<String, Object> multiPathUpdates = new HashMap<>();
+        for (Long userId : participantIds) {
+            String basePath = "users/" + userId + "/chatrooms/" + chatRoomId;
+            multiPathUpdates.put(basePath + "/enterChatRoomAt", enterChatRoomAt);
+            multiPathUpdates.put(basePath + "/unreadCount", 0);
+        }
+        addFirebaseCallback(
+                firebaseDatabase.getReference().updateChildrenAsync(multiPathUpdates),
+                "채팅방 생성 시 참여자 노드 초기화 chatRoomId=" + chatRoomId
+        );
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

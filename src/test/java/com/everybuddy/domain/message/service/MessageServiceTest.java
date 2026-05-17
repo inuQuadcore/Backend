@@ -47,6 +47,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -551,7 +552,8 @@ class MessageServiceTest {
 
         private void setupChatRoomAndParticipation() {
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            ChatPart chatPart = ChatPart.create(testUser, testChatRoom);
+            when(chatPartRepository.findByUserIdAndChatRoomId(1L, 1L)).thenReturn(Optional.of(chatPart));
         }
 
         @Test
@@ -562,7 +564,7 @@ class MessageServiceTest {
                     "전체 메시지", LocalDateTime.of(2026, 4, 7, 8, 0, 0));
 
             setupChatRoomAndParticipation();
-            when(messageRepository.findNewMessages(1L, null)).thenReturn(List.of(message));
+            when(messageRepository.findNewMessages(eq(1L), isNull(), any(LocalDateTime.class))).thenReturn(List.of(message));
 
             // when
             MessageSyncResponse response = messageService.getMessages(1L, 1L, null);
@@ -574,9 +576,9 @@ class MessageServiceTest {
                     () -> assertTrue(response.getUpdatedMessages().isEmpty()),
                     () -> assertTrue(response.getDeletedIds().isEmpty())
             );
-            verify(messageRepository).findNewMessages(1L, null);
-            verify(messageRepository, never()).findUpdatedMessages(any(), any());
-            verify(messageRepository, never()).findDeletedMessageIds(any(), any());
+            verify(messageRepository).findNewMessages(eq(1L), isNull(), any(LocalDateTime.class));
+            verify(messageRepository, never()).findUpdatedMessages(any(), any(), any());
+            verify(messageRepository, never()).findDeletedMessageIds(any(), any(), any());
         }
 
         @Test
@@ -587,9 +589,9 @@ class MessageServiceTest {
                     "새 메시지", LocalDateTime.of(2026, 4, 7, 10, 0, 0));
 
             setupChatRoomAndParticipation();
-            when(messageRepository.findNewMessages(1L, since)).thenReturn(List.of(message));
-            when(messageRepository.findUpdatedMessages(1L, since)).thenReturn(List.of());
-            when(messageRepository.findDeletedMessageIds(1L, since)).thenReturn(List.of());
+            when(messageRepository.findNewMessages(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of(message));
+            when(messageRepository.findUpdatedMessages(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of());
+            when(messageRepository.findDeletedMessageIds(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of());
 
             // when
             MessageSyncResponse response = messageService.getMessages(1L, 1L, since);
@@ -613,9 +615,9 @@ class MessageServiceTest {
                     since.minusHours(1), since.plusMinutes(10));
 
             setupChatRoomAndParticipation();
-            when(messageRepository.findNewMessages(1L, since)).thenReturn(List.of());
-            when(messageRepository.findUpdatedMessages(1L, since)).thenReturn(List.of(updatedMessage));
-            when(messageRepository.findDeletedMessageIds(1L, since)).thenReturn(List.of());
+            when(messageRepository.findNewMessages(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of());
+            when(messageRepository.findUpdatedMessages(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of(updatedMessage));
+            when(messageRepository.findDeletedMessageIds(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of());
 
             // when
             MessageSyncResponse response = messageService.getMessages(1L, 1L, since);
@@ -635,9 +637,9 @@ class MessageServiceTest {
         void deletedMessageIdsAfterSince() {
             // given
             setupChatRoomAndParticipation();
-            when(messageRepository.findNewMessages(1L, since)).thenReturn(List.of());
-            when(messageRepository.findUpdatedMessages(1L, since)).thenReturn(List.of());
-            when(messageRepository.findDeletedMessageIds(1L, since)).thenReturn(List.of(3L, 4L));
+            when(messageRepository.findNewMessages(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of());
+            when(messageRepository.findUpdatedMessages(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of());
+            when(messageRepository.findDeletedMessageIds(eq(1L), eq(since), any(LocalDateTime.class))).thenReturn(List.of(3L, 4L));
 
             // when
             MessageSyncResponse response = messageService.getMessages(1L, 1L, since);
@@ -661,7 +663,7 @@ class MessageServiceTest {
                     () -> messageService.getMessages(1L, 999L, since));
 
             assertEquals(ErrorCode.CHATROOM_NOT_FOUND, exception.getErrorCode());
-            verify(messageRepository, never()).findNewMessages(any(), any());
+            verify(messageRepository, never()).findNewMessages(any(), any(), any());
         }
 
         @Test
@@ -669,14 +671,14 @@ class MessageServiceTest {
         void userNotInChatRoom() {
             // given
             when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(testChatRoom));
-            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(false);
+            when(chatPartRepository.findByUserIdAndChatRoomId(1L, 1L)).thenReturn(Optional.empty());
 
             // when & then
             CustomException exception = assertThrows(CustomException.class,
                     () -> messageService.getMessages(1L, 1L, since));
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, exception.getErrorCode());
-            verify(messageRepository, never()).findNewMessages(any(), any());
+            verify(messageRepository, never()).findNewMessages(any(), any(), any());
         }
     }
 

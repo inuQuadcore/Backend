@@ -15,9 +15,11 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT COUNT(m) FROM Message m " +
             "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
             "AND (:lastReadMessageId IS NULL OR m.messageId > :lastReadMessageId) " +
+            "AND m.sendAt >= :enterChatRoomAt " +
             "AND m.deletedAt IS NULL")
     Long countUnreadMessages(@Param("chatRoomId") Long chatRoomId,
-                             @Param("lastReadMessageId") Long lastReadMessageId);
+                             @Param("lastReadMessageId") Long lastReadMessageId,
+                             @Param("enterChatRoomAt") LocalDateTime enterChatRoomAt);
 
     @Query("SELECT m.messageId FROM Message m " +
             "WHERE m.chatRoom = :chatRoom " +
@@ -40,25 +42,31 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             "JOIN FETCH m.user " +
             "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
             "AND (:since IS NULL OR m.sendAt > :since) " +
+            "AND m.sendAt >= :enterChatRoomAt " +
             "AND m.deletedAt IS NULL " +
             "ORDER BY m.sendAt ASC")
     List<Message> findNewMessages(@Param("chatRoomId") Long chatRoomId,
-                                  @Param("since") LocalDateTime since);
+                                  @Param("since") LocalDateTime since,
+                                  @Param("enterChatRoomAt") LocalDateTime enterChatRoomAt);
 
     @Query("SELECT m FROM Message m " +
             "JOIN FETCH m.user " +
             "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
             "AND m.updatedAt > :since " +
             "AND m.sendAt <= :since " +
+            "AND m.sendAt >= :enterChatRoomAt " +
             "AND m.deletedAt IS NULL " +
             "ORDER BY m.sendAt ASC")
     List<Message> findUpdatedMessages(@Param("chatRoomId") Long chatRoomId,
-                                      @Param("since") LocalDateTime since);
+                                      @Param("since") LocalDateTime since,
+                                      @Param("enterChatRoomAt") LocalDateTime enterChatRoomAt);
 
     @Query("SELECT m.messageId FROM Message m " +
             "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
             "AND m.deletedAt > :since " +
-            "AND m.sendAt <= :since")
+            "AND m.sendAt <= :since " +
+            "AND m.sendAt >= :enterChatRoomAt")
     List<Long> findDeletedMessageIds(@Param("chatRoomId") Long chatRoomId,
-                                     @Param("since") LocalDateTime since);
+                                     @Param("since") LocalDateTime since,
+                                     @Param("enterChatRoomAt") LocalDateTime enterChatRoomAt);
 }

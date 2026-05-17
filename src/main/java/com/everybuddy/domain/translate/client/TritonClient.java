@@ -14,10 +14,13 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Component
 public class TritonClient {
@@ -60,20 +63,7 @@ public class TritonClient {
     }
 
     public SpeechTranslationResult translateSpeech(byte[] audioBytes, String targetLang) {
-        String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
-
-        TritonInferRequest request = TritonInferRequest.builder()
-                .inputs(List.of(
-                        textInput("AUDIO_BYTES", base64Audio),
-                        textInput("TARGET_LANGUAGE", targetLang)
-                ))
-                .outputs(List.of(
-                        output(OUTPUT_SOURCE_TEXT),
-                        output(OUTPUT_TRANSLATED_TEXT)
-                ))
-                .build();
-
-        TritonInferResponse response = call(S2TT_MODEL, request);
+        TritonInferResponse response = callS2TTBinary(audioBytes, targetLang);
 
         String sourceText = response.getOutputValue(OUTPUT_SOURCE_TEXT);
         String translatedText = response.getOutputValue(OUTPUT_TRANSLATED_TEXT);
@@ -83,6 +73,48 @@ public class TritonClient {
         return new SpeechTranslationResult(sourceText, translatedText);
     }
 
+    // Triton binary HTTP extension: JSON header + raw bytes payload.
+    // JSON protocol encodes BYTES as base64 strings, which ffmpeg cannot decode.
+    // Binary protocol delivers raw audio bytes directly to the model.
+    private TritonInferResponse callS2TTBinary(byte[] audioBytes, String targetLang) {
+        byte[] langBytes = targetLang.getBytes(StandardCharsets.UTF_8);
+        int audioPayloadSize = 4 + audioBytes.length;
+        int langPayloadSize = 4 + langBytes.length;
+
+        String jsonHeader = String.format(
+                "{\"inputs\":[" +
+                "{\"name\":\"AUDIO_BYTES\",\"shape\":[1],\"datatype\":\"BYTES\",\"parameters\":{\"binary_data_size\":%d}}," +
+                "{\"name\":\"TARGET_LANGUAGE\",\"shape\":[1],\"datatype\":\"BYTES\",\"parameters\":{\"binary_data_size\":%d}}" +
+                "],\"outputs\":[" +
+                "{\"name\":\"SOURCE_TEXT\",\"parameters\":{\"binary_data\":false}}," +
+                "{\"name\":\"TRANSLATED_TEXT\",\"parameters\":{\"binary_data\":false}}" +
+                "]}",
+                audioPayloadSize, langPayloadSize
+        );
+
+        byte[] jsonBytes = jsonHeader.getBytes(StandardCharsets.UTF_8);
+
+        // Each BYTES element: 4-byte little-endian length prefix + raw bytes
+        ByteBuffer binary = ByteBuffer.allocate(audioPayloadSize + langPayloadSize)
+                .order(ByteOrder.LITTLE_ENDIAN);
+        binary.putInt(audioBytes.length);
+        binary.put(audioBytes);
+        binary.putInt(langBytes.length);
+        binary.put(langBytes);
+
+        byte[] body = new byte[jsonBytes.length + binary.capacity()];
+        System.arraycopy(jsonBytes, 0, body, 0, jsonBytes.length);
+        System.arraycopy(binary.array(), 0, body, jsonBytes.length, binary.capacity());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.set("Inference-Header-Content-Length", String.valueOf(jsonBytes.length));
+
+        HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
+
+        return execute(() -> restTemplate.postForEntity(baseUrl + S2TT_MODEL, entity, TritonInferResponse.class));
+    }
+
     public record SpeechTranslationResult(String sourceText, String translatedText) {}
 
     private TritonInferResponse call(String path, TritonInferRequest request) {
@@ -90,24 +122,19 @@ public class TritonClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<TritonInferRequest> entity = new HttpEntity<>(request, headers);
 
+        return execute(() -> restTemplate.postForEntity(baseUrl + path, entity, TritonInferResponse.class));
+    }
+
+    private TritonInferResponse execute(Supplier<ResponseEntity<TritonInferResponse>> supplier) {
         try {
-            ResponseEntity<TritonInferResponse> response = restTemplate.postForEntity(
-                    baseUrl + path, entity, TritonInferResponse.class
-            );
-            return response.getBody();
+            return supplier.get().getBody();
         } catch (HttpStatusCodeException e) {
             int status = e.getStatusCode().value();
-            if (status == 503) {
-                throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
-            }
-            if (status == 400 || status == 404) {
-                throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
-            }
+            if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
+            if (status == 400 || status == 404) throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
             throw new CustomException(ErrorCode.MODEL_ERROR, e);
         } catch (ResourceAccessException e) {
-            if (isReadTimeout(e)) {
-                throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
-            }
+            if (isReadTimeout(e)) throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
             throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
         }
     }

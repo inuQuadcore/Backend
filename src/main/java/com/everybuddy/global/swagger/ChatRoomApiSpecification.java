@@ -2,6 +2,7 @@ package com.everybuddy.global.swagger;
 
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
+import com.everybuddy.domain.chatroom.dto.InviteMembersRequest;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -173,5 +174,99 @@ public interface ChatRoomApiSpecification {
     ResponseEntity<Void> leaveChatRoom(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long chatRoomId
+    );
+
+    @Operation(summary = "채팅방 멤버 초대", description = "기존 채팅방에 한 명 이상의 새 멤버를 초대합니다. 채팅방 참여자라면 누구나 초대할 수 있습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "초대 성공"),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력 / 자기 자신 초대",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 400,
+                        "name": "CANNOT_INVITE_SELF",
+                        "message": "자기 자신을 초대할 수 없습니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403", description = "초대자가 채팅방 참여자가 아님",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 403,
+                        "name": "USER_NOT_IN_CHATROOM",
+                        "message": "해당 채팅방에 접근할 권한이 없습니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "채팅방/유저를 찾을 수 없음 (차단 관계 포함)",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409", description = "이미 채팅방에 있는 사용자",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 409,
+                        "name": "ALREADY_IN_CHATROOM",
+                        "message": "이미 채팅방에 참여 중인 사용자입니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "410", description = "탈퇴한 유저",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 410,
+                        "name": "USER_DELETED",
+                        "message": "삭제된 사용자입니다."
+                    }
+                    """
+                            )
+                    )
+            )
+    })
+    ResponseEntity<Void> inviteMembers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long chatRoomId,
+            @Valid @RequestBody InviteMembersRequest request
     );
 }

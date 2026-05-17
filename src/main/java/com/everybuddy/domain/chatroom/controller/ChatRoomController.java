@@ -2,6 +2,7 @@ package com.everybuddy.domain.chatroom.controller;
 
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
+import com.everybuddy.domain.chatroom.dto.InviteMembersRequest;
 import com.everybuddy.domain.chatroom.service.ChatRoomService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.ChatRoomApiSpecification;
@@ -43,6 +44,16 @@ public class ChatRoomController implements ChatRoomApiSpecification {
             @PathVariable Long chatRoomId) {
 
         chatRoomService.leaveChatRoom(userDetails.getUserId(), chatRoomId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{chatRoomId}/participants")
+    public ResponseEntity<Void> inviteMembers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long chatRoomId,
+            @Valid @RequestBody InviteMembersRequest request) {
+
+        chatRoomService.inviteMembers(userDetails.getUserId(), chatRoomId, request);
         return ResponseEntity.noContent().build();
     }
 

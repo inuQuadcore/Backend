@@ -4,10 +4,13 @@ import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
+import com.everybuddy.domain.chatroom.dto.InviteMembersRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.chatroom.event.ChatRoomCreatedEvent;
 import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
+import com.everybuddy.domain.chatroom.event.ChatRoomMembersInvitedEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
+import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
@@ -33,6 +36,7 @@ public class ChatRoomService {
     private final ChatPartRepository chatPartRepository;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
+    private final BlockRelationRepository blockRelationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -57,6 +61,50 @@ public class ChatRoomService {
         eventPublisher.publishEvent(ChatRoomCreatedEvent.of(chatRoom.getChatRoomId(), allParticipantIds));
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);
+    }
+
+    @Transactional
+    public void inviteMembers(Long inviterId, Long chatRoomId, InviteMembersRequest request) {
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
+        if (chatRoom.isDeleted()) {
+            throw new CustomException(ErrorCode.CHATROOM_DELETED);
+        }
+
+        if (!chatPartRepository.existsByUserIdAndChatRoomId(inviterId, chatRoomId)) {
+            throw new CustomException(ErrorCode.USER_NOT_IN_CHATROOM);
+        }
+
+        List<Long> invitedUserIds = new ArrayList<>();
+        for (Long targetId : request.getParticipantIds()) {
+            if (targetId.equals(inviterId)) {
+                throw new CustomException(ErrorCode.CANNOT_INVITE_SELF);
+            }
+
+            User target = userRepository.findById(targetId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+            if (target.isDeleted()) {
+                throw new CustomException(ErrorCode.USER_DELETED);
+            }
+
+            if (blockRelationRepository.existsBlockRelationBetween(inviterId, targetId)) {
+                throw new CustomException(ErrorCode.USER_NOT_FOUND);
+            }
+
+            chatPartRepository.findAnyByUserIdAndChatRoomId(targetId, chatRoomId)
+                    .ifPresentOrElse(
+                            existing -> {
+                                if (existing.isActive()) {
+                                    throw new CustomException(ErrorCode.ALREADY_IN_CHATROOM);
+                                }
+                                existing.rejoin();
+                            },
+                            () -> chatPartRepository.save(ChatPart.create(target, chatRoom))
+                    );
+            invitedUserIds.add(targetId);
+        }
+
+        eventPublisher.publishEvent(ChatRoomMembersInvitedEvent.of(chatRoomId, invitedUserIds));
     }
 
     @Transactional

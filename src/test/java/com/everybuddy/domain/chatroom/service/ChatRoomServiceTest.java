@@ -4,9 +4,12 @@ import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
+import com.everybuddy.domain.chatroom.dto.InviteMembersRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
+import com.everybuddy.domain.chatroom.event.ChatRoomMembersInvitedEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
+import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import com.everybuddy.domain.message.repository.MessageRepository;
@@ -50,6 +53,7 @@ class ChatRoomServiceTest {
     @Mock private ChatPartRepository chatPartRepository;
     @Mock private UserRepository userRepository;
     @Mock private MessageRepository messageRepository;
+    @Mock private BlockRelationRepository blockRelationRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
@@ -395,6 +399,141 @@ class ChatRoomServiceTest {
 
             assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, ex.getErrorCode());
             verify(eventPublisher, never()).publishEvent(any(ChatRoomLeftEvent.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("4. inviteMembers() 테스트")
+    class InviteMembersCases {
+
+        @Test
+        @DisplayName("TC-4-1. 신규 멤버 초대 → 새 ChatPart 생성 + 이벤트 발행")
+        void inviteNewMember() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(2L));
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            when(userRepository.findById(2L)).thenReturn(Optional.of(participant1));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(false);
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 1L)).thenReturn(Optional.empty());
+
+            chatRoomService.inviteMembers(1L, 1L, request);
+
+            ArgumentCaptor<ChatPart> partCaptor = ArgumentCaptor.forClass(ChatPart.class);
+            verify(chatPartRepository).save(partCaptor.capture());
+            assertAll(
+                    () -> assertEquals(2L, partCaptor.getValue().getUser().getUserId()),
+                    () -> assertTrue(partCaptor.getValue().isActive())
+            );
+            ArgumentCaptor<ChatRoomMembersInvitedEvent> eventCaptor = ArgumentCaptor.forClass(ChatRoomMembersInvitedEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertAll(
+                    () -> assertEquals(1L, eventCaptor.getValue().getChatRoomId()),
+                    () -> assertEquals(List.of(2L), eventCaptor.getValue().getInvitedUserIds())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-4-2. 이전에 나간 멤버 재초대 → ChatPart rejoin (active=true, enterChatRoomAt 갱신)")
+        void inviteRejoiningMember() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(2L));
+            ChatPart inactivePart = ChatPart.create(participant1, chatRoom);
+            inactivePart.leave();
+            LocalDateTime beforeRejoin = inactivePart.getEnterChatRoomAt();
+
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            when(userRepository.findById(2L)).thenReturn(Optional.of(participant1));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(false);
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 1L)).thenReturn(Optional.of(inactivePart));
+
+            chatRoomService.inviteMembers(1L, 1L, request);
+
+            assertAll(
+                    () -> assertTrue(inactivePart.isActive()),
+                    () -> assertNull(inactivePart.getExitChatRoomAt()),
+                    () -> assertTrue(inactivePart.getEnterChatRoomAt().isAfter(beforeRejoin)
+                            || inactivePart.getEnterChatRoomAt().isEqual(beforeRejoin))
+            );
+            verify(chatPartRepository, never()).save(any(ChatPart.class));
+            verify(eventPublisher).publishEvent(any(ChatRoomMembersInvitedEvent.class));
+        }
+
+        @Test
+        @DisplayName("TC-4-3. 자기 자신 초대 → CANNOT_INVITE_SELF, 이벤트 미발행")
+        void inviteSelfFails() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(1L));
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.inviteMembers(1L, 1L, request));
+
+            assertEquals(ErrorCode.CANNOT_INVITE_SELF, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
+        }
+
+        @Test
+        @DisplayName("TC-4-4. 초대자가 채팅방 참여자 아님 → USER_NOT_IN_CHATROOM")
+        void inviterNotInChatRoom() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(2L));
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(false);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.inviteMembers(1L, 1L, request));
+
+            assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
+        }
+
+        @Test
+        @DisplayName("TC-4-5. 이미 active 멤버 재초대 → ALREADY_IN_CHATROOM")
+        void inviteAlreadyActiveMember() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(2L));
+            ChatPart activePart = ChatPart.create(participant1, chatRoom);
+
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            when(userRepository.findById(2L)).thenReturn(Optional.of(participant1));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(false);
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 1L)).thenReturn(Optional.of(activePart));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.inviteMembers(1L, 1L, request));
+
+            assertEquals(ErrorCode.ALREADY_IN_CHATROOM, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
+        }
+
+        @Test
+        @DisplayName("TC-4-6. 양방향 차단 관계 → USER_NOT_FOUND로 노출")
+        void inviteBlockedUser() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(2L));
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            when(userRepository.findById(2L)).thenReturn(Optional.of(participant1));
+            when(blockRelationRepository.existsBlockRelationBetween(1L, 2L)).thenReturn(true);
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.inviteMembers(1L, 1L, request));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
+        }
+
+        @Test
+        @DisplayName("TC-4-7. 탈퇴한 유저 초대 → USER_DELETED")
+        void inviteDeletedUser() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(4L));
+            when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+            when(chatPartRepository.existsByUserIdAndChatRoomId(1L, 1L)).thenReturn(true);
+            when(userRepository.findById(4L)).thenReturn(Optional.of(deletedUser));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.inviteMembers(1L, 1L, request));
+
+            assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
         }
     }
 }

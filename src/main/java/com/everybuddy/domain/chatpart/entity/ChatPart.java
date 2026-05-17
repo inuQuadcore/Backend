@@ -71,4 +71,12 @@ public class ChatPart {
         this.active = false;
         this.exitChatRoomAt = LocalDateTime.now();
     }
+
+    public void rejoin() {
+        this.active = true;
+        this.enterChatRoomAt = LocalDateTime.now();
+        this.exitChatRoomAt = null;
+        this.lastReadMessage = null;
+        this.lastReadAt = null;
+    }
 }

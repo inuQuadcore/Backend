@@ -3,6 +3,7 @@ package com.everybuddy.global.firebase;
 import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatroom.event.ChatRoomCreatedEvent;
 import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
+import com.everybuddy.domain.chatroom.event.ChatRoomMembersInvitedEvent;
 import com.everybuddy.domain.message.dto.ChatRoomMetadata;
 import com.everybuddy.domain.message.dto.FirebaseChatMessage;
 import com.everybuddy.domain.message.entity.Message;
@@ -80,6 +81,22 @@ public class ChatRtdbEventHandler {
         addFirebaseCallback(
                 firebaseDatabase.getReference().updateChildrenAsync(multiPathUpdates),
                 "채팅방 생성 시 참여자 노드 초기화 chatRoomId=" + chatRoomId
+        );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleChatRoomMembersInvited(ChatRoomMembersInvitedEvent event) {
+        long enterChatRoomAt = System.currentTimeMillis();
+        Map<String, Object> multiPathUpdates = new HashMap<>();
+        for (Long userId : event.getInvitedUserIds()) {
+            String basePath = "users/" + userId + "/chatrooms/" + event.getChatRoomId();
+            multiPathUpdates.put(basePath + "/enterChatRoomAt", enterChatRoomAt);
+            multiPathUpdates.put(basePath + "/unreadCount", 0);
+            multiPathUpdates.put("chatrooms/" + event.getChatRoomId() + "/participants/" + userId, true);
+        }
+        addFirebaseCallback(
+                firebaseDatabase.getReference().updateChildrenAsync(multiPathUpdates),
+                "채팅방 멤버 초대 RTDB 노드 초기화 chatRoomId=" + event.getChatRoomId()
         );
     }
 

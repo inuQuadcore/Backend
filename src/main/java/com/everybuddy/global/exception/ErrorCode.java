@@ -27,6 +27,8 @@ public enum ErrorCode {
     CHATROOM_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 채팅방을 찾을 수 없습니다."),
     CHATROOM_DELETED(HttpStatus.GONE, 410, "삭제된 채팅방입니다."),
     USER_NOT_IN_CHATROOM(HttpStatus.FORBIDDEN, 403, "해당 채팅방에 접근할 권한이 없습니다."),
+    CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST, 400, "자기 자신을 초대할 수 없습니다."),
+    ALREADY_IN_CHATROOM(HttpStatus.CONFLICT, 409, "이미 채팅방에 참여 중인 사용자입니다."),
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "해당 메시지를 찾을 수 없습니다."),
     MESSAGE_ALREADY_DELETED(HttpStatus.CONFLICT, 409, "이미 삭제된 메시지입니다."),
     NOT_MESSAGE_OF_USER(HttpStatus.FORBIDDEN, 403, "자신의 메시지만 수정/삭제할 수 있습니다."),

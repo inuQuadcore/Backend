@@ -65,7 +65,7 @@ public class BlockRelationService {
     }
 
     private String resolveProfileImageUrl(String profileKey) {
-        return profileKey != null ? storageService.getPublicUrl(profileKey) : null;
+        return profileKey != null ? storageService.getPresignedUrl(profileKey) : null;
     }
 
     private User findActiveUser(Long userId) {

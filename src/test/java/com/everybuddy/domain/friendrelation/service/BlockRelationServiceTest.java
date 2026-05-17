@@ -171,7 +171,7 @@ class BlockRelationServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(blockRelationRepository.findAllBlockedUsers(1L))
                     .thenReturn(List.of(recentBlock, oldBlock));
-            when(storageService.getPublicUrl("profile/4.jpg"))
+            when(storageService.getPresignedUrl("profile/4.jpg"))
                     .thenReturn("https://everybuddy.s3.amazonaws.com/profile/4.jpg");
 
             BlockedUsersResponse response = blockRelationService.getBlockedUsers(1L);
@@ -186,7 +186,7 @@ class BlockRelationServiceTest {
                     () -> assertEquals("유저B", users.get(1).getName()),
                     () -> assertNull(users.get(1).getProfileImageUrl())
             );
-            verify(storageService, never()).getPublicUrl(isNull());
+            verify(storageService, never()).getPresignedUrl(isNull());
         }
 
         @Test
@@ -198,7 +198,7 @@ class BlockRelationServiceTest {
             BlockedUsersResponse response = blockRelationService.getBlockedUsers(1L);
 
             assertEquals(0, response.getBlockedUsers().size());
-            verify(storageService, never()).getPublicUrl(any());
+            verify(storageService, never()).getPresignedUrl(any());
         }
     }
 

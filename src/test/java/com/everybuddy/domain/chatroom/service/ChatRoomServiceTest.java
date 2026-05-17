@@ -106,6 +106,7 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
             when(chatPartRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(chatRoomRepository.findActiveDirectChatRooms(1L, 2L)).thenReturn(List.of());
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
@@ -184,6 +185,34 @@ class ChatRoomServiceTest {
             verify(chatRoomRepository, never()).save(any());
             verify(chatPartRepository, never()).save(any());
             verify(chatPartRepository, never()).saveAll(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("1-I. createChatRoom() - 1:1방 idempotent")
+    class CreateChatRoomIdempotentCases {
+
+        @Test
+        @DisplayName("TC-1-I-1. 본인-상대 양쪽 active인 1:1방이 이미 있으면 기존 chatRoomId 반환 + save/이벤트 없음")
+        void returnExistingDirectChatRoom() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+            when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
+            ChatRoom existing = ChatRoom.createForTest(99L, "기존 1:1방", false);
+            when(chatRoomRepository.findActiveDirectChatRooms(1L, 2L)).thenReturn(List.of(existing));
+
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("새 이름", false, List.of(2L));
+            ChatRoomResponse response = chatRoomService.createChatRoom(1L, request);
+
+            assertAll(
+                    () -> assertEquals(99L, response.getChatRoomId()),
+                    () -> assertEquals("기존 1:1방", response.getRoomName()),
+                    () -> assertFalse(response.isGroup()),
+                    () -> assertTrue(response.getParticipantIds().containsAll(List.of(1L, 2L)))
+            );
+            verify(chatRoomRepository, never()).save(any());
+            verify(chatPartRepository, never()).save(any());
+            verify(chatPartRepository, never()).saveAll(any());
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 

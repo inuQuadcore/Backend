@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -53,13 +54,23 @@ public class ChatRoomService {
         validateParticipantsSizeByType(isGroup, request.getParticipantIds());
         List<User> participants = validateParticipants(request.getParticipantIds());
 
-        // 2. 저장
+        // 2. 1:1방 idempotent: 본인-상대 양쪽 모두 active인 1:1방이 있으면 그 방 반환
+        if (!isGroup) {
+            Long otherUserId = request.getParticipantIds().get(0);
+            Optional<ChatRoom> existing = chatRoomRepository
+                    .findActiveDirectChatRooms(creatorId, otherUserId).stream().findFirst();
+            if (existing.isPresent()) {
+                return ChatRoomResponse.from(existing.get(), List.of(creatorId, otherUserId));
+            }
+        }
+
+        // 3. 저장
         ChatRoom chatRoom = ChatRoom.create(request.getRoomName(), isGroup);
         chatRoom = chatRoomRepository.save(chatRoom);
 
         List<Long> allParticipantIds = saveAllParticipants(creator, chatRoom, participants);
 
-        // 3. Firebase: 커밋 성공 후 동기화
+        // 4. Firebase: 커밋 성공 후 동기화
         eventPublisher.publishEvent(ChatRoomCreatedEvent.of(chatRoom.getChatRoomId(), allParticipantIds));
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);

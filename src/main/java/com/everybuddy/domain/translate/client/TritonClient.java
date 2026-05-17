@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Component
 public class TritonClient {
@@ -111,20 +112,7 @@ public class TritonClient {
 
         HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
 
-        try {
-            ResponseEntity<TritonInferResponse> response = restTemplate.postForEntity(
-                    baseUrl + S2TT_MODEL, entity, TritonInferResponse.class
-            );
-            return response.getBody();
-        } catch (HttpStatusCodeException e) {
-            int status = e.getStatusCode().value();
-            if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
-            if (status == 400 || status == 404) throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
-            throw new CustomException(ErrorCode.MODEL_ERROR, e);
-        } catch (ResourceAccessException e) {
-            if (isReadTimeout(e)) throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
-            throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
-        }
+        return execute(() -> restTemplate.postForEntity(baseUrl + S2TT_MODEL, entity, TritonInferResponse.class));
     }
 
     public record SpeechTranslationResult(String sourceText, String translatedText) {}
@@ -134,24 +122,19 @@ public class TritonClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<TritonInferRequest> entity = new HttpEntity<>(request, headers);
 
+        return execute(() -> restTemplate.postForEntity(baseUrl + path, entity, TritonInferResponse.class));
+    }
+
+    private TritonInferResponse execute(Supplier<ResponseEntity<TritonInferResponse>> supplier) {
         try {
-            ResponseEntity<TritonInferResponse> response = restTemplate.postForEntity(
-                    baseUrl + path, entity, TritonInferResponse.class
-            );
-            return response.getBody();
+            return supplier.get().getBody();
         } catch (HttpStatusCodeException e) {
             int status = e.getStatusCode().value();
-            if (status == 503) {
-                throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
-            }
-            if (status == 400 || status == 404) {
-                throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
-            }
+            if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
+            if (status == 400 || status == 404) throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
             throw new CustomException(ErrorCode.MODEL_ERROR, e);
         } catch (ResourceAccessException e) {
-            if (isReadTimeout(e)) {
-                throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
-            }
+            if (isReadTimeout(e)) throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
             throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
         }
     }

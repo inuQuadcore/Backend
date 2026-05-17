@@ -33,6 +33,7 @@ public interface ChatRoomApiSpecification {
                     {
                         "chatRoomId": 1,
                         "roomName": "스터디 그룹",
+                        "isGroup": true,
                         "createdAt": "2026-01-12T10:30:00",
                         "participantIds": [1, 2, 3],
                         "unreadCount": null
@@ -104,15 +105,17 @@ public interface ChatRoomApiSpecification {
                         {
                             "chatRoomId": 1,
                             "roomName": "스터디 그룹",
+                            "isGroup": true,
                             "createdAt": "2026-01-12T10:30:00",
                             "participantIds": [1, 2, 3],
                             "unreadCount": 5
                         },
                         {
                             "chatRoomId": 2,
-                            "roomName": "프로젝트 팀",
+                            "roomName": "박영희",
+                            "isGroup": false,
                             "createdAt": "2026-01-11T15:20:00",
-                            "participantIds": [1, 4, 5],
+                            "participantIds": [1, 4],
                             "unreadCount": 0
                         }
                     ]
@@ -208,17 +211,25 @@ public interface ChatRoomApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "403", description = "초대자가 채팅방 참여자가 아님",
+                    responseCode = "403", description = "초대자가 채팅방 참여자가 아니거나 1:1 채팅방",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject("""
-                    {
-                        "code": 403,
-                        "name": "USER_NOT_IN_CHATROOM",
-                        "message": "해당 채팅방에 접근할 권한이 없습니다."
-                    }
-                    """
-                            )
+                            examples = {
+                                    @ExampleObject(name = "참여자 아님", value = """
+                                    {
+                                        "code": 403,
+                                        "name": "USER_NOT_IN_CHATROOM",
+                                        "message": "해당 채팅방에 접근할 권한이 없습니다."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "1:1 채팅방", value = """
+                                    {
+                                        "code": 403,
+                                        "name": "CANNOT_INVITE_TO_DIRECT",
+                                        "message": "1:1 채팅방에는 다른 사용자를 초대할 수 없습니다."
+                                    }
+                                    """)
+                            }
                     )
             ),
             @ApiResponse(

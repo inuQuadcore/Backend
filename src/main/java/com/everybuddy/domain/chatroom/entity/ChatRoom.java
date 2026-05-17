@@ -25,6 +25,9 @@ public class ChatRoom {
     @Column(nullable = false)
     private String roomName;
 
+    @Column(nullable = false)
+    private boolean isGroup;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -32,13 +35,15 @@ public class ChatRoom {
     private LocalDateTime deletedAt;
 
     @Builder
-    private ChatRoom(String roomName) {
+    private ChatRoom(String roomName, boolean isGroup) {
         this.roomName = roomName;
+        this.isGroup = isGroup;
     }
 
-    public static ChatRoom create(String roomName) {
+    public static ChatRoom create(String roomName, boolean isGroup) {
         return ChatRoom.builder()
                 .roomName(roomName)
+                .isGroup(isGroup)
                 .build();
     }
 
@@ -50,12 +55,8 @@ public class ChatRoom {
         return this.deletedAt != null;
     }
 
-    /**
-     * 테스트용 정적 팩토리 메서드
-     * chatRoomId를 명시적으로 설정할 수 있습니다.
-     */
-    public static ChatRoom createForTest(Long chatRoomId, String roomName) {
-        ChatRoom chatRoom = ChatRoom.create(roomName);
+    public static ChatRoom createForTest(Long chatRoomId, String roomName, boolean isGroup) {
+        ChatRoom chatRoom = ChatRoom.create(roomName, isGroup);
         chatRoom.chatRoomId = chatRoomId;
         return chatRoom;
     }

@@ -59,7 +59,7 @@ class ChatPushEventHandlerTest {
                 Country.KOREA, Gender.MALE, LocalDate.of(1991, 1, 1));
         recipient2 = User.createForTest(3L, "recipient2", "수신자2", "password",
                 Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
-        chatRoom = ChatRoom.createForTest(100L, "테스트방");
+        chatRoom = ChatRoom.createForTest(100L, "테스트방", true);
         message = Message.createForTest(500L, chatRoom, sender, MessageType.TEXT, "안녕하세요",
                 LocalDateTime.of(2026, 5, 5, 10, 0));
         content = NotificationContent.of("발신자", "안녕하세요");

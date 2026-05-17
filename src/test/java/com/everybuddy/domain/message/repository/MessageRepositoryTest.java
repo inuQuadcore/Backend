@@ -47,7 +47,7 @@ class MessageRepositoryTest {
     void setUp() {
         user = userRepository.save(User.createForTest(null, "loginA", "A", "pw",
                 Country.KOREA, Gender.MALE, LocalDate.of(2000, 1, 1)));
-        chatRoom = chatRoomRepository.save(ChatRoom.create("test room"));
+        chatRoom = chatRoomRepository.save(ChatRoom.create("test room", true));
     }
 
     private Message saveMessage(String content) {

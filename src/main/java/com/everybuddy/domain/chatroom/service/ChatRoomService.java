@@ -52,7 +52,8 @@ public class ChatRoomService {
         List<User> participants = validateParticipants(request.getParticipantIds());
 
         // 2. 저장
-        ChatRoom chatRoom = ChatRoom.create(request.getRoomName());
+        boolean isGroup = request.getParticipantIds().size() >= 2;
+        ChatRoom chatRoom = ChatRoom.create(request.getRoomName(), isGroup);
         chatRoom = chatRoomRepository.save(chatRoom);
 
         List<Long> allParticipantIds = saveAllParticipants(creator, chatRoom, participants);
@@ -69,6 +70,9 @@ public class ChatRoomService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CHATROOM_NOT_FOUND));
         if (chatRoom.isDeleted()) {
             throw new CustomException(ErrorCode.CHATROOM_DELETED);
+        }
+        if (!chatRoom.isGroup()) {
+            throw new CustomException(ErrorCode.CANNOT_INVITE_TO_DIRECT);
         }
 
         if (!chatPartRepository.existsByUserIdAndChatRoomId(inviterId, chatRoomId)) {

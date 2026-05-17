@@ -18,6 +18,9 @@ public class ChatRoomResponse {
     @Schema(description = "채팅방 이름", example = "스터디 그룹")
     private final String roomName;
 
+    @Schema(description = "그룹 채팅 여부 (false: 1:1, true: 그룹). 생성 시점에 결정되며 lifecycle 동안 불변.", example = "true")
+    private final boolean isGroup;
+
     @Schema(description = "생성 시간", example = "2026-01-12T10:30:00")
     private final LocalDateTime createdAt;
 
@@ -28,10 +31,11 @@ public class ChatRoomResponse {
     private final Long unreadCount;
 
     @Builder
-    private ChatRoomResponse(Long chatRoomId, String roomName, LocalDateTime createdAt,
+    private ChatRoomResponse(Long chatRoomId, String roomName, boolean isGroup, LocalDateTime createdAt,
                              List<Long> participantIds, Long unreadCount) {
         this.chatRoomId = chatRoomId;
         this.roomName = roomName;
+        this.isGroup = isGroup;
         this.createdAt = createdAt;
         this.participantIds = participantIds;
         this.unreadCount = unreadCount;
@@ -41,6 +45,7 @@ public class ChatRoomResponse {
         return ChatRoomResponse.builder()
                 .chatRoomId(chatRoom.getChatRoomId())
                 .roomName(chatRoom.getRoomName())
+                .isGroup(chatRoom.isGroup())
                 .createdAt(chatRoom.getCreatedAt())
                 .participantIds(participantIds)
                 .build();
@@ -50,6 +55,7 @@ public class ChatRoomResponse {
         return ChatRoomResponse.builder()
                 .chatRoomId(chatRoom.getChatRoomId())
                 .roomName(chatRoom.getRoomName())
+                .isGroup(chatRoom.isGroup())
                 .createdAt(chatRoom.getCreatedAt())
                 .participantIds(participantIds)
                 .unreadCount(unreadCount)

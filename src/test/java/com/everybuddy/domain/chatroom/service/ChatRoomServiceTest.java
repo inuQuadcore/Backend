@@ -83,7 +83,7 @@ class ChatRoomServiceTest {
                 Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
         deletedUser.softDelete();
 
-        chatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");
+        chatRoom = ChatRoom.createForTest(1L, "테스트 채팅방", true);
     }
 
     @Nested
@@ -95,7 +95,7 @@ class ChatRoomServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(chatRoomRepository.save(any(ChatRoom.class))).thenAnswer(invocation -> {
                 ChatRoom input = invocation.getArgument(0);
-                return ChatRoom.createForTest(1L, input.getRoomName());
+                return ChatRoom.createForTest(1L, input.getRoomName(), input.isGroup());
             });
             when(chatPartRepository.save(any(ChatPart.class))).thenAnswer(invocation -> invocation.getArgument(0));
         }
@@ -115,6 +115,7 @@ class ChatRoomServiceTest {
             assertAll(
                     () -> assertEquals(1L, response.getChatRoomId()),
                     () -> assertEquals("테스트방", response.getRoomName()),
+                    () -> assertFalse(response.isGroup()),
                     () -> assertEquals(2, response.getParticipantIds().size()),
                     () -> assertTrue(response.getParticipantIds().containsAll(List.of(1L, 2L)))
             );
@@ -123,6 +124,7 @@ class ChatRoomServiceTest {
             ArgumentCaptor<ChatRoom> chatRoomCaptor = ArgumentCaptor.forClass(ChatRoom.class);
             verify(chatRoomRepository).save(chatRoomCaptor.capture());
             assertEquals("테스트방", chatRoomCaptor.getValue().getRoomName());
+            assertFalse(chatRoomCaptor.getValue().isGroup());
 
             // ChatPart (creator) 저장 값 검증
             ArgumentCaptor<ChatPart> chatPartCaptor = ArgumentCaptor.forClass(ChatPart.class);
@@ -171,6 +173,7 @@ class ChatRoomServiceTest {
             assertAll(
                     () -> assertEquals(1L, response.getChatRoomId()),
                     () -> assertEquals("테스트방", response.getRoomName()),
+                    () -> assertTrue(response.isGroup()),
                     () -> assertEquals(3, response.getParticipantIds().size()),
                     () -> assertTrue(response.getParticipantIds().containsAll(List.of(1L, 2L, 3L)))
             );
@@ -305,8 +308,8 @@ class ChatRoomServiceTest {
         @DisplayName("TC-4-3. 참여 중인 채팅방이 여러 개")
         void multipleChatRooms() {
             // given
-            ChatRoom chatRoom2 = ChatRoom.createForTest(2L, "채팅방2");
-            ChatRoom chatRoom3 = ChatRoom.createForTest(3L, "채팅방3");
+            ChatRoom chatRoom2 = ChatRoom.createForTest(2L, "채팅방2", true);
+            ChatRoom chatRoom3 = ChatRoom.createForTest(3L, "채팅방3", true);
 
             when(chatPartRepository.findByUserIdWithChatRoom(1L))
                     .thenReturn(List.of(
@@ -533,6 +536,21 @@ class ChatRoomServiceTest {
                     () -> chatRoomService.inviteMembers(1L, 1L, request));
 
             assertEquals(ErrorCode.USER_DELETED, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
+        }
+
+        @Test
+        @DisplayName("TC-4-8. 1:1 채팅방에 초대 시도 → CANNOT_INVITE_TO_DIRECT")
+        void inviteToDirectChatRoomFails() {
+            InviteMembersRequest request = InviteMembersRequest.ofForTest(List.of(2L));
+            ChatRoom directChatRoom = ChatRoom.createForTest(10L, "1:1방", false);
+            when(chatRoomRepository.findById(10L)).thenReturn(Optional.of(directChatRoom));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.inviteMembers(1L, 10L, request));
+
+            assertEquals(ErrorCode.CANNOT_INVITE_TO_DIRECT, ex.getErrorCode());
+            verify(chatPartRepository, never()).save(any(ChatPart.class));
             verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
         }
     }

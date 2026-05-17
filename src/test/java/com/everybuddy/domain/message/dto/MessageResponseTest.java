@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DisplayName("MessageResponse 단위 테스트")
 class MessageResponseTest {
 
-    private static final ChatRoom CHAT_ROOM = ChatRoom.createForTest(10L, "방");
+    private static final ChatRoom CHAT_ROOM = ChatRoom.createForTest(10L, "방", true);
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 16, 12, 0);
 
     @Test

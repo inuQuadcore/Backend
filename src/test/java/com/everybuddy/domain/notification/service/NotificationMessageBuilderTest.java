@@ -29,7 +29,7 @@ class NotificationMessageBuilderTest {
 
     private final User sender = User.createForTest(1L, "user1", "홍길동", "password",
             Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
-    private final ChatRoom chatRoom = ChatRoom.createForTest(100L, "테스트방");
+    private final ChatRoom chatRoom = ChatRoom.createForTest(100L, "테스트방", true);
 
     @Test
     @DisplayName("친구추가 알림 본문은 '<이름>님이 친구로 추가했어요.' 형식")

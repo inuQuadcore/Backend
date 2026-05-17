@@ -74,7 +74,7 @@ class MessageServiceTest {
         testUser = User.createForTest(1L, "testuser", "테스트유저", "password",
                 Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
 
-        testChatRoom = ChatRoom.createForTest(1L, "테스트 채팅방");
+        testChatRoom = ChatRoom.createForTest(1L, "테스트 채팅방", true);
 
         textRequest = ChatMessageRequest.ofForTest(1L, "안녕하세요");
     }

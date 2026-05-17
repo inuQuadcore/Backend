@@ -15,16 +15,21 @@ public class UserLanguageResponse {
     @Schema(description = "언어 수준 (1~5)", example = "3")
     private final int level;
 
+    @Schema(description = "주 언어 여부. 한 명당 정확히 하나만 true.", example = "false")
+    private final boolean isPrimary;
+
     @Builder
-    private UserLanguageResponse(String language, int level) {
+    private UserLanguageResponse(String language, int level, boolean isPrimary) {
         this.language = language;
         this.level = level;
+        this.isPrimary = isPrimary;
     }
 
     public static UserLanguageResponse from(UserLanguage userLanguage) {
         return UserLanguageResponse.builder()
                 .language(userLanguage.getLanguage().name())
                 .level(userLanguage.getLevel())
+                .isPrimary(userLanguage.isPrimary())
                 .build();
     }
 }

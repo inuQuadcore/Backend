@@ -32,7 +32,7 @@ public interface FriendApiSpecification {
                                 "country": "KOREA",
                                 "bio": "안녕하세요!",
                                 "languages": [
-                                    { "language": "ENGLISH", "level": 3 }
+                                    { "language": "ENGLISH", "level": 3, "isPrimary": false }
                                 ],
                                 "tags": [
                                     { "tag": "WORKOUT", "category": "HOBBY" }

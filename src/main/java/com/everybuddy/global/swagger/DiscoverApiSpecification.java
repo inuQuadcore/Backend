@@ -33,7 +33,7 @@ public interface DiscoverApiSpecification {
                                 "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/2.jpg",
                                 "country": "KOREA",
                                 "bio": "반갑습니다!",
-                                "languages": [{ "language": "ENGLISH", "level": 3 }],
+                                "languages": [{ "language": "ENGLISH", "level": 3, "isPrimary": false }],
                                 "tags": [{ "tag": "WORKOUT", "category": "HOBBY" }],
                                 "lastSeenAt": "2024-03-01T12:00:00"
                             }
@@ -72,7 +72,7 @@ public interface DiscoverApiSpecification {
                                 "profileImageUrl": null,
                                 "country": "JAPAN",
                                 "bio": "일본어 배우고 싶어요",
-                                "languages": [{ "language": "JAPANESE", "level": 5 }],
+                                "languages": [{ "language": "JAPANESE", "level": 5, "isPrimary": true }],
                                 "tags": [{ "tag": "TRAVEL", "category": "HOBBY" }],
                                 "lastSeenAt": "2024-03-01T10:00:00"
                             }

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
@@ -135,5 +136,42 @@ public interface ChatRoomApiSpecification {
     })
     ResponseEntity<List<ChatRoomResponse>> getMyChatRooms(
             @AuthenticationPrincipal UserDetailsImpl userDetails
+    );
+
+    @Operation(summary = "채팅방 나가기", description = "내가 해당 채팅방에서 나갑니다. 다른 참여자는 그대로 유지되고 채팅방 자체도 남습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "채팅방 나가기 성공"),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403", description = "채팅방 참여자가 아님",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 403,
+                        "name": "USER_NOT_IN_CHATROOM",
+                        "message": "채팅방에 참여하고 있지 않습니다."
+                    }
+                    """
+                            )
+                    )
+            )
+    })
+    ResponseEntity<Void> leaveChatRoom(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long chatRoomId
     );
 }

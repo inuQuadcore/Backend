@@ -5,6 +5,7 @@ import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
+import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
@@ -355,6 +356,43 @@ class ChatRoomServiceTest {
                     () -> assertEquals(3L, responses.get(0).getUnreadCount())
             );
             verify(messageRepository).countUnreadMessages(1L, 10L);
+        }
+    }
+
+    @Nested
+    @DisplayName("3. leaveChatRoom() 테스트")
+    class LeaveChatRoomCases {
+
+        @Test
+        @DisplayName("TC-3-1. 채팅방 나가기 성공 → ChatPart inactive + ChatRoomLeftEvent 발행")
+        void leaveSuccess() {
+            ChatPart chatPart = ChatPart.create(creator, chatRoom);
+            when(chatPartRepository.findByUserIdAndChatRoomId(1L, 1L)).thenReturn(Optional.of(chatPart));
+
+            chatRoomService.leaveChatRoom(1L, 1L);
+
+            assertAll(
+                    () -> assertFalse(chatPart.isActive()),
+                    () -> assertNotNull(chatPart.getExitChatRoomAt())
+            );
+            ArgumentCaptor<ChatRoomLeftEvent> eventCaptor = ArgumentCaptor.forClass(ChatRoomLeftEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertAll(
+                    () -> assertEquals(1L, eventCaptor.getValue().getChatRoomId()),
+                    () -> assertEquals(1L, eventCaptor.getValue().getUserId())
+            );
+        }
+
+        @Test
+        @DisplayName("TC-3-2. 채팅방 참여자가 아님 → USER_NOT_IN_CHATROOM, 이벤트 미발행")
+        void leaveFailNotParticipant() {
+            when(chatPartRepository.findByUserIdAndChatRoomId(1L, 1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.leaveChatRoom(1L, 1L));
+
+            assertEquals(ErrorCode.USER_NOT_IN_CHATROOM, ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any(ChatRoomLeftEvent.class));
         }
     }
 }

@@ -2,6 +2,7 @@ package com.everybuddy.global.firebase;
 
 import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatroom.event.ChatRoomCreatedEvent;
+import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
 import com.everybuddy.domain.message.dto.ChatRoomMetadata;
 import com.everybuddy.domain.message.dto.FirebaseChatMessage;
 import com.everybuddy.domain.message.entity.Message;
@@ -65,6 +66,17 @@ public class ChatRtdbEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatRoomCreated(ChatRoomCreatedEvent event) {
         saveParticipantsToFirebase(event.getChatRoomId(), event.getParticipantIds());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleChatRoomLeft(ChatRoomLeftEvent event) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("users/" + event.getUserId() + "/chatrooms/" + event.getChatRoomId(), null);
+        updates.put("chatrooms/" + event.getChatRoomId() + "/participants/" + event.getUserId(), null);
+        addFirebaseCallback(
+                firebaseDatabase.getReference().updateChildrenAsync(updates),
+                "채팅방 나가기 RTDB 정리 userId=" + event.getUserId() + " chatRoomId=" + event.getChatRoomId()
+        );
     }
 
     private void saveMessageToFirebase(Message message) {

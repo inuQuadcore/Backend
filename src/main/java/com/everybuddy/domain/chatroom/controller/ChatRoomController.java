@@ -37,4 +37,13 @@ public class ChatRoomController implements ChatRoomApiSpecification {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{chatRoomId}/participants/me")
+    public ResponseEntity<Void> leaveChatRoom(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long chatRoomId) {
+
+        chatRoomService.leaveChatRoom(userDetails.getUserId(), chatRoomId);
+        return ResponseEntity.noContent().build();
+    }
+
 }

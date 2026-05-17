@@ -66,4 +66,9 @@ public class ChatPart {
         this.lastReadMessage = message;
         this.lastReadAt = LocalDateTime.now();
     }
+
+    public void leave() {
+        this.active = false;
+        this.exitChatRoomAt = LocalDateTime.now();
+    }
 }

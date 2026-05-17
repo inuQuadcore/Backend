@@ -6,6 +6,7 @@ import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.entity.ChatRoom;
 import com.everybuddy.domain.chatroom.event.ChatRoomCreatedEvent;
+import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
@@ -56,6 +57,16 @@ public class ChatRoomService {
         eventPublisher.publishEvent(ChatRoomCreatedEvent.of(chatRoom.getChatRoomId(), allParticipantIds));
 
         return ChatRoomResponse.from(chatRoom, allParticipantIds);
+    }
+
+    @Transactional
+    public void leaveChatRoom(Long userId, Long chatRoomId) {
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_IN_CHATROOM));
+
+        chatPart.leave();
+
+        eventPublisher.publishEvent(ChatRoomLeftEvent.of(chatRoomId, userId));
     }
 
     @Transactional(readOnly = true)

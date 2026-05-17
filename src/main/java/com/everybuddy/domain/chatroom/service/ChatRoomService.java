@@ -49,10 +49,11 @@ public class ChatRoomService {
             throw new CustomException(ErrorCode.USER_DELETED);
         }
 
+        boolean isGroup = request.getIsGroup();
+        validateParticipantsSizeByType(isGroup, request.getParticipantIds());
         List<User> participants = validateParticipants(request.getParticipantIds());
 
         // 2. 저장
-        boolean isGroup = request.getParticipantIds().size() >= 2;
         ChatRoom chatRoom = ChatRoom.create(request.getRoomName(), isGroup);
         chatRoom = chatRoomRepository.save(chatRoom);
 
@@ -132,6 +133,12 @@ public class ChatRoomService {
         Map<Long, List<Long>> participantsMap = findParticipantsMapByChatRooms(myChatParts);
 
         return buildChatRoomResponses(myChatParts, participantsMap);
+    }
+
+    private void validateParticipantsSizeByType(boolean isGroup, List<Long> participantIds) {
+        if (!isGroup && participantIds.size() != 1) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 
     private List<User> validateParticipants(List<Long> participantIds) {

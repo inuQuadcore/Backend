@@ -109,7 +109,7 @@ class ChatRoomServiceTest {
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
-                    CreateChatRoomRequest.ofForTest("테스트방", List.of(2L)));
+                    CreateChatRoomRequest.ofForTest("테스트방", false, List.of(2L)));
 
             // then
             assertAll(
@@ -139,26 +139,6 @@ class ChatRoomServiceTest {
         }
 
         @Test
-        @DisplayName("TC-1-2. participantIds가 빈 리스트 (생성자만 참여)")
-        void createChatRoomWithNoOtherParticipants() {
-            // given: participantIds가 빈 리스트 → validateParticipants가 바로 List.of() 반환
-            // when
-            ChatRoomResponse response = chatRoomService.createChatRoom(1L,
-                    CreateChatRoomRequest.ofForTest("테스트방", List.of()));
-
-            // then
-            assertAll(
-                    () -> assertEquals(1, response.getParticipantIds().size()),
-                    () -> assertTrue(response.getParticipantIds().contains(1L))
-            );
-            ArgumentCaptor<ChatPart> chatPartCaptor = ArgumentCaptor.forClass(ChatPart.class);
-            verify(chatPartRepository).save(chatPartCaptor.capture());
-            assertEquals(1L, chatPartCaptor.getValue().getUser().getUserId());
-            verify(userRepository, never()).findAllById(any());
-            verify(chatPartRepository, never()).saveAll(any());
-        }
-
-        @Test
         @DisplayName("TC-1-3. participantIds에 여러 명 포함")
         void createChatRoomWithMultipleParticipants() {
             // given
@@ -167,7 +147,7 @@ class ChatRoomServiceTest {
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
-                    CreateChatRoomRequest.ofForTest("테스트방", List.of(2L, 3L)));
+                    CreateChatRoomRequest.ofForTest("테스트방", true, List.of(2L, 3L)));
 
             // then
             assertAll(
@@ -188,6 +168,26 @@ class ChatRoomServiceTest {
     }
 
     @Nested
+    @DisplayName("1-V. createChatRoom() - 입력 검증")
+    class CreateChatRoomValidationCases {
+
+        @Test
+        @DisplayName("TC-1-V-1. isGroup=false인데 participantIds 2명 이상 → INVALID_INPUT_VALUE")
+        void createDirectChatRoomWithTooManyParticipants() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", false, List.of(2L, 3L));
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> chatRoomService.createChatRoom(1L, request));
+
+            assertEquals(ErrorCode.INVALID_INPUT_VALUE, ex.getErrorCode());
+            verify(chatRoomRepository, never()).save(any());
+            verify(chatPartRepository, never()).save(any());
+            verify(chatPartRepository, never()).saveAll(any());
+        }
+    }
+
+    @Nested
     @DisplayName("2. createChatRoom() - 엔티티 조회 실패")
     class CreateChatRoomEntityNotFoundCases {
 
@@ -196,7 +196,7 @@ class ChatRoomServiceTest {
         void creatorNotFound() {
             // given
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
-            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", false, List.of(2L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -212,7 +212,7 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 999L))).thenReturn(List.of(participant1));
-            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L, 999L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", true, List.of(2L, 999L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -232,7 +232,7 @@ class ChatRoomServiceTest {
         void deletedUserCannotCreateChatRoom() {
             // given
             when(userRepository.findById(4L)).thenReturn(Optional.of(deletedUser));
-            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", false, List.of(2L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,
@@ -248,7 +248,7 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L, 4L))).thenReturn(List.of(participant1, deletedUser));
-            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", List.of(2L, 4L));
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("테스트방", true, List.of(2L, 4L));
 
             // when & then
             CustomException ex = assertThrows(CustomException.class,

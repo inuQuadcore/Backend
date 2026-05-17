@@ -43,21 +43,30 @@ public interface ChatRoomApiSpecification {
                     )
             ),
             @ApiResponse(
-                    responseCode = "400", description = "잘못된 입력",
+                    responseCode = "400", description = "잘못된 입력 / 1:1방 참여자 수 위반",
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject("""
-                    {
-                        "code": 400,
-                        "name": "INVALID_INPUT_VALUE",
-                        "message": "잘못된 입력입니다.",
-                        "errors": {
-                            "roomName": "채팅방 이름을 입력해주세요.",
-                            "participantIds": "채팅방 참여자를 선택해주세요."
-                        }
-                    }
-                    """
-                            )
+                            examples = {
+                                    @ExampleObject(name = "필수 필드 누락", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다.",
+                                        "errors": {
+                                            "roomName": "채팅방 이름을 입력해주세요.",
+                                            "isGroup": "채팅방 종류를 선택해주세요.",
+                                            "participantIds": "채팅방 참여자를 선택해주세요."
+                                        }
+                                    }
+                                    """),
+                                    @ExampleObject(name = "1:1방 참여자 수 위반", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다."
+                                    }
+                                    """)
+                            }
                     )
             ),
             @ApiResponse(

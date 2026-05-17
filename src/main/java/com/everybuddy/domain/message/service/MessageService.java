@@ -261,7 +261,7 @@ public class MessageService {
 
     private String resolveFileUrl(Message message) {
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
-            return storageService.getPublicUrl(message.getMedia().getFileKey());
+            return storageService.getPresignedUrl(message.getMedia().getFileKey());
         }
         return null;
     }

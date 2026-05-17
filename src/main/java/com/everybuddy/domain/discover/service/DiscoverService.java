@@ -121,6 +121,6 @@ public class DiscoverService {
     }
 
     private String resolveProfileImageUrl(String profileKey) {
-        return profileKey != null ? storageService.getPublicUrl(profileKey) : null;
+        return profileKey != null ? storageService.getPresignedUrl(profileKey) : null;
     }
 }

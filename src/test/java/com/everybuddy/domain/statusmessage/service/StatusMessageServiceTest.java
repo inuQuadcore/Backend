@@ -233,7 +233,7 @@ class StatusMessageServiceTest {
             StatusMessage statusMessage = StatusMessage.createForTest(
                     10L, user, "오늘 기분 좋다", LocalDateTime.now().minusMinutes(30));
             when(statusMessageRepository.findByUserIdWithUser(1L)).thenReturn(Optional.of(statusMessage));
-            when(storageService.getPublicUrl("profiles/user-1/img.jpg")).thenReturn("https://cdn.example.com/img.jpg");
+            when(storageService.getPresignedUrl("profiles/user-1/img.jpg")).thenReturn("https://cdn.example.com/img.jpg");
 
             MyStatusMessageResponse response = statusMessageService.getMyStatusMessage(1L);
 
@@ -255,7 +255,7 @@ class StatusMessageServiceTest {
             MyStatusMessageResponse response = statusMessageService.getMyStatusMessage(1L);
 
             assertNull(response.getProfileImageUrl());
-            verify(storageService, never()).getPublicUrl(any());
+            verify(storageService, never()).getPresignedUrl(any());
         }
     }
 

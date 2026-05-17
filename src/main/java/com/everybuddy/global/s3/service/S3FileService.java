@@ -109,7 +109,7 @@ public class S3FileService implements StorageService {
      * @return 서명된 임시 URL
      */
     @Override
-    public String getPublicUrl(String fileKey) {
+    public String getPresignedUrl(String fileKey) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileKey)

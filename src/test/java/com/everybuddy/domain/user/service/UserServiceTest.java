@@ -140,7 +140,7 @@ class UserServiceTest {
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage)).thenReturn("profiles/user-1/new.jpg");
-            when(storageService.getPublicUrl("profiles/user-1/new.jpg")).thenReturn("https://s3.example.com/profiles/user-1/new.jpg");
+            when(storageService.getPresignedUrl("profiles/user-1/new.jpg")).thenReturn("https://s3.example.com/profiles/user-1/new.jpg");
 
             // when
             UserProfileResponse response = userService.updateProfile(1L, request, profileImage);
@@ -161,7 +161,7 @@ class UserServiceTest {
             MultipartFile profileImage = mock(MultipartFile.class);
             when(profileImage.isEmpty()).thenReturn(false);
             when(storageService.uploadProfileImage(1L, profileImage)).thenReturn("profiles/user-1/new.jpg");
-            when(storageService.getPublicUrl("profiles/user-1/new.jpg")).thenReturn("https://s3.example.com/profiles/user-1/new.jpg");
+            when(storageService.getPresignedUrl("profiles/user-1/new.jpg")).thenReturn("https://s3.example.com/profiles/user-1/new.jpg");
 
             // when
             UserProfileResponse response = userService.updateProfile(1L, request, profileImage);

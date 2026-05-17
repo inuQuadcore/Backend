@@ -24,12 +24,15 @@ public class NotificationMessageBuilder {
     }
 
     private String buildChatBody(Message message) {
+        if (message.isDeleted()) {
+            return "삭제된 메시지입니다";
+        }
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
             return switch (message.getMedia().getMediaType()) {
-                case IMAGE -> "📷 사진";
-                case VIDEO -> "🎥 동영상";
-                case AUDIO -> "🎤 음성";
-                case DOCUMENT -> "📎 파일";
+                case IMAGE -> "사진을 보냈습니다.";
+                case VIDEO -> "동영상을 보냈습니다.";
+                case AUDIO -> "음성을 보냈습니다.";
+                case DOCUMENT -> "파일을 보냈습니다.";
             };
         }
         return message.getContent();

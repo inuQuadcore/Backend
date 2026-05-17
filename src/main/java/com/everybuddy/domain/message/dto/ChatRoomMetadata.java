@@ -1,6 +1,5 @@
 package com.everybuddy.domain.message.dto;
 
-import com.everybuddy.domain.media.entity.MediaType;
 import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.entity.MessageType;
 import lombok.Builder;
@@ -36,14 +35,7 @@ public class ChatRoomMetadata {
                 .build();
     }
 
-    public static String getLastMessageDisplay(Message message) {
-        if (message.isDeleted()) {
-            return "삭제된 메시지입니다";
-        }
-        return getActiveLastMessageDisplay(message);
-    }
-
-    private static String getActiveLastMessageDisplay(Message message) {
+    private static String getLastMessageDisplay(Message message) {
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
             return switch (message.getMedia().getMediaType()) {
                 case IMAGE -> "사진을 보냈습니다.";

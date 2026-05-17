@@ -74,10 +74,10 @@ class NotificationMessageBuilderTest {
 
     private static Stream<Arguments> mediaTypeBodyProvider() {
         return Stream.of(
-                Arguments.of(MediaType.IMAGE, "📷 사진"),
-                Arguments.of(MediaType.VIDEO, "🎥 동영상"),
-                Arguments.of(MediaType.AUDIO, "🎤 음성"),
-                Arguments.of(MediaType.DOCUMENT, "📎 파일")
+                Arguments.of(MediaType.IMAGE, "사진을 보냈습니다."),
+                Arguments.of(MediaType.VIDEO, "동영상을 보냈습니다."),
+                Arguments.of(MediaType.AUDIO, "음성을 보냈습니다."),
+                Arguments.of(MediaType.DOCUMENT, "파일을 보냈습니다.")
         );
     }
 }

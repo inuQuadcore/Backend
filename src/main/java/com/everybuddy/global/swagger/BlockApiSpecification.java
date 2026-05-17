@@ -1,5 +1,6 @@
 package com.everybuddy.global.swagger;
 
+import com.everybuddy.domain.friendrelation.dto.BlockedUsersResponse;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -123,5 +124,58 @@ public interface BlockApiSpecification {
     ResponseEntity<Void> unblock(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long userId
+    );
+
+    @Operation(summary = "차단 목록 조회", description = "내가 차단한 유저 목록을 최근 차단순으로 조회합니다. 탈퇴한 유저는 제외됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "차단 목록 조회 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = BlockedUsersResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "blockedUsers": [
+                            {
+                                "userId": 3,
+                                "name": "홍길동",
+                                "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/3.jpg"
+                            },
+                            {
+                                "userId": 2,
+                                "name": "김철수",
+                                "profileImageUrl": null
+                            }
+                        ]
+                    }
+                    """)
+                    )),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404", description = "유저를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 404,
+                        "name": "USER_NOT_FOUND",
+                        "message": "해당 유저를 찾을 수 없습니다."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<BlockedUsersResponse> getBlockedUsers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
     );
 }

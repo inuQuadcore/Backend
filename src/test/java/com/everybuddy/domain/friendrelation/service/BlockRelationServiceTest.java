@@ -1,5 +1,7 @@
 package com.everybuddy.domain.friendrelation.service;
 
+import com.everybuddy.domain.friendrelation.dto.BlockedUserResponse;
+import com.everybuddy.domain.friendrelation.dto.BlockedUsersResponse;
 import com.everybuddy.domain.friendrelation.entity.BlockRelation;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
@@ -9,6 +11,7 @@ import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.s3.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,12 +37,14 @@ class BlockRelationServiceTest {
     @Mock private BlockRelationRepository blockRelationRepository;
     @Mock private FriendRelationRepository friendRelationRepository;
     @Mock private UserRepository userRepository;
+    @Mock private StorageService storageService;
 
     @InjectMocks
     private BlockRelationService blockRelationService;
 
     private User userA;
     private User userB;
+    private User userC;
     private User deletedUser;
 
     @BeforeEach
@@ -47,6 +53,8 @@ class BlockRelationServiceTest {
                 Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
         userB = User.createForTest(2L, "userB", "유저B", "password",
                 Country.KOREA, Gender.FEMALE, LocalDate.of(1992, 1, 1));
+        userC = User.createForTest(4L, "userC", "유저C", "password",
+                Country.KOREA, Gender.MALE, LocalDate.of(1993, 1, 1));
         deletedUser = User.createForTest(3L, "deleted", "탈퇴유저", "password",
                 Country.KOREA, Gender.MALE, LocalDate.of(1995, 1, 1));
         deletedUser.softDelete();
@@ -146,6 +154,68 @@ class BlockRelationServiceTest {
 
             assertEquals(ErrorCode.BLOCK_NOT_FOUND, ex.getErrorCode());
             verify(blockRelationRepository, never()).deleteBlock(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("5. getBlockedUsers() - 성공")
+    class GetBlockedUsersSuccessCases {
+
+        @Test
+        @DisplayName("TC-5-1. 차단한 유저 여러 명 → 최근 차단순 + profileImageUrl 매핑")
+        void successWithBlockedUsers() {
+            userC.updateProfile(null, null, null, null, null, "profile/4.jpg");
+            BlockRelation recentBlock = BlockRelation.of(userA, userC);
+            BlockRelation oldBlock = BlockRelation.of(userA, userB);
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
+            when(blockRelationRepository.findAllBlockedUsers(1L))
+                    .thenReturn(List.of(recentBlock, oldBlock));
+            when(storageService.getPublicUrl("profile/4.jpg"))
+                    .thenReturn("https://everybuddy.s3.amazonaws.com/profile/4.jpg");
+
+            BlockedUsersResponse response = blockRelationService.getBlockedUsers(1L);
+
+            List<BlockedUserResponse> users = response.getBlockedUsers();
+            assertAll(
+                    () -> assertEquals(2, users.size()),
+                    () -> assertEquals(4L, users.get(0).getUserId()),
+                    () -> assertEquals("유저C", users.get(0).getName()),
+                    () -> assertEquals("https://everybuddy.s3.amazonaws.com/profile/4.jpg", users.get(0).getProfileImageUrl()),
+                    () -> assertEquals(2L, users.get(1).getUserId()),
+                    () -> assertEquals("유저B", users.get(1).getName()),
+                    () -> assertNull(users.get(1).getProfileImageUrl())
+            );
+            verify(storageService, never()).getPublicUrl(isNull());
+        }
+
+        @Test
+        @DisplayName("TC-5-2. 차단한 유저 없음 → 빈 리스트 반환")
+        void successWithEmptyList() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
+            when(blockRelationRepository.findAllBlockedUsers(1L)).thenReturn(List.of());
+
+            BlockedUsersResponse response = blockRelationService.getBlockedUsers(1L);
+
+            assertEquals(0, response.getBlockedUsers().size());
+            verify(storageService, never()).getPublicUrl(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("6. getBlockedUsers() - 실패")
+    class GetBlockedUsersFailCases {
+
+        @Test
+        @DisplayName("TC-6-1. 로그인 유저가 존재하지 않음 → USER_NOT_FOUND")
+        void failUserNotFound() {
+            when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+            CustomException ex = assertThrows(CustomException.class,
+                    () -> blockRelationService.getBlockedUsers(1L));
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            verify(blockRelationRepository, never()).findAllBlockedUsers(any());
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.everybuddy.domain.friendrelation.controller;
 
+import com.everybuddy.domain.friendrelation.dto.BlockedUsersResponse;
 import com.everybuddy.domain.friendrelation.service.BlockRelationService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.BlockApiSpecification;
@@ -31,5 +32,12 @@ public class BlockRelationController implements BlockApiSpecification {
 
         blockRelationService.unblock(userDetails.getUserId(), userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<BlockedUsersResponse> getBlockedUsers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        return ResponseEntity.ok(blockRelationService.getBlockedUsers(userDetails.getUserId()));
     }
 }

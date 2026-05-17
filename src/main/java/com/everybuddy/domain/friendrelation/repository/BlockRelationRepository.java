@@ -30,4 +30,11 @@ public interface BlockRelationRepository extends JpaRepository<BlockRelation, Lo
             "FROM BlockRelation br " +
             "WHERE br.blockerUser.userId = :userId OR br.blockedUser.userId = :userId")
     List<Long> findBlockRelatedUserIds(@Param("userId") Long userId);
+
+    @Query("SELECT br FROM BlockRelation br " +
+            "JOIN FETCH br.blockedUser " +
+            "WHERE br.blockerUser.userId = :blockerUserId " +
+            "AND br.blockedUser.deletedAt IS NULL " +
+            "ORDER BY br.blockRelationId DESC")
+    List<BlockRelation> findAllBlockedUsers(@Param("blockerUserId") Long blockerUserId);
 }

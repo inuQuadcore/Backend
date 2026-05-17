@@ -23,7 +23,11 @@ import java.util.List;
 @Tag(name = "채팅방 API", description = "채팅방 생성 및 조회 기능")
 public interface ChatRoomApiSpecification {
 
-    @Operation(summary = "채팅방 생성", description = "새로운 채팅방을 생성하고 참여자를 초대합니다.")
+    @Operation(summary = "채팅방 생성", description = """
+            새로운 채팅방을 생성하고 참여자를 초대합니다.
+
+            **1:1방 idempotent**: `isGroup=false`이면서 본인-상대 양쪽 모두 active한 1:1방이 이미 있으면 새로 생성하지 않고 기존 chatRoomId를 반환합니다(200). 한쪽이라도 나간 상태(inactive)면 새 방을 생성합니다. 그룹방(`isGroup=true`)은 항상 새 채팅방 생성.
+            """)
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "채팅방 생성 성공",

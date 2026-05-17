@@ -170,7 +170,21 @@ public interface MessageApiSpecification {
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200", description = "메시지 수정 성공",
-                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
+                    content = @Content(
+                            schema = @Schema(implementation = MessageResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "messageId": 5,
+                        "userId": 2,
+                        "userName": "김철수",
+                        "messageType": "TEXT",
+                        "content": "수정된 내용",
+                        "statusPreview": null,
+                        "sendAt": "2026-04-07T09:55:00",
+                        "editedAt": "2026-04-07T10:00:00"
+                    }
+                    """)
+                    )
             ),
             @ApiResponse(
                     responseCode = "400", description = "잘못된 입력 또는 파일 메시지 수정 시도",

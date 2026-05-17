@@ -3,6 +3,8 @@ package com.everybuddy.global.firebase;
 import com.everybuddy.domain.fcmtoken.entity.FcmToken;
 import com.everybuddy.domain.fcmtoken.repository.FcmTokenRepository;
 import com.everybuddy.domain.notification.dto.NotificationContent;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
@@ -26,6 +28,11 @@ public class FcmSender {
     private final FcmTokenRepository fcmTokenRepository;
 
     public void sendToUsers(List<Long> userIds, NotificationContent content, Map<String, String> data) {
+        sendToUsers(userIds, content, data, null);
+    }
+
+    public void sendToUsers(List<Long> userIds, NotificationContent content, Map<String, String> data,
+                            String androidChannelId) {
         if (userIds.isEmpty()) {
             return;
         }
@@ -36,17 +43,24 @@ public class FcmSender {
         }
 
         List<String> tokenValues = tokens.stream().map(FcmToken::getToken).toList();
-        MulticastMessage message = MulticastMessage.builder()
+        MulticastMessage.Builder builder = MulticastMessage.builder()
                 .setNotification(Notification.builder()
                         .setTitle(content.getTitle())
                         .setBody(content.getBody())
                         .build())
                 .putAllData(data)
-                .addAllTokens(tokenValues)
-                .build();
+                .addAllTokens(tokenValues);
+
+        if (androidChannelId != null) {
+            builder.setAndroidConfig(AndroidConfig.builder()
+                    .setNotification(AndroidNotification.builder()
+                            .setChannelId(androidChannelId)
+                            .build())
+                    .build());
+        }
 
         try {
-            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(builder.build());
             cleanupInvalidTokens(response, tokens);
         } catch (FirebaseMessagingException e) {
             log.error("FCM 일괄 발송 실패 - userIds={}", userIds, e);

@@ -82,7 +82,7 @@ class ChatPushEventHandlerTest {
         handler.handleMessageSent(event);
 
         ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
-        verify(fcmSender).sendToUsers(captor.capture(), eq(content), any());
+        verify(fcmSender).sendToUsers(captor.capture(), eq(content), any(), eq("everybuddy_chat"));
         assertAll(
                 () -> assertEquals(2, captor.getValue().size()),
                 () -> assertTrue(captor.getValue().contains(2L)),
@@ -100,7 +100,7 @@ class ChatPushEventHandlerTest {
 
         handler.handleMessageSent(event);
 
-        verify(fcmSender).sendToUsers(eq(List.of(3L)), eq(content), any());
+        verify(fcmSender).sendToUsers(eq(List.of(3L)), eq(content), any(), eq("everybuddy_chat"));
     }
 
     @Test
@@ -111,7 +111,7 @@ class ChatPushEventHandlerTest {
 
         handler.handleMessageSent(event);
 
-        verify(fcmSender, never()).sendToUsers(any(), any(), any());
+        verify(fcmSender, never()).sendToUsers(any(), any(), any(), any());
         verify(messageBuilder, never()).resolveChatMessage(any());
     }
 
@@ -122,7 +122,7 @@ class ChatPushEventHandlerTest {
 
         handler.handleMessageSent(event);
 
-        verify(fcmSender, never()).sendToUsers(any(), any(), any());
+        verify(fcmSender, never()).sendToUsers(any(), any(), any(), any());
         verify(messageBuilder, never()).resolveChatMessage(any());
     }
 
@@ -136,7 +136,7 @@ class ChatPushEventHandlerTest {
         handler.handleMessageSent(event);
 
         ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(fcmSender).sendToUsers(eq(List.of(2L)), eq(content), dataCaptor.capture());
+        verify(fcmSender).sendToUsers(eq(List.of(2L)), eq(content), dataCaptor.capture(), eq("everybuddy_chat"));
         Map<String, String> data = dataCaptor.getValue();
         assertAll(
                 () -> assertEquals("100", data.get("chatRoomId")),

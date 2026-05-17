@@ -15,6 +15,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatPushEventHandler {
 
+    private static final String CHAT_CHANNEL_ID = "everybuddy_chat";
+
     private final ViewingSyncService viewingSyncService;
     private final NotificationMessageBuilder messageBuilder;
     private final FcmSender fcmSender;
@@ -41,6 +43,6 @@ public class ChatPushEventHandler {
                 "senderId", String.valueOf(senderId)
         );
 
-        fcmSender.sendToUsers(targetUserIds, content, data);
+        fcmSender.sendToUsers(targetUserIds, content, data, CHAT_CHANNEL_ID);
     }
 }

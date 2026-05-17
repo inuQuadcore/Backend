@@ -11,8 +11,11 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +25,7 @@ import java.util.UUID;
 public class S3FileService implements StorageService {
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucketName;
@@ -100,13 +104,23 @@ public class S3FileService implements StorageService {
     }
 
     /**
-     * 파일의 공개 URL 생성 (S3 직접 접근)
+     * Presigned URL 생성 (버킷 비공개 유지, 7일 유효)
      * @param fileKey 파일 키
-     * @return S3 공개 URL
+     * @return 서명된 임시 URL
      */
     @Override
     public String getPublicUrl(String fileKey) {
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileKey);
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileKey)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofDays(7))
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
     /**

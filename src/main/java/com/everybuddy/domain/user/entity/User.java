@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -124,6 +125,10 @@ public class User {
 
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
+        this.loginId = "deleted_" + UUID.randomUUID();
+        if (this.providerId != null) {
+            this.providerId = "deleted_" + UUID.randomUUID();
+        }
     }
 
     public boolean isDeleted() {

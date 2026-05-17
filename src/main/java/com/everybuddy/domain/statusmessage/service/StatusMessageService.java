@@ -87,7 +87,7 @@ public class StatusMessageService {
     }
 
     private String getProfileImageUrl(String profileKey) {
-        return profileKey != null ? storageService.getPublicUrl(profileKey) : null;
+        return profileKey != null ? storageService.getPresignedUrl(profileKey) : null;
     }
 
     private List<StatusMessage> fetchFriendStatusMessages(Long userId, Long cursor, int size) {

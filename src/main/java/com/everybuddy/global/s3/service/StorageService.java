@@ -39,11 +39,11 @@ public interface StorageService {
     void deleteFiles(List<String> fileKeys);
 
     /**
-     * 파일의 공개 URL 생성
+     * 파일의 Presigned URL 생성
      * @param fileKey 파일 키
-     * @return CloudFront 또는 S3 공개 URL
+     * @return S3 Presigned URL
      */
-    String getPublicUrl(String fileKey);
+    String getPresignedUrl(String fileKey);
 
     /**
      * 파일 존재 여부 확인

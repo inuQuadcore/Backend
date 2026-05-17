@@ -60,7 +60,7 @@ public class ChatRtdbEventHandler {
     private void saveMessageToFirebase(Message message) {
         String fileUrl = null;
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
-            fileUrl = storageService.getPublicUrl(message.getMedia().getFileKey());
+            fileUrl = storageService.getPresignedUrl(message.getMedia().getFileKey());
         }
         FirebaseChatMessage messageData = FirebaseChatMessage.from(message, fileUrl);
         DatabaseReference ref = firebaseDatabase.getReference("messages")

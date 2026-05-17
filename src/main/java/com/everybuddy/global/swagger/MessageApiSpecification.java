@@ -84,6 +84,13 @@ public interface MessageApiSpecification {
                                         "name": "EMPTY_FILE",
                                         "message": "빈 파일은 업로드할 수 없습니다."
                                     }
+                                    """),
+                                    @ExampleObject(name = "파일과 텍스트 동시 전송", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "CANNOT_SEND_FILE_AND_TEXT_TOGETHER",
+                                        "message": "파일과 텍스트를 동시에 전송할 수 없습니다."
+                                    }
                                     """)
                             }
                     )

@@ -174,6 +174,8 @@ public interface StatusMessageApiSpecification {
                             examples = @ExampleObject("""
                     {
                         "statusMessageId": 42,
+                        "profileImageUrl": "https://cdn.example.com/profiles/user-1/photo.jpg",
+                        "nickname": "홍길동",
                         "content": "오늘도 화이팅!",
                         "updatedAt": "2026-05-13T11:30:00"
                     }

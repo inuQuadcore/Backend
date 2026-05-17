@@ -35,7 +35,7 @@ public interface ChatRoomApiSpecification {
                         "roomName": "스터디 그룹",
                         "createdAt": "2026-01-12T10:30:00",
                         "participantIds": [1, 2, 3],
-                        "unreadCount": 0
+                        "unreadCount": null
                     }
                     """
                             )

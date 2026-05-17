@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
 
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,6 +140,7 @@ public class ChatRtdbEventHandler {
     private void updateFirebaseAsEdited(Message message) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("content", message.getContent());
+        updates.put("editedAt", message.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         DatabaseReference ref = firebaseDatabase.getReference("messages")
                 .child(String.valueOf(message.getChatRoom().getChatRoomId()))
                 .child(String.valueOf(message.getMessageId()));

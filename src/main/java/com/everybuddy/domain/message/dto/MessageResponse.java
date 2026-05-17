@@ -17,6 +17,7 @@ public class MessageResponse {
     private final String messageType;
     private final String content;
     private final LocalDateTime sendAt;
+    private final LocalDateTime editedAt;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final String fileUrl;
@@ -32,14 +33,15 @@ public class MessageResponse {
 
     @Builder
     private MessageResponse(Long messageId, Long userId, String userName, String messageType,
-                            String content, LocalDateTime sendAt, String fileUrl, String fileName,
-                            Long fileSize, String mediaType) {
+                            String content, LocalDateTime sendAt, LocalDateTime editedAt,
+                            String fileUrl, String fileName, Long fileSize, String mediaType) {
         this.messageId = messageId;
         this.userId = userId;
         this.userName = userName;
         this.messageType = messageType;
         this.content = content;
         this.sendAt = sendAt;
+        this.editedAt = editedAt;
         this.fileUrl = fileUrl;
         this.fileName = fileName;
         this.fileSize = fileSize;
@@ -55,7 +57,8 @@ public class MessageResponse {
                 .userName(message.getUser().isDeleted() ? DELETED_USER_NAME : message.getUser().getName())
                 .messageType(message.getMessageType().name())
                 .content(message.getContent())
-                .sendAt(message.getSendAt());
+                .sendAt(message.getSendAt())
+                .editedAt(message.getUpdatedAt());
 
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
             builder.fileUrl(fileUrl)

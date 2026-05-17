@@ -39,8 +39,14 @@ public interface ChatRoomApiSpecification {
                         "roomName": "스터디 그룹",
                         "isGroup": true,
                         "createdAt": "2026-01-12T10:30:00",
-                        "participantIds": [1, 2, 3],
-                        "unreadCount": null
+                        "participants": [
+                            {"userId": 1, "name": "홍길동", "profileImageUrl": null},
+                            {"userId": 2, "name": "김철수", "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/2.jpg"},
+                            {"userId": 3, "name": "박영희", "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/3.jpg"}
+                        ],
+                        "unreadCount": null,
+                        "lastMessage": null,
+                        "lastMessageTime": null
                     }
                     """
                             )
@@ -120,16 +126,27 @@ public interface ChatRoomApiSpecification {
                             "roomName": "스터디 그룹",
                             "isGroup": true,
                             "createdAt": "2026-01-12T10:30:00",
-                            "participantIds": [1, 2, 3],
-                            "unreadCount": 5
+                            "participants": [
+                                {"userId": 1, "name": "홍길동", "profileImageUrl": null},
+                                {"userId": 2, "name": "김철수", "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/2.jpg"},
+                                {"userId": 3, "name": "박영희", "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/3.jpg"}
+                            ],
+                            "unreadCount": 5,
+                            "lastMessage": "안녕하세요",
+                            "lastMessageTime": "2026-05-17T20:00:00"
                         },
                         {
                             "chatRoomId": 2,
                             "roomName": "박영희",
                             "isGroup": false,
                             "createdAt": "2026-01-11T15:20:00",
-                            "participantIds": [1, 4],
-                            "unreadCount": 0
+                            "participants": [
+                                {"userId": 1, "name": "홍길동", "profileImageUrl": null},
+                                {"userId": 4, "name": "박영희", "profileImageUrl": "https://everybuddy.s3.amazonaws.com/profile/4.jpg"}
+                            ],
+                            "unreadCount": 0,
+                            "lastMessage": "사진을 보냈습니다.",
+                            "lastMessageTime": "2026-05-16T18:30:00"
                         }
                     ]
                     """

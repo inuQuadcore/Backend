@@ -69,4 +69,12 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Long> findDeletedMessageIds(@Param("chatRoomId") Long chatRoomId,
                                      @Param("since") LocalDateTime since,
                                      @Param("enterChatRoomAt") LocalDateTime enterChatRoomAt);
+
+    @Query("SELECT m FROM Message m " +
+            "WHERE m.chatRoom.chatRoomId = :chatRoomId " +
+            "AND m.sendAt >= :enterChatRoomAt " +
+            "ORDER BY m.messageId DESC " +
+            "LIMIT 1")
+    Optional<Message> findLastMessageAfter(@Param("chatRoomId") Long chatRoomId,
+                                           @Param("enterChatRoomAt") LocalDateTime enterChatRoomAt);
 }

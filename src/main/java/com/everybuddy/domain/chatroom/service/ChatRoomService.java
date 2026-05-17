@@ -2,6 +2,7 @@ package com.everybuddy.domain.chatroom.service;
 
 import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
+import com.everybuddy.domain.chatroom.dto.ChatRoomParticipantResponse;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.dto.InviteMembersRequest;
@@ -11,17 +12,21 @@ import com.everybuddy.domain.chatroom.event.ChatRoomLeftEvent;
 import com.everybuddy.domain.chatroom.event.ChatRoomMembersInvitedEvent;
 import com.everybuddy.domain.chatroom.repository.ChatRoomRepository;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
+import com.everybuddy.domain.message.dto.ChatRoomMetadata;
+import com.everybuddy.domain.message.entity.Message;
 import com.everybuddy.domain.message.repository.MessageRepository;
 import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.domain.user.repository.UserRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import com.everybuddy.global.s3.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +43,7 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
     private final BlockRelationRepository blockRelationRepository;
+    private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -60,7 +66,8 @@ public class ChatRoomService {
             Optional<ChatRoom> existing = chatRoomRepository
                     .findActiveDirectChatRooms(creatorId, otherUserId).stream().findFirst();
             if (existing.isPresent()) {
-                return ChatRoomResponse.from(existing.get(), List.of(creatorId, otherUserId));
+                return ChatRoomResponse.from(existing.get(),
+                        toParticipantResponses(List.of(creator, participants.get(0))));
             }
         }
 
@@ -73,7 +80,10 @@ public class ChatRoomService {
         // 4. Firebase: 커밋 성공 후 동기화
         eventPublisher.publishEvent(ChatRoomCreatedEvent.of(chatRoom.getChatRoomId(), allParticipantIds));
 
-        return ChatRoomResponse.from(chatRoom, allParticipantIds);
+        List<User> allUsers = new ArrayList<>();
+        allUsers.add(creator);
+        allUsers.addAll(participants);
+        return ChatRoomResponse.from(chatRoom, toParticipantResponses(allUsers));
     }
 
     @Transactional
@@ -141,7 +151,7 @@ public class ChatRoomService {
             return List.of();
         }
 
-        Map<Long, List<Long>> participantsMap = findParticipantsMapByChatRooms(myChatParts);
+        Map<Long, List<User>> participantsMap = findParticipantsMapByChatRooms(myChatParts);
 
         return buildChatRoomResponses(myChatParts, participantsMap);
     }
@@ -196,7 +206,7 @@ public class ChatRoomService {
         return allParticipantIds;
     }
 
-    private Map<Long, List<Long>> findParticipantsMapByChatRooms(List<ChatPart> myChatParts) {
+    private Map<Long, List<User>> findParticipantsMapByChatRooms(List<ChatPart> myChatParts) {
         List<Long> chatRoomIds = extractChatRoomIds(myChatParts);
         List<ChatPart> allParticipants = chatPartRepository.findByChatRoomIdsWithUser(chatRoomIds);
 
@@ -209,12 +219,12 @@ public class ChatRoomService {
                 .toList();
     }
 
-    private Map<Long, List<Long>> groupParticipantsByChatRoom(List<ChatPart> allParticipants) {
+    private Map<Long, List<User>> groupParticipantsByChatRoom(List<ChatPart> allParticipants) {
         return allParticipants.stream()
                 .collect(Collectors.groupingBy(
                         chatPart -> chatPart.getChatRoom().getChatRoomId(),
                         Collectors.mapping(
-                                chatPart -> chatPart.getUser().getUserId(),
+                                ChatPart::getUser,
                                 Collectors.toList()
                         )
                 ));
@@ -222,7 +232,7 @@ public class ChatRoomService {
 
     private List<ChatRoomResponse> buildChatRoomResponses(
             List<ChatPart> myChatParts,
-            Map<Long, List<Long>> participantsMap) {
+            Map<Long, List<User>> participantsMap) {
 
         List<ChatRoomResponse> responses = new ArrayList<>();
 
@@ -233,16 +243,32 @@ public class ChatRoomService {
                     : null;
 
             Long unreadCount = messageRepository.countUnreadMessages(chatRoomId, lastReadMessageId, chatPart.getEnterChatRoomAt());
+            Optional<Message> lastMessage = messageRepository.findLastMessageAfter(chatRoomId, chatPart.getEnterChatRoomAt());
+            String lastMessageText = lastMessage.map(ChatRoomMetadata::getLastMessageDisplay).orElse(null);
+            LocalDateTime lastMessageTime = lastMessage.map(Message::getSendAt).orElse(null);
 
             ChatRoomResponse response = ChatRoomResponse.from(
                     chatPart.getChatRoom(),
-                    participantsMap.get(chatRoomId),
-                    unreadCount
+                    toParticipantResponses(participantsMap.get(chatRoomId)),
+                    unreadCount,
+                    lastMessageText,
+                    lastMessageTime
             );
 
             responses.add(response);
         }
 
         return responses;
+    }
+
+    private List<ChatRoomParticipantResponse> toParticipantResponses(List<User> users) {
+        if (users == null) return List.of();
+        return users.stream()
+                .map(u -> ChatRoomParticipantResponse.of(u, resolveProfileImageUrl(u.getProfile())))
+                .toList();
+    }
+
+    private String resolveProfileImageUrl(String profileKey) {
+        return profileKey != null ? storageService.getPresignedUrl(profileKey) : null;
     }
 }

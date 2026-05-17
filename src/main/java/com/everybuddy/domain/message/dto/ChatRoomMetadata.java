@@ -36,10 +36,14 @@ public class ChatRoomMetadata {
                 .build();
     }
 
-    /**
-     * 메시지 타입에 따라 적절한 표시 텍스트 반환
-     */
-    private static String getLastMessageDisplay(Message message) {
+    public static String getLastMessageDisplay(Message message) {
+        if (message.isDeleted()) {
+            return "삭제된 메시지입니다";
+        }
+        return getActiveLastMessageDisplay(message);
+    }
+
+    private static String getActiveLastMessageDisplay(Message message) {
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
             return switch (message.getMedia().getMediaType()) {
                 case IMAGE -> "사진을 보냈습니다.";

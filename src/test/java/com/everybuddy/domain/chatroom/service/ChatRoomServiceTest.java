@@ -2,6 +2,7 @@ package com.everybuddy.domain.chatroom.service;
 
 import com.everybuddy.domain.chatpart.entity.ChatPart;
 import com.everybuddy.domain.chatpart.repository.ChatPartRepository;
+import com.everybuddy.domain.chatroom.dto.ChatRoomParticipantResponse;
 import com.everybuddy.domain.chatroom.dto.ChatRoomResponse;
 import com.everybuddy.domain.chatroom.dto.CreateChatRoomRequest;
 import com.everybuddy.domain.chatroom.dto.InviteMembersRequest;
@@ -117,8 +118,8 @@ class ChatRoomServiceTest {
                     () -> assertEquals(1L, response.getChatRoomId()),
                     () -> assertEquals("테스트방", response.getRoomName()),
                     () -> assertFalse(response.isGroup()),
-                    () -> assertEquals(2, response.getParticipantIds().size()),
-                    () -> assertTrue(response.getParticipantIds().containsAll(List.of(1L, 2L)))
+                    () -> assertEquals(2, response.getParticipants().size()),
+                    () -> assertTrue(participantIdsOf(response).containsAll(List.of(1L, 2L)))
             );
 
             // ChatRoom 저장 값 검증
@@ -155,8 +156,8 @@ class ChatRoomServiceTest {
                     () -> assertEquals(1L, response.getChatRoomId()),
                     () -> assertEquals("테스트방", response.getRoomName()),
                     () -> assertTrue(response.isGroup()),
-                    () -> assertEquals(3, response.getParticipantIds().size()),
-                    () -> assertTrue(response.getParticipantIds().containsAll(List.of(1L, 2L, 3L)))
+                    () -> assertEquals(3, response.getParticipants().size()),
+                    () -> assertTrue(participantIdsOf(response).containsAll(List.of(1L, 2L, 3L)))
             );
 
             // 다른 참여자들 저장 값 검증
@@ -207,7 +208,7 @@ class ChatRoomServiceTest {
                     () -> assertEquals(99L, response.getChatRoomId()),
                     () -> assertEquals("기존 1:1방", response.getRoomName()),
                     () -> assertFalse(response.isGroup()),
-                    () -> assertTrue(response.getParticipantIds().containsAll(List.of(1L, 2L)))
+                    () -> assertTrue(participantIdsOf(response).containsAll(List.of(1L, 2L)))
             );
             verify(chatRoomRepository, never()).save(any());
             verify(chatPartRepository, never()).save(any());
@@ -327,7 +328,7 @@ class ChatRoomServiceTest {
                     () -> assertEquals(1, responses.size()),
                     () -> assertEquals(1L, responses.get(0).getChatRoomId()),
                     () -> assertEquals("테스트 채팅방", responses.get(0).getRoomName()),
-                    () -> assertEquals(2, responses.get(0).getParticipantIds().size()),
+                    () -> assertEquals(2, responses.get(0).getParticipants().size()),
                     () -> assertEquals(5L, responses.get(0).getUnreadCount())
             );
             verify(messageRepository).countUnreadMessages(eq(1L), isNull(), any(LocalDateTime.class));
@@ -582,5 +583,11 @@ class ChatRoomServiceTest {
             verify(chatPartRepository, never()).save(any(ChatPart.class));
             verify(eventPublisher, never()).publishEvent(any(ChatRoomMembersInvitedEvent.class));
         }
+    }
+
+    private static List<Long> participantIdsOf(ChatRoomResponse response) {
+        return response.getParticipants().stream()
+                .map(ChatRoomParticipantResponse::getUserId)
+                .toList();
     }
 }

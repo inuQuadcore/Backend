@@ -24,41 +24,54 @@ public class ChatRoomResponse {
     @Schema(description = "생성 시간", example = "2026-01-12T10:30:00")
     private final LocalDateTime createdAt;
 
-    @Schema(description = "참여자 ID 목록", example = "[1, 2, 3]")
-    private final List<Long> participantIds;
+    @Schema(description = "참여자 정보 (본인 포함). 클라가 1:1방 상대 이름·그룹방 아바타 표시에 활용.")
+    private final List<ChatRoomParticipantResponse> participants;
 
     @Schema(description = "읽지 않은 메시지 수", example = "5")
     private final Long unreadCount;
 
+    @Schema(description = "마지막 메시지 프리뷰 (본인 입장 이후 메시지 기준). 없으면 null. 파일 메시지는 '사진을 보냈습니다.' 등으로 치환. 삭제된 메시지면 '삭제된 메시지입니다'.",
+            example = "안녕하세요")
+    private final String lastMessage;
+
+    @Schema(description = "마지막 메시지 전송 시각 (없으면 null)", example = "2026-05-17T20:00:00")
+    private final LocalDateTime lastMessageTime;
+
     @Builder
     private ChatRoomResponse(Long chatRoomId, String roomName, boolean isGroup, LocalDateTime createdAt,
-                             List<Long> participantIds, Long unreadCount) {
+                             List<ChatRoomParticipantResponse> participants, Long unreadCount,
+                             String lastMessage, LocalDateTime lastMessageTime) {
         this.chatRoomId = chatRoomId;
         this.roomName = roomName;
         this.isGroup = isGroup;
         this.createdAt = createdAt;
-        this.participantIds = participantIds;
+        this.participants = participants;
         this.unreadCount = unreadCount;
+        this.lastMessage = lastMessage;
+        this.lastMessageTime = lastMessageTime;
     }
 
-    public static ChatRoomResponse from(ChatRoom chatRoom, List<Long> participantIds) {
+    public static ChatRoomResponse from(ChatRoom chatRoom, List<ChatRoomParticipantResponse> participants) {
         return ChatRoomResponse.builder()
                 .chatRoomId(chatRoom.getChatRoomId())
                 .roomName(chatRoom.getRoomName())
                 .isGroup(chatRoom.isGroup())
                 .createdAt(chatRoom.getCreatedAt())
-                .participantIds(participantIds)
+                .participants(participants)
                 .build();
     }
 
-    public static ChatRoomResponse from(ChatRoom chatRoom, List<Long> participantIds, Long unreadCount) {
+    public static ChatRoomResponse from(ChatRoom chatRoom, List<ChatRoomParticipantResponse> participants,
+                                        Long unreadCount, String lastMessage, LocalDateTime lastMessageTime) {
         return ChatRoomResponse.builder()
                 .chatRoomId(chatRoom.getChatRoomId())
                 .roomName(chatRoom.getRoomName())
                 .isGroup(chatRoom.isGroup())
                 .createdAt(chatRoom.getCreatedAt())
-                .participantIds(participantIds)
+                .participants(participants)
                 .unreadCount(unreadCount)
+                .lastMessage(lastMessage)
+                .lastMessageTime(lastMessageTime)
                 .build();
     }
 }

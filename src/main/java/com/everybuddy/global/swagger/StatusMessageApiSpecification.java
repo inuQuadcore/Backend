@@ -235,6 +235,7 @@ public interface StatusMessageApiSpecification {
                         "statusMessages": [
                             {
                                 "statusMessageId": 42,
+                                "userId": 7,
                                 "profileImageUrl": "https://cdn.example.com/profiles/user-1/photo.jpg",
                                 "nickname": "홍길동",
                                 "content": "오늘도 화이팅!",
@@ -242,6 +243,7 @@ public interface StatusMessageApiSpecification {
                             },
                             {
                                 "statusMessageId": 38,
+                                "userId": 12,
                                 "profileImageUrl": null,
                                 "nickname": "김철수",
                                 "content": "날씨가 너무 좋다",

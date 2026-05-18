@@ -107,7 +107,7 @@ class ChatRoomServiceTest {
             // given
             when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
             when(chatPartRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(chatRoomRepository.findActiveDirectChatRooms(1L, 2L)).thenReturn(List.of());
+            when(chatRoomRepository.findAnyDirectChatRooms(1L, 2L)).thenReturn(List.of());
 
             // when
             ChatRoomResponse response = chatRoomService.createChatRoom(1L,
@@ -194,12 +194,17 @@ class ChatRoomServiceTest {
     class CreateChatRoomIdempotentCases {
 
         @Test
-        @DisplayName("TC-1-I-1. 본인-상대 양쪽 active인 1:1방이 이미 있으면 기존 chatRoomId 반환 + save/이벤트 없음")
-        void returnExistingDirectChatRoom() {
+        @DisplayName("TC-1-I-1. 양쪽 active인 1:1방 존재 → 기존 방 반환, rejoin 호출 없음")
+        void returnExistingWhenBothActive() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
             when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
             ChatRoom existing = ChatRoom.createForTest(99L, "기존 1:1방", false);
-            when(chatRoomRepository.findActiveDirectChatRooms(1L, 2L)).thenReturn(List.of(existing));
+            when(chatRoomRepository.findAnyDirectChatRooms(1L, 2L)).thenReturn(List.of(existing));
+
+            ChatPart creatorPart = ChatPart.create(creator, existing);
+            ChatPart otherPart = ChatPart.create(participant1, existing);
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(1L, 99L)).thenReturn(Optional.of(creatorPart));
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 99L)).thenReturn(Optional.of(otherPart));
 
             CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("새 이름", false, List.of(2L));
             ChatRoomResponse response = chatRoomService.createChatRoom(1L, request);
@@ -208,11 +213,99 @@ class ChatRoomServiceTest {
                     () -> assertEquals(99L, response.getChatRoomId()),
                     () -> assertEquals("기존 1:1방", response.getRoomName()),
                     () -> assertFalse(response.isGroup()),
-                    () -> assertTrue(participantIdsOf(response).containsAll(List.of(1L, 2L)))
+                    () -> assertTrue(participantIdsOf(response).containsAll(List.of(1L, 2L))),
+                    () -> assertTrue(creatorPart.isActive()),
+                    () -> assertTrue(otherPart.isActive())
             );
             verify(chatRoomRepository, never()).save(any());
             verify(chatPartRepository, never()).save(any());
             verify(chatPartRepository, never()).saveAll(any());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-1-I-2. 호출자 inactive·상대 active → 호출자만 rejoin, 기존 방 반환")
+        void rejoinsCreatorWhenInactive() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+            when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
+            ChatRoom existing = ChatRoom.createForTest(99L, "기존 1:1방", false);
+            when(chatRoomRepository.findAnyDirectChatRooms(1L, 2L)).thenReturn(List.of(existing));
+
+            ChatPart creatorPart = ChatPart.create(creator, existing);
+            creatorPart.leave();
+            ChatPart otherPart = ChatPart.create(participant1, existing);
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(1L, 99L)).thenReturn(Optional.of(creatorPart));
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 99L)).thenReturn(Optional.of(otherPart));
+
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("새 이름", false, List.of(2L));
+            ChatRoomResponse response = chatRoomService.createChatRoom(1L, request);
+
+            assertAll(
+                    () -> assertEquals(99L, response.getChatRoomId()),
+                    () -> assertTrue(creatorPart.isActive()),
+                    () -> assertNull(creatorPart.getExitChatRoomAt()),
+                    () -> assertTrue(otherPart.isActive())
+            );
+            verify(chatRoomRepository, never()).save(any());
+            verify(chatPartRepository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-1-I-3. 호출자 active·상대 inactive → 상대만 rejoin, 기존 방 반환")
+        void rejoinsOtherWhenInactive() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+            when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
+            ChatRoom existing = ChatRoom.createForTest(99L, "기존 1:1방", false);
+            when(chatRoomRepository.findAnyDirectChatRooms(1L, 2L)).thenReturn(List.of(existing));
+
+            ChatPart creatorPart = ChatPart.create(creator, existing);
+            ChatPart otherPart = ChatPart.create(participant1, existing);
+            otherPart.leave();
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(1L, 99L)).thenReturn(Optional.of(creatorPart));
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 99L)).thenReturn(Optional.of(otherPart));
+
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("새 이름", false, List.of(2L));
+            ChatRoomResponse response = chatRoomService.createChatRoom(1L, request);
+
+            assertAll(
+                    () -> assertEquals(99L, response.getChatRoomId()),
+                    () -> assertTrue(creatorPart.isActive()),
+                    () -> assertTrue(otherPart.isActive()),
+                    () -> assertNull(otherPart.getExitChatRoomAt())
+            );
+            verify(chatRoomRepository, never()).save(any());
+            verify(chatPartRepository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("TC-1-I-4. 양쪽 모두 inactive → 둘 다 rejoin, 기존 방 반환")
+        void rejoinsBothWhenAllInactive() {
+            when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+            when(userRepository.findAllById(List.of(2L))).thenReturn(List.of(participant1));
+            ChatRoom existing = ChatRoom.createForTest(99L, "기존 1:1방", false);
+            when(chatRoomRepository.findAnyDirectChatRooms(1L, 2L)).thenReturn(List.of(existing));
+
+            ChatPart creatorPart = ChatPart.create(creator, existing);
+            creatorPart.leave();
+            ChatPart otherPart = ChatPart.create(participant1, existing);
+            otherPart.leave();
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(1L, 99L)).thenReturn(Optional.of(creatorPart));
+            when(chatPartRepository.findAnyByUserIdAndChatRoomId(2L, 99L)).thenReturn(Optional.of(otherPart));
+
+            CreateChatRoomRequest request = CreateChatRoomRequest.ofForTest("새 이름", false, List.of(2L));
+            ChatRoomResponse response = chatRoomService.createChatRoom(1L, request);
+
+            assertAll(
+                    () -> assertEquals(99L, response.getChatRoomId()),
+                    () -> assertTrue(creatorPart.isActive()),
+                    () -> assertNull(creatorPart.getExitChatRoomAt()),
+                    () -> assertTrue(otherPart.isActive()),
+                    () -> assertNull(otherPart.getExitChatRoomAt())
+            );
+            verify(chatRoomRepository, never()).save(any());
+            verify(chatPartRepository, never()).save(any());
             verify(eventPublisher, never()).publishEvent(any());
         }
     }

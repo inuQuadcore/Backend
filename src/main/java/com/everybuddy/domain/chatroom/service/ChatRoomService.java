@@ -60,13 +60,17 @@ public class ChatRoomService {
         validateParticipantsSizeByType(isGroup, request.getParticipantIds());
         List<User> participants = validateParticipants(request.getParticipantIds());
 
-        // 2. 1:1방 idempotent: 본인-상대 양쪽 모두 active인 1:1방이 있으면 그 방 반환
+        // 2. 1:1방 idempotent: 본인-상대가 한 번이라도 함께 있던 1:1방이 있으면 그 방 반환
+        //    한쪽이 나간 상태(active=false)면 rejoin 처리해서 같은 방으로 복귀
         if (!isGroup) {
             Long otherUserId = request.getParticipantIds().get(0);
             Optional<ChatRoom> existing = chatRoomRepository
-                    .findActiveDirectChatRooms(creatorId, otherUserId).stream().findFirst();
+                    .findAnyDirectChatRooms(creatorId, otherUserId).stream().findFirst();
             if (existing.isPresent()) {
-                return ChatRoomResponse.from(existing.get(),
+                ChatRoom existingRoom = existing.get();
+                rejoinIfInactive(creatorId, existingRoom.getChatRoomId());
+                rejoinIfInactive(otherUserId, existingRoom.getChatRoomId());
+                return ChatRoomResponse.from(existingRoom,
                         toParticipantResponses(List.of(creator, participants.get(0))));
             }
         }
@@ -154,6 +158,12 @@ public class ChatRoomService {
         Map<Long, List<User>> participantsMap = findParticipantsMapByChatRooms(myChatParts);
 
         return buildChatRoomResponses(myChatParts, participantsMap);
+    }
+
+    private void rejoinIfInactive(Long userId, Long chatRoomId) {
+        chatPartRepository.findAnyByUserIdAndChatRoomId(userId, chatRoomId)
+                .filter(chatPart -> !chatPart.isActive())
+                .ifPresent(ChatPart::rejoin);
     }
 
     private void validateParticipantsSizeByType(boolean isGroup, List<Long> participantIds) {

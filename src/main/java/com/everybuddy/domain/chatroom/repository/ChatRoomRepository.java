@@ -14,12 +14,10 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             "AND cr.deletedAt IS NULL " +
             "AND EXISTS (SELECT cp1 FROM ChatPart cp1 " +
             "            WHERE cp1.chatRoom = cr " +
-            "              AND cp1.user.userId = :userIdA " +
-            "              AND cp1.active = true) " +
+            "              AND cp1.user.userId = :userIdA) " +
             "AND EXISTS (SELECT cp2 FROM ChatPart cp2 " +
             "            WHERE cp2.chatRoom = cr " +
-            "              AND cp2.user.userId = :userIdB " +
-            "              AND cp2.active = true)")
-    List<ChatRoom> findActiveDirectChatRooms(@Param("userIdA") Long userIdA,
-                                             @Param("userIdB") Long userIdB);
+            "              AND cp2.user.userId = :userIdB)")
+    List<ChatRoom> findAnyDirectChatRooms(@Param("userIdA") Long userIdA,
+                                          @Param("userIdB") Long userIdB);
 }

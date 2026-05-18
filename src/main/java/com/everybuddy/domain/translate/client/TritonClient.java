@@ -14,6 +14,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.SocketTimeoutException;
@@ -31,7 +32,8 @@ import java.util.function.Supplier;
 @Component
 public class TritonClient {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private static final String T2TT_MODEL = "/v2/models/gemma_t2tt/infer";
     private static final String S2TT_MODEL = "/v2/models/gemma_s2tt/infer";

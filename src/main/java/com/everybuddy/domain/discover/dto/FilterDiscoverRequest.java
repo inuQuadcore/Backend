@@ -16,13 +16,15 @@ public record FilterDiscoverRequest(
         Integer maxAge,
         List<Language> languages,
         List<Tag> tags,
-        boolean isOnline,
-        boolean recentlyActive,
+        Boolean isOnline,
+        Boolean recentlyActive,
         Long lastUserId,
-        int size
+        Integer size
 ) {
     public FilterDiscoverRequest {
-        if (size == 0) size = 20;
+        if (size == null || size == 0) size = 20;
+        if (isOnline == null) isOnline = false;
+        if (recentlyActive == null) recentlyActive = false;
         if (languages == null) languages = List.of();
         if (tags == null) tags = List.of();
     }

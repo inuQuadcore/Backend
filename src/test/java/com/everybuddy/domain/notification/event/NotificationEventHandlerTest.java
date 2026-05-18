@@ -2,7 +2,7 @@ package com.everybuddy.domain.notification.event;
 
 import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.notification.dto.NotificationContent;
-import com.everybuddy.domain.notification.service.NotificationService;
+import com.everybuddy.domain.notification.service.NotificationMessageBuilder;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.User;
@@ -28,15 +28,15 @@ import static org.mockito.Mockito.when;
 @DisplayName("NotificationEventHandler 단위 테스트")
 class NotificationEventHandlerTest {
 
-    @Mock private NotificationService notificationService;
+    @Mock private NotificationMessageBuilder messageBuilder;
     @Mock private FcmSender fcmSender;
 
     @InjectMocks
     private NotificationEventHandler handler;
 
     @Test
-    @DisplayName("FriendAddedEvent 수신 시 createForFriendAdd 위임 후 반환된 content로 FCM 발송")
-    void delegatesAndSendsFcm() {
+    @DisplayName("FriendAddedEvent 수신 시 messageBuilder로 content 만들고 FCM 발송")
+    void buildsContentAndSendsFcm() {
         User from = User.createForTest(1L, "from", "유저1", "password",
                 Country.KOREA, Gender.MALE, LocalDate.of(1990, 1, 1));
         User to = User.createForTest(2L, "to", "유저2", "password",
@@ -44,11 +44,9 @@ class NotificationEventHandlerTest {
         FriendAddedEvent event = FriendAddedEvent.of(from, to);
 
         NotificationContent content = NotificationContent.of("새로운 친구", "유저1님이 친구로 추가했어요.");
-        when(notificationService.createForFriendAdd(event)).thenReturn(content);
+        when(messageBuilder.resolveFriendAdded(from)).thenReturn(content);
 
         handler.handleFriendAdded(event);
-
-        verify(notificationService).createForFriendAdd(event);
 
         ArgumentCaptor<Map<String, String>> dataCaptor = ArgumentCaptor.forClass(Map.class);
         verify(fcmSender).sendToUsers(eq(List.of(2L)), eq(content), dataCaptor.capture());

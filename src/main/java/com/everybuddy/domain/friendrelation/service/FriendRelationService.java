@@ -6,6 +6,7 @@ import com.everybuddy.domain.friendrelation.entity.FriendRelation;
 import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
+import com.everybuddy.domain.notification.service.NotificationService;
 import com.everybuddy.domain.user.dto.UserLanguageResponse;
 import com.everybuddy.domain.user.dto.UserTagResponse;
 import com.everybuddy.domain.user.entity.User;
@@ -34,6 +35,7 @@ public class FriendRelationService {
     private final UserRepository userRepository;
     private final UserProfileLoader userProfileLoader;
     private final StorageService storageService;
+    private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
 
     public void addFriend(Long fromUserId, Long toUserId) {
@@ -53,6 +55,7 @@ public class FriendRelationService {
         }
 
         friendRelationRepository.save(FriendRelation.of(fromUser, toUser));
+        notificationService.createForFriendAdd(fromUser, toUser);
         eventPublisher.publishEvent(FriendAddedEvent.of(fromUser, toUser));
     }
 

@@ -2,7 +2,7 @@ package com.everybuddy.domain.notification.event;
 
 import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.notification.dto.NotificationContent;
-import com.everybuddy.domain.notification.service.NotificationService;
+import com.everybuddy.domain.notification.service.NotificationMessageBuilder;
 import com.everybuddy.global.firebase.FcmSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,13 +16,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NotificationEventHandler {
 
-    private final NotificationService notificationService;
+    private final NotificationMessageBuilder messageBuilder;
     private final FcmSender fcmSender;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleFriendAdded(FriendAddedEvent event) {
-        NotificationContent content = notificationService.createForFriendAdd(event);
-
+        NotificationContent content = messageBuilder.resolveFriendAdded(event.getFromUser());
         Map<String, String> data = Map.of(
                 "fromUserId", String.valueOf(event.getFromUser().getUserId())
         );

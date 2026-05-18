@@ -1,6 +1,5 @@
 package com.everybuddy.domain.notification.service;
 
-import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.notification.dto.HasUnreadResponse;
 import com.everybuddy.domain.notification.dto.NotificationContent;
 import com.everybuddy.domain.notification.dto.NotificationListResponse;
@@ -32,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -226,13 +224,12 @@ class NotificationServiceTest {
     class CreateForFriendAdd {
 
         @Test
-        @DisplayName("Notification 저장 후 빌더가 만든 content 반환")
-        void savesAndReturnsContent() {
+        @DisplayName("fromUser/toUser/메시지 본문으로 Notification 저장")
+        void savesNotification() {
             NotificationContent content = NotificationContent.of("새로운 친구", "홍길동님이 친구로 추가했어요.");
             when(messageBuilder.resolveFriendAdded(me)).thenReturn(content);
 
-            FriendAddedEvent event = FriendAddedEvent.of(me, other);
-            NotificationContent returned = notificationService.createForFriendAdd(event);
+            notificationService.createForFriendAdd(me, other);
 
             ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
             verify(notificationRepository).save(notificationCaptor.capture());
@@ -240,8 +237,7 @@ class NotificationServiceTest {
             assertAll(
                     () -> assertEquals(2L, captured.getToUser().getUserId()),
                     () -> assertEquals(1L, captured.getFromUser().getUserId()),
-                    () -> assertEquals("홍길동님이 친구로 추가했어요.", captured.getBody()),
-                    () -> assertSame(content, returned)
+                    () -> assertEquals("홍길동님이 친구로 추가했어요.", captured.getBody())
             );
         }
     }

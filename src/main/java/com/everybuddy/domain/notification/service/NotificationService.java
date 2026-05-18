@@ -1,12 +1,12 @@
 package com.everybuddy.domain.notification.service;
 
-import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.notification.dto.HasUnreadResponse;
 import com.everybuddy.domain.notification.dto.NotificationContent;
 import com.everybuddy.domain.notification.dto.NotificationListResponse;
 import com.everybuddy.domain.notification.dto.NotificationResponse;
 import com.everybuddy.domain.notification.entity.Notification;
 import com.everybuddy.domain.notification.repository.NotificationRepository;
+import com.everybuddy.domain.user.entity.User;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,9 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMessageBuilder messageBuilder;
 
-    public NotificationContent createForFriendAdd(FriendAddedEvent event) {
-        NotificationContent content = messageBuilder.resolveFriendAdded(event.getFromUser());
-        notificationRepository.save(Notification.of(
-                event.getToUser(),
-                event.getFromUser(),
-                content.getBody()
-        ));
-        return content;
+    public void createForFriendAdd(User fromUser, User toUser) {
+        NotificationContent content = messageBuilder.resolveFriendAdded(fromUser);
+        notificationRepository.save(Notification.of(toUser, fromUser, content.getBody()));
     }
 
     @Transactional(readOnly = true)

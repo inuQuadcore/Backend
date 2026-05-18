@@ -5,6 +5,7 @@ import com.everybuddy.domain.friendrelation.entity.FriendRelation;
 import com.everybuddy.domain.friendrelation.event.FriendAddedEvent;
 import com.everybuddy.domain.friendrelation.repository.BlockRelationRepository;
 import com.everybuddy.domain.friendrelation.repository.FriendRelationRepository;
+import com.everybuddy.domain.notification.service.NotificationService;
 import com.everybuddy.domain.user.entity.Country;
 import com.everybuddy.domain.user.entity.Gender;
 import com.everybuddy.domain.user.entity.Language;
@@ -46,6 +47,7 @@ class FriendRelationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private UserProfileLoader userProfileLoader;
     @Mock private StorageService storageService;
+    @Mock private NotificationService notificationService;
     @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
@@ -74,7 +76,7 @@ class FriendRelationServiceTest {
     class AddFriendSuccessCases {
 
         @Test
-        @DisplayName("TC-1-1. 친구 추가 성공 + FriendAddedEvent 발행")
+        @DisplayName("TC-1-1. 친구 추가 성공 + 알림 저장 + FriendAddedEvent 발행")
         void success() {
             when(userRepository.findById(1L)).thenReturn(Optional.of(userA));
             when(userRepository.findById(2L)).thenReturn(Optional.of(userB));
@@ -89,6 +91,8 @@ class FriendRelationServiceTest {
                     () -> assertEquals(1L, relationCaptor.getValue().getFromUser().getUserId()),
                     () -> assertEquals(2L, relationCaptor.getValue().getToUser().getUserId())
             );
+
+            verify(notificationService).createForFriendAdd(userA, userB);
 
             ArgumentCaptor<FriendAddedEvent> eventCaptor = ArgumentCaptor.forClass(FriendAddedEvent.class);
             verify(eventPublisher).publishEvent(eventCaptor.capture());

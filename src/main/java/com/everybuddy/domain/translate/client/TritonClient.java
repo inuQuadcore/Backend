@@ -18,6 +18,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -27,9 +29,11 @@ public class TritonClient {
 
     private static final String T2TT_MODEL = "/v2/models/gemma_t2tt/infer";
     private static final String S2TT_MODEL = "/v2/models/gemma_s2tt/infer";
+    private static final String TTS_MODEL = "/v2/models/Supertonic_tts/infer";
 
     private static final String OUTPUT_TRANSLATED_TEXT = "TRANSLATED_TEXT";
     private static final String OUTPUT_SOURCE_TEXT = "SOURCE_TEXT";
+    private static final String OUTPUT_AUDIO_BYTES = "AUDIO_BYTES";
 
     private final String baseUrl;
     private final RestTemplate restTemplate;
@@ -113,6 +117,30 @@ public class TritonClient {
         HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
 
         return execute(() -> restTemplate.postForEntity(baseUrl + S2TT_MODEL, entity, TritonInferResponse.class));
+    }
+
+    public byte[] synthesizeSpeech(String text, String language, String voice) {
+        List<TritonInferRequest.Input> inputs = new ArrayList<>();
+        inputs.add(textInput("TEXT_INPUT", text));
+        if (language != null && !language.isBlank()) {
+            inputs.add(textInput("LANGUAGE", language));
+        }
+        if (voice != null && !voice.isBlank()) {
+            inputs.add(textInput("VOICE", voice));
+        }
+
+        TritonInferRequest request = TritonInferRequest.builder()
+                .inputs(inputs)
+                .outputs(List.of(output(OUTPUT_AUDIO_BYTES)))
+                .build();
+
+        TritonInferResponse response = call(TTS_MODEL, request);
+
+        String base64Audio = response.getOutputValue(OUTPUT_AUDIO_BYTES);
+        if (base64Audio == null || base64Audio.isBlank()) {
+            throw new CustomException(ErrorCode.MODEL_ERROR);
+        }
+        return Base64.getDecoder().decode(base64Audio);
     }
 
     public record SpeechTranslationResult(String sourceText, String translatedText) {}

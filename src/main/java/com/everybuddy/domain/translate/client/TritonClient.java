@@ -5,6 +5,7 @@ import com.everybuddy.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -13,12 +14,15 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +30,8 @@ import java.util.function.Supplier;
 
 @Component
 public class TritonClient {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String T2TT_MODEL = "/v2/models/gemma_t2tt/infer";
     private static final String S2TT_MODEL = "/v2/models/gemma_s2tt/infer";
@@ -134,13 +140,40 @@ public class TritonClient {
                 .outputs(List.of(output(OUTPUT_AUDIO_BYTES)))
                 .build();
 
-        TritonInferResponse response = call(TTS_MODEL, request);
+        HttpHeaders reqHeaders = new HttpHeaders();
+        reqHeaders.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<TritonInferRequest> entity = new HttpEntity<>(request, reqHeaders);
 
-        String base64Audio = response.getOutputValue(OUTPUT_AUDIO_BYTES);
-        if (base64Audio == null || base64Audio.isBlank()) {
+        ResponseEntity<byte[]> rawResponse = executeRaw(
+                () -> restTemplate.exchange(baseUrl + TTS_MODEL, HttpMethod.POST, entity, byte[].class)
+        );
+
+        byte[] body = rawResponse.getBody();
+        if (body == null || body.length == 0) {
             throw new CustomException(ErrorCode.MODEL_ERROR);
         }
-        return Base64.getDecoder().decode(base64Audio);
+
+        // Triton binary HTTP: 응답 헤더에 JSON 헤더 길이가 있으면 그 이후가 오디오 raw bytes
+        String inferHeaderLengthStr = rawResponse.getHeaders().getFirst("Inference-Header-Content-Length");
+        if (inferHeaderLengthStr != null) {
+            int headerLen = Integer.parseInt(inferHeaderLengthStr);
+            byte[] audioBytes = Arrays.copyOfRange(body, headerLen, body.length);
+            if (audioBytes.length == 0) {
+                throw new CustomException(ErrorCode.MODEL_ERROR);
+            }
+            return audioBytes;
+        }
+
+        // JSON 모드: AUDIO_BYTES가 base64로 인코딩된 경우
+        try {
+            TritonInferResponse response = OBJECT_MAPPER.readValue(body, TritonInferResponse.class);
+            String base64Audio = response.getOutputValue(OUTPUT_AUDIO_BYTES);
+            return Base64.getDecoder().decode(base64Audio);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.MODEL_ERROR, e);
+        }
     }
 
     public record SpeechTranslationResult(String sourceText, String translatedText) {}
@@ -156,6 +189,20 @@ public class TritonClient {
     private TritonInferResponse execute(Supplier<ResponseEntity<TritonInferResponse>> supplier) {
         try {
             return supplier.get().getBody();
+        } catch (HttpStatusCodeException e) {
+            int status = e.getStatusCode().value();
+            if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
+            if (status == 400 || status == 404) throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
+            throw new CustomException(ErrorCode.MODEL_ERROR, e);
+        } catch (ResourceAccessException e) {
+            if (isReadTimeout(e)) throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
+            throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
+        }
+    }
+
+    private ResponseEntity<byte[]> executeRaw(Supplier<ResponseEntity<byte[]>> supplier) {
+        try {
+            return supplier.get();
         } catch (HttpStatusCodeException e) {
             int status = e.getStatusCode().value();
             if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);

@@ -5,6 +5,7 @@ import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResu
 import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
+import com.everybuddy.domain.translate.dto.TtsRequest;
 import com.everybuddy.domain.user.entity.UserLanguage;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.global.exception.CustomException;
@@ -55,6 +56,10 @@ public class TranslateService {
         SpeechTranslationResult result = tritonClient.translateSpeech(audioBytes, targetCode);
 
         return SpeechTranslateResponse.of(result.sourceText(), result.translatedText());
+    }
+
+    public byte[] tts(TtsRequest request) {
+        return tritonClient.synthesizeSpeech(request.getText(), request.getLanguage(), request.getVoice());
     }
 
     private String resolvePrimaryLanguageCode(Long userId) {

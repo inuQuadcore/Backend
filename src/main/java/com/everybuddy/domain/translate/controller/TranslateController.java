@@ -3,11 +3,14 @@ package com.everybuddy.domain.translate.controller;
 import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
+import com.everybuddy.domain.translate.dto.TtsRequest;
 import com.everybuddy.domain.translate.service.TranslateService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.TranslateApiSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,5 +40,19 @@ public class TranslateController implements TranslateApiSpecification {
 
         SpeechTranslateResponse response = translateService.translateSpeech(file, userDetails.getUserId());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/tts")
+    public ResponseEntity<byte[]> tts(
+            @Valid @RequestBody TtsRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        byte[] audioBytes = translateService.tts(request);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("audio/wav"));
+        headers.setContentDisposition(ContentDisposition.inline().filename("tts_output.wav").build());
+
+        return ResponseEntity.ok().headers(headers).body(audioBytes);
     }
 }

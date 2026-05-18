@@ -3,6 +3,7 @@ package com.everybuddy.global.swagger;
 import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
+import com.everybuddy.domain.translate.dto.TtsRequest;
 import com.everybuddy.global.exception.ErrorResponse;
 import com.everybuddy.global.security.UserDetailsImpl;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -217,6 +218,94 @@ public interface TranslateApiSpecification {
     })
     ResponseEntity<SpeechTranslateResponse> translateSpeech(
             @RequestPart MultipartFile file,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    );
+
+    @Operation(summary = "TTS (텍스트 → 음성)", description = "텍스트를 입력받아 WAV 오디오를 반환합니다. language와 voice는 선택 항목입니다.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200", description = "TTS 성공 (audio/wav)",
+                    content = @Content(mediaType = "audio/wav", schema = @Schema(type = "string", format = "binary"))
+            ),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "텍스트 누락", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다.",
+                                        "errors": {
+                                            "text": "변환할 텍스트를 입력해주세요."
+                                        }
+                                    }
+                                    """),
+                                    @ExampleObject(name = "텍스트 길이 초과", value = """
+                                    {
+                                        "code": 400,
+                                        "name": "INVALID_INPUT_VALUE",
+                                        "message": "잘못된 입력입니다.",
+                                        "errors": {
+                                            "text": "텍스트는 최대 500자까지 입력할 수 있습니다."
+                                        }
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 401,
+                        "name": "JWT_ENTRY_POINT",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "502", description = "TTS 모델 오류",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "모델 처리 오류", value = """
+                                    {
+                                        "code": 502,
+                                        "name": "MODEL_ERROR",
+                                        "message": "번역 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                                    }
+                                    """),
+                                    @ExampleObject(name = "모델 서비스 불가", value = """
+                                    {
+                                        "code": 502,
+                                        "name": "MODEL_UNAVAILABLE",
+                                        "message": "번역 서비스를 현재 사용할 수 없습니다. 잠시 후 다시 시도해주세요."
+                                    }
+                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "504", description = "TTS 요청 타임아웃",
+                    content = @Content(
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject("""
+                    {
+                        "code": 504,
+                        "name": "MODEL_TIMEOUT",
+                        "message": "번역 요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."
+                    }
+                    """)
+                    )
+            )
+    })
+    ResponseEntity<byte[]> tts(
+            @Valid @RequestBody(required = true) TtsRequest request,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     );
 }

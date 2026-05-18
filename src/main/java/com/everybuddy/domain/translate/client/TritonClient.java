@@ -5,6 +5,7 @@ import com.everybuddy.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -13,11 +14,17 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -25,11 +32,16 @@ import java.util.function.Supplier;
 @Component
 public class TritonClient {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     private static final String T2TT_MODEL = "/v2/models/gemma_t2tt/infer";
     private static final String S2TT_MODEL = "/v2/models/gemma_s2tt/infer";
+    private static final String TTS_MODEL = "/v2/models/Supertonic_tts/infer";
 
     private static final String OUTPUT_TRANSLATED_TEXT = "TRANSLATED_TEXT";
     private static final String OUTPUT_SOURCE_TEXT = "SOURCE_TEXT";
+    private static final String OUTPUT_AUDIO_BYTES = "AUDIO_BYTES";
 
     private final String baseUrl;
     private final RestTemplate restTemplate;
@@ -115,6 +127,57 @@ public class TritonClient {
         return execute(() -> restTemplate.postForEntity(baseUrl + S2TT_MODEL, entity, TritonInferResponse.class));
     }
 
+    public byte[] synthesizeSpeech(String text, String language, String voice) {
+        List<TritonInferRequest.Input> inputs = new ArrayList<>();
+        inputs.add(textInput("TEXT_INPUT", text));
+        if (language != null && !language.isBlank()) {
+            inputs.add(textInput("LANGUAGE", language));
+        }
+        if (voice != null && !voice.isBlank()) {
+            inputs.add(textInput("VOICE", voice));
+        }
+
+        TritonInferRequest request = TritonInferRequest.builder()
+                .inputs(inputs)
+                .outputs(List.of(output(OUTPUT_AUDIO_BYTES)))
+                .build();
+
+        HttpHeaders reqHeaders = new HttpHeaders();
+        reqHeaders.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<TritonInferRequest> entity = new HttpEntity<>(request, reqHeaders);
+
+        ResponseEntity<byte[]> rawResponse = executeRaw(
+                () -> restTemplate.exchange(baseUrl + TTS_MODEL, HttpMethod.POST, entity, byte[].class)
+        );
+
+        byte[] body = rawResponse.getBody();
+        if (body == null || body.length == 0) {
+            throw new CustomException(ErrorCode.MODEL_ERROR);
+        }
+
+        // Triton binary HTTP: 응답 헤더에 JSON 헤더 길이가 있으면 그 이후가 오디오 raw bytes
+        String inferHeaderLengthStr = rawResponse.getHeaders().getFirst("Inference-Header-Content-Length");
+        if (inferHeaderLengthStr != null) {
+            int headerLen = Integer.parseInt(inferHeaderLengthStr);
+            byte[] audioBytes = Arrays.copyOfRange(body, headerLen, body.length);
+            if (audioBytes.length == 0) {
+                throw new CustomException(ErrorCode.MODEL_ERROR);
+            }
+            return audioBytes;
+        }
+
+        // JSON 모드: AUDIO_BYTES가 base64로 인코딩된 경우
+        try {
+            TritonInferResponse response = OBJECT_MAPPER.readValue(body, TritonInferResponse.class);
+            String base64Audio = response.getOutputValue(OUTPUT_AUDIO_BYTES);
+            return Base64.getDecoder().decode(base64Audio);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.MODEL_ERROR, e);
+        }
+    }
+
     public record SpeechTranslationResult(String sourceText, String translatedText) {}
 
     private TritonInferResponse call(String path, TritonInferRequest request) {
@@ -128,6 +191,20 @@ public class TritonClient {
     private TritonInferResponse execute(Supplier<ResponseEntity<TritonInferResponse>> supplier) {
         try {
             return supplier.get().getBody();
+        } catch (HttpStatusCodeException e) {
+            int status = e.getStatusCode().value();
+            if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
+            if (status == 400 || status == 404) throw new CustomException(ErrorCode.MODEL_REQUEST_INVALID, e);
+            throw new CustomException(ErrorCode.MODEL_ERROR, e);
+        } catch (ResourceAccessException e) {
+            if (isReadTimeout(e)) throw new CustomException(ErrorCode.MODEL_TIMEOUT, e);
+            throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);
+        }
+    }
+
+    private ResponseEntity<byte[]> executeRaw(Supplier<ResponseEntity<byte[]>> supplier) {
+        try {
+            return supplier.get();
         } catch (HttpStatusCodeException e) {
             int status = e.getStatusCode().value();
             if (status == 503) throw new CustomException(ErrorCode.MODEL_UNAVAILABLE, e);

@@ -174,8 +174,30 @@ public class TritonClient {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
+            // 모델이 raw 오디오 바이트를 JSON 응답에 직접 포함하는 경우:
+            // WAV 파일 시그니처(RIFF....WAVE)를 탐색해 오디오 데이터 추출
+            byte[] wav = extractWavFromBody(body);
+            if (wav != null) {
+                return wav;
+            }
             throw new CustomException(ErrorCode.MODEL_ERROR, e);
         }
+    }
+
+    private static byte[] extractWavFromBody(byte[] body) {
+        for (int i = 0; i <= body.length - 12; i++) {
+            if (body[i] == 'R' && body[i + 1] == 'I' && body[i + 2] == 'F' && body[i + 3] == 'F'
+                    && body[i + 8] == 'W' && body[i + 9] == 'A' && body[i + 10] == 'V' && body[i + 11] == 'E') {
+                int riffSize = ((body[i + 4] & 0xFF))
+                        | ((body[i + 5] & 0xFF) << 8)
+                        | ((body[i + 6] & 0xFF) << 16)
+                        | ((body[i + 7] & 0xFF) << 24);
+                int end = i + 8 + riffSize;
+                if (end > body.length) end = body.length;
+                return Arrays.copyOfRange(body, i, end);
+            }
+        }
+        return null;
     }
 
     public record SpeechTranslationResult(String sourceText, String translatedText) {}

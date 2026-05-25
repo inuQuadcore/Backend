@@ -63,6 +63,11 @@ public class ChatPart {
     }
 
     public void updateLastReadMessage(Message message) {
+        // last_read_message_id는 단조 증가만 허용 (race 도착 순서에 의한 역행 방지)
+        if (this.lastReadMessage != null
+                && message.getMessageId() <= this.lastReadMessage.getMessageId()) {
+            return;
+        }
         this.lastReadMessage = message;
         this.lastReadAt = LocalDateTime.now();
     }

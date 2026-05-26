@@ -206,7 +206,14 @@ public class ChatRtdbEventHandler {
             public Transaction.Result doTransaction(MutableData mutableData) {
                 Long count = mutableData.getValue(Long.class);
                 mutableData.setValue(count == null ? 1L : count + 1L);
-                return Transaction.successWith(mutableData);
+                // firebase-admin 9.x에는 Transaction.successWith() 가 없으므로
+                // Transaction.Result 인터페이스를 직접 구현
+                return new Transaction.Result() {
+                    @Override
+                    public boolean isSuccess() { return true; }
+                    @Override
+                    public MutableData getData() { return mutableData; }
+                };
             }
 
             @Override

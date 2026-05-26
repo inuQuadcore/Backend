@@ -189,17 +189,11 @@ public class S3FileService implements StorageService {
     }
 
     /**
-     * 채팅 파일 검증 (이미지, 비디오, 오디오, 문서, 압축, 10MB)
+     * 채팅 파일 검증 (이미지·문서·압축 10MB / 오디오·영상 50MB)
      */
     private void validateChatFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new CustomException(ErrorCode.EMPTY_FILE);
-        }
-
-        // 파일 크기 검사 (10MB)
-        long maxSize = 10L * 1024 * 1024;
-        if (file.getSize() > maxSize) {
-            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
         }
 
         // 파일 이름 검증
@@ -208,17 +202,29 @@ public class S3FileService implements StorageService {
             throw new CustomException(ErrorCode.INVALID_FILE_NAME);
         }
 
+        // MIME 타입 검증 — 크기 검사 전에 먼저 확인해야 타입별 제한 적용 가능
+        String contentType = file.getContentType();
+        if (contentType == null || !isAllowedContentType(contentType)) {
+            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
+        }
+
+        // 파일 크기 검사: 오디오·영상은 번역 기능을 위해 50MB, 나머지는 10MB
+        long maxSize = isAudioOrVideoContentType(contentType)
+                ? 50L * 1024 * 1024   // 오디오·영상
+                : 10L * 1024 * 1024;  // 이미지·문서·압축
+        if (file.getSize() > maxSize) {
+            throw new CustomException(ErrorCode.FILE_SIZE_EXCEEDED);
+        }
+
         // 파일 확장자 검증
         String extension = extractExtension(originalFilename);
         if (!isChatFileExtension(extension)) {
             throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
         }
+    }
 
-        // MIME 타입 검증 (확장자 조작 방지)
-        String contentType = file.getContentType();
-        if (contentType == null || !isAllowedContentType(contentType)) {
-            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
-        }
+    private boolean isAudioOrVideoContentType(String contentType) {
+        return contentType.startsWith("audio/") || contentType.startsWith("video/");
     }
 
     /**

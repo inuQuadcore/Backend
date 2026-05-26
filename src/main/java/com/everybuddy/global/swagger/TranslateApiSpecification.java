@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Tag(name = "번역 API", description = "텍스트 및 음성 번역 기능")
 public interface TranslateApiSpecification {
@@ -427,6 +428,46 @@ public interface TranslateApiSpecification {
             )
     })
     ResponseEntity<VideoTranslateResponse> translateVideo(
+            @RequestPart MultipartFile file,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    );
+
+    @Operation(
+            summary = "영상 번역 스트리밍 (SSE)",
+            description = """
+                    영상 파일을 업로드하면 구간(segment)이 처리될 때마다 즉시 SSE로 전송합니다.
+                    프론트엔드는 EventSource 대신 fetch() + ReadableStream으로 수신해야 합니다(POST 필요).
+                    각 이벤트: `event: segment`, `data: { segment JSON }`.
+                    마지막 구간은 `"is_final": true`, 에러 시 `"error"` 필드 포함.
+                    """,
+            requestBody = @RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            schema = @Schema(implementation = VideoTranslateMultipart.class)
+                    )
+            )
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "스트리밍 시작 (text/event-stream)"),
+            @ApiResponse(
+                    responseCode = "400", description = "잘못된 입력",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401", description = "인증 필요",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "413", description = "파일 크기 초과",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "502", description = "번역 모델 오류",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    SseEmitter translateVideoStream(
             @RequestPart MultipartFile file,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     );

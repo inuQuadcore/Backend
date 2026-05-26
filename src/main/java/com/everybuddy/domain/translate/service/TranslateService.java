@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import reactor.core.publisher.Flux;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -112,6 +114,20 @@ public class TranslateService {
         } catch (Exception e) {
             throw new CustomException(ErrorCode.MODEL_ERROR, e);
         }
+    }
+
+    public Flux<String> translateVideoStream(MultipartFile file, Long userId) {
+        validateVideoFile(file);
+        String targetCode = resolvePrimaryLanguageCode(userId);
+
+        byte[] videoBytes;
+        try {
+            videoBytes = file.getBytes();
+        } catch (IOException e) {
+            return Flux.error(new CustomException(ErrorCode.MULTIPART_READ_FAILED, e));
+        }
+
+        return tritonClient.translateVideoSpeechStream(videoBytes, targetCode);
     }
 
     private String resolvePrimaryLanguageCode(Long userId) {

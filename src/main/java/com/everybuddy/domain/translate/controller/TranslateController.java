@@ -4,6 +4,7 @@ import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
 import com.everybuddy.domain.translate.dto.TtsRequest;
+import com.everybuddy.domain.translate.dto.VideoTranslateResponse;
 import com.everybuddy.domain.translate.service.TranslateService;
 import com.everybuddy.global.security.UserDetailsImpl;
 import com.everybuddy.global.swagger.TranslateApiSpecification;
@@ -54,5 +55,14 @@ public class TranslateController implements TranslateApiSpecification {
         headers.setContentDisposition(ContentDisposition.inline().filename("tts_output.wav").build());
 
         return ResponseEntity.ok().headers(headers).body(audioBytes);
+    }
+
+    @PostMapping(value = "/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<VideoTranslateResponse> translateVideo(
+            @RequestPart MultipartFile file,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        VideoTranslateResponse response = translateService.translateVideo(file, userDetails.getUserId());
+        return ResponseEntity.ok(response);
     }
 }

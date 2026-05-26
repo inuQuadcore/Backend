@@ -180,6 +180,60 @@ public class TritonClient {
 
     public record SpeechTranslationResult(String sourceText, String translatedText) {}
 
+    public record VideoTranslationResult(String translatedText, String segmentsJson) {}
+
+    public VideoTranslationResult translateVideoSpeech(byte[] wavBytes, String targetLang) {
+        TritonInferResponse response = callS2TTBinaryVAD(wavBytes, targetLang);
+        // segments: [] 응답(음성 없음)도 정상 케이스이므로 blank 검사 없이 그대로 반환
+        return new VideoTranslationResult(
+                response.getOutputValue(OUTPUT_TRANSLATED_TEXT),
+                response.getOutputValue("SEGMENTS_JSON")
+        );
+    }
+
+    // callS2TTBinary와 동일한 binary 프로토콜.
+    // 차이점: USE_VAD 입력 추가(binary_data_size:0 → binary body 없이 JSON 헤더에만 포함),
+    //         SEGMENTS_JSON 출력 추가.
+    private TritonInferResponse callS2TTBinaryVAD(byte[] audioBytes, String targetLang) {
+        byte[] langBytes = targetLang.getBytes(StandardCharsets.UTF_8);
+        int audioPayloadSize = 4 + audioBytes.length;
+        int langPayloadSize  = 4 + langBytes.length;
+
+        String jsonHeader = String.format(
+                "{\"inputs\":[" +
+                "{\"name\":\"AUDIO_BYTES\",\"shape\":[1],\"datatype\":\"BYTES\",\"parameters\":{\"binary_data_size\":%d}}," +
+                "{\"name\":\"TARGET_LANGUAGE\",\"shape\":[1],\"datatype\":\"BYTES\",\"parameters\":{\"binary_data_size\":%d}}," +
+                "{\"name\":\"USE_VAD\",\"shape\":[1],\"datatype\":\"BYTES\",\"data\":[\"true\"],\"parameters\":{\"binary_data_size\":0}}" +
+                "],\"outputs\":[" +
+                "{\"name\":\"SOURCE_TEXT\",\"parameters\":{\"binary_data\":false}}," +
+                "{\"name\":\"TRANSLATED_TEXT\",\"parameters\":{\"binary_data\":false}}," +
+                "{\"name\":\"SEGMENTS_JSON\",\"parameters\":{\"binary_data\":false}}" +
+                "]}",
+                audioPayloadSize, langPayloadSize
+        );
+
+        byte[] jsonBytes = jsonHeader.getBytes(StandardCharsets.UTF_8);
+
+        ByteBuffer binary = ByteBuffer.allocate(audioPayloadSize + langPayloadSize)
+                .order(ByteOrder.LITTLE_ENDIAN);
+        binary.putInt(audioBytes.length);
+        binary.put(audioBytes);
+        binary.putInt(langBytes.length);
+        binary.put(langBytes);
+
+        byte[] body = new byte[jsonBytes.length + binary.capacity()];
+        System.arraycopy(jsonBytes, 0, body, 0, jsonBytes.length);
+        System.arraycopy(binary.array(), 0, body, jsonBytes.length, binary.capacity());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.set("Inference-Header-Content-Length", String.valueOf(jsonBytes.length));
+
+        HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
+
+        return execute(() -> restTemplate.postForEntity(baseUrl + S2TT_MODEL, entity, TritonInferResponse.class));
+    }
+
     private TritonInferResponse call(String path, TritonInferRequest request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

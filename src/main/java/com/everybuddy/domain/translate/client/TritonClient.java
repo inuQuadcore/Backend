@@ -167,7 +167,7 @@ public class TritonClient {
         int langPayloadSize  = 4 + langBytes.length;
 
         String vadInput = useVad
-                ? ",{\"name\":\"USE_VAD\",\"shape\":[1],\"datatype\":\"BYTES\",\"data\":[\"true\"],\"parameters\":{\"binary_data_size\":0}}"
+                ? ",{\"name\":\"USE_VAD\",\"shape\":[1],\"datatype\":\"BYTES\",\"data\":[\"true\"]}"
                 : "";
         String vadOutput = useVad
                 ? ",{\"name\":\"SEGMENTS_JSON\",\"parameters\":{\"binary_data\":false}}"

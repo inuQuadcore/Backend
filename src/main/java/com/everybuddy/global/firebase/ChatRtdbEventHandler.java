@@ -16,6 +16,8 @@ import com.everybuddy.global.s3.service.StorageService;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ServerValue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -206,7 +208,7 @@ public class ChatRtdbEventHandler {
     }
 
     private static Object incrementBy(int delta) {
-        return Map.of(".sv", Map.of("increment", delta));
+        return ServerValue.increment(delta);
     }
 
     private void addFirebaseCallback(ApiFuture<Void> future, String context) {

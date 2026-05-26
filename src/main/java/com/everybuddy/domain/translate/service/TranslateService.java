@@ -11,23 +11,21 @@ import com.everybuddy.domain.user.entity.UserLanguage;
 import com.everybuddy.domain.user.repository.UserLanguageRepository;
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.everybuddy.global.util.FfmpegMediaConverter;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -54,12 +52,9 @@ public class TranslateService {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
-    // PATH 의존 없이 절대경로로 실행 (SonarQube S4036)
-    @Value("${ffmpeg.path}")
-    private String ffmpegPath;
-
     private final TritonClient tritonClient;
     private final UserLanguageRepository userLanguageRepository;
+    private final FfmpegMediaConverter ffmpegConverter;
 
     public TextTranslateResponse translateText(TextTranslateRequest request, Long userId) {
         String targetCode = resolvePrimaryLanguageCode(userId);
@@ -100,7 +95,7 @@ public class TranslateService {
             throw new CustomException(ErrorCode.MULTIPART_READ_FAILED, e);
         }
 
-        byte[] wavBytes = convertVideoToWav(videoBytes);
+        byte[] wavBytes = ffmpegConverter.convertVideoToWav(videoBytes);
         TritonClient.VideoTranslationResult result = tritonClient.translateVideoSpeech(wavBytes, targetCode);
 
         try {
@@ -148,47 +143,6 @@ public class TranslateService {
         String contentType = file.getContentType();
         if (contentType == null || !SUPPORTED_VIDEO_TYPES.contains(contentType.toLowerCase())) {
             throw new CustomException(ErrorCode.INVALID_VIDEO_FORMAT);
-        }
-    }
-
-    private byte[] convertVideoToWav(byte[] videoBytes) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(
-                    ffmpegPath, "-i", "pipe:0",
-                    "-vn",                          // 비디오 스트림 명시적 제외
-                    "-ac", "1", "-ar", "16000",
-                    "-f", "wav", "-loglevel", "error",
-                    "pipe:1"
-            );
-            // stderr를 명시적으로 버려야 ffmpeg 오류 메시지가 버퍼를 채워 프로세스가 블로킹되는 상황을 방지
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            Process process = pb.start();
-
-            // stdin 쓰기를 별도 스레드에서 처리 — stdout 읽기와 동시에 진행해야 데드락 방지
-            Thread stdinWriter = new Thread(() -> {
-                try (OutputStream stdin = process.getOutputStream()) {
-                    stdin.write(videoBytes);
-                } catch (IOException ignored) {}
-            }, "ffmpeg-stdin-writer");
-            stdinWriter.start();
-
-            byte[] wavBytes = process.getInputStream().readAllBytes();
-            boolean finished = process.waitFor(90, TimeUnit.SECONDS);
-            stdinWriter.join(5_000);
-
-            if (!finished || process.exitValue() != 0 || wavBytes.length == 0) {
-                process.destroyForcibly();
-                throw new CustomException(ErrorCode.VIDEO_CONVERT_FAILED);
-            }
-            return wavBytes;
-        } catch (CustomException e) {
-            throw e;
-        } catch (InterruptedException e) {
-            // 인터럽트 상태 복구 — 상위 레이어가 인터럽트를 인지할 수 있도록 보장
-            Thread.currentThread().interrupt();
-            throw new CustomException(ErrorCode.VIDEO_CONVERT_FAILED, e);
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.VIDEO_CONVERT_FAILED, e);
         }
     }
 

@@ -12,6 +12,8 @@ import com.everybuddy.domain.message.event.MessageDeletedEvent;
 import com.everybuddy.domain.message.event.MessageReadEvent;
 import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.message.event.MessageUpdatedEvent;
+import com.everybuddy.domain.message.event.TranslationRequestedEvent;
+import com.everybuddy.domain.message.event.TranslationStatusChangedEvent;
 import com.everybuddy.global.s3.service.StorageService;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.database.DatabaseReference;
@@ -63,6 +65,26 @@ public class ChatRtdbEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleMessageUpdated(MessageUpdatedEvent event) {
         updateFirebaseAsEdited(event.getMessage());
+    }
+
+    /**
+     * 번역 PENDING 전이 → Firebase 상태 업데이트.
+     * MessageTranslationService가 PENDING 설정 후 커밋 시 호출됩니다.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleTranslationRequested(TranslationRequestedEvent event) {
+        updateTranslationStatusInFirebase(
+                event.getChatRoomId(), event.getMessageId(), "PENDING");
+    }
+
+    /**
+     * 번역 COMPLETED·FAILED 전이 → Firebase 상태 업데이트.
+     * MessageTranslationAsyncService가 결과 저장 후 커밋 시 호출됩니다.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleTranslationStatusChanged(TranslationStatusChangedEvent event) {
+        updateTranslationStatusInFirebase(
+                event.getChatRoomId(), event.getMessageId(), event.getStatus().name());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -207,6 +229,22 @@ public class ChatRtdbEventHandler {
 
     private static Object incrementBy(int delta) {
         return Map.of(".sv", Map.of("increment", delta));
+    }
+
+    /**
+     * Firebase messages/{chatRoomId}/{messageId}/translationStatus 필드 업데이트.
+     * 기존 메시지 노드의 단일 필드만 갱신하므로 다른 필드에 영향 없음.
+     */
+    private void updateTranslationStatusInFirebase(Long chatRoomId, Long messageId, String statusName) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("translationStatus", statusName);
+        DatabaseReference ref = firebaseDatabase.getReference("messages")
+                .child(String.valueOf(chatRoomId))
+                .child(String.valueOf(messageId));
+        addFirebaseCallback(
+                ref.updateChildrenAsync(updates),
+                "번역 상태 업데이트 chatRoomId=" + chatRoomId + " messageId=" + messageId + " status=" + statusName
+        );
     }
 
     private void addFirebaseCallback(ApiFuture<Void> future, String context) {

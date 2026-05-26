@@ -124,6 +124,22 @@ public class S3FileService implements StorageService {
     }
 
     /**
+     * 파일 바이트 다운로드 (비동기 번역 처리에 사용)
+     */
+    @Override
+    public byte[] downloadFile(String key) {
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            return s3Client.getObjectAsBytes(getObjectRequest).asByteArray();
+        } catch (S3Exception | SdkClientException e) {
+            throw new CustomException(ErrorCode.S3_CONNECTION_ERROR);
+        }
+    }
+
+    /**
      * 파일 존재 여부 확인
      * @param key S3 객체 키
      * @return 존재 여부

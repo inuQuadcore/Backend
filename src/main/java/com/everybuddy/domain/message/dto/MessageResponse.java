@@ -32,10 +32,15 @@ public class MessageResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final String mediaType;
 
+    /** PENDING|COMPLETED|FAILED — AUDIO·VIDEO 메시지에서만 존재 (null = 아직 번역 미요청) */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final String translationStatus;
+
     @Builder
     private MessageResponse(Long messageId, Long userId, String userName, String messageType,
                             String content, String statusPreview, LocalDateTime sendAt, LocalDateTime editedAt,
-                            String fileUrl, String fileName, Long fileSize, String mediaType) {
+                            String fileUrl, String fileName, Long fileSize, String mediaType,
+                            String translationStatus) {
         this.messageId = messageId;
         this.userId = userId;
         this.userName = userName;
@@ -48,6 +53,7 @@ public class MessageResponse {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.mediaType = mediaType;
+        this.translationStatus = translationStatus;
     }
 
     private static final String DELETED_USER_NAME = "삭제된 유저";
@@ -64,10 +70,16 @@ public class MessageResponse {
                 .editedAt(message.getUpdatedAt());
 
         if (message.getMessageType() == MessageType.FILE && message.getMedia() != null) {
+            var media = message.getMedia();
             builder.fileUrl(fileUrl)
-                    .fileName(message.getMedia().getOriginalFilename())
-                    .fileSize(message.getMedia().getFileSize())
-                    .mediaType(message.getMedia().getMediaType().name());
+                    .fileName(media.getOriginalFilename())
+                    .fileSize(media.getFileSize())
+                    .mediaType(media.getMediaType().name());
+
+            // AUDIO·VIDEO 번역 상태 포함 (null이면 @JsonInclude(NON_NULL)로 응답에서 제외)
+            if (media.getTranslationStatus() != null) {
+                builder.translationStatus(media.getTranslationStatus().name());
+            }
         }
 
         return builder.build();

@@ -51,4 +51,11 @@ public interface StorageService {
      * @return 존재 여부
      */
     boolean fileExists(String fileKey);
+
+    /**
+     * 파일 바이트 다운로드 (비동기 번역 처리에 사용)
+     * @param fileKey 파일 키
+     * @return 파일 전체 바이트
+     */
+    byte[] downloadFile(String fileKey);
 }

@@ -48,6 +48,24 @@ public class Media {
     @Column(nullable = false)
     private MediaType mediaType;
 
+    // ── 번역 캐시 필드 (AUDIO·VIDEO 전용, 나머지 타입은 null) ──────────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "translation_status")
+    private TranslationStatus translationStatus;
+
+    /** 첫 번역 요청자의 주 언어 코드 (예: "ko", "en") */
+    @Column(name = "target_language", length = 10)
+    private String targetLanguage;
+
+    /** 번역 결과 텍스트 */
+    @Column(name = "translated_text", columnDefinition = "TEXT")
+    private String translatedText;
+
+    /** 영상 세그먼트 JSON (VIDEO 전용, AUDIO는 null) */
+    @Column(name = "segments_json", columnDefinition = "MEDIUMTEXT")
+    private String segmentsJson;
+    // ─────────────────────────────────────────────────────────────────────────
+
     private LocalDateTime deletedAt;
 
     @CreatedDate
@@ -103,6 +121,32 @@ public class Media {
     public boolean isDeleted(){
         return this.deletedAt != null;
     }
+
+    // ── 번역 상태 전이 메서드 ────────────────────────────────────────────────
+
+    /** AUDIO·VIDEO 타입이어서 번역 캐싱 대상인지 확인 */
+    public boolean isTranslatable() {
+        return mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO;
+    }
+
+    /** 번역 요청 접수 — 첫 요청자의 주 언어를 기록하고 PENDING으로 전이 */
+    public void markTranslationPending(String targetLanguage) {
+        this.translationStatus = TranslationStatus.PENDING;
+        this.targetLanguage    = targetLanguage;
+    }
+
+    /** 번역 성공 — 결과 저장 후 COMPLETED 전이 */
+    public void completeTranslation(String translatedText, String segmentsJson) {
+        this.translationStatus = TranslationStatus.COMPLETED;
+        this.translatedText    = translatedText;
+        this.segmentsJson      = segmentsJson;
+    }
+
+    /** 번역 실패 — FAILED 전이 (다음 요청 시 재시도 가능) */
+    public void failTranslation() {
+        this.translationStatus = TranslationStatus.FAILED;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * 테스트용 정적 팩토리 메서드

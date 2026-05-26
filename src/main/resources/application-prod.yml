@@ -69,5 +69,3 @@ swagger:
 triton:
   base-url: ${TRITON_BASE_URL}
 
-ffmpeg:
-  path: /usr/bin/ffmpeg   # Alpine apk install ffmpeg 기본 설치 경로

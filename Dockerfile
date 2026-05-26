@@ -6,10 +6,6 @@
 # Use a lightweight JRE-only image based on Alpine Linux for smallest size
 FROM eclipse-temurin:21-jre-alpine
 
-# Install ffmpeg for video-to-audio (WAV) conversion.
-# Installed before COPY so this layer is cached independently of JAR changes.
-RUN apk add --no-cache ffmpeg
-
 # Set the working directory inside the container
 WORKDIR /app
 

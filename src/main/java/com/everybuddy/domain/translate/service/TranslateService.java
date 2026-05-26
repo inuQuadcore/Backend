@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,6 +53,10 @@ public class TranslateService {
     private static final ObjectMapper VIDEO_OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+
+    // PATH 의존 없이 절대경로로 실행 (SonarQube S4036)
+    @Value("${ffmpeg.path}")
+    private String ffmpegPath;
 
     private final TritonClient tritonClient;
     private final UserLanguageRepository userLanguageRepository;
@@ -149,7 +154,7 @@ public class TranslateService {
     private byte[] convertVideoToWav(byte[] videoBytes) {
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                    "ffmpeg", "-i", "pipe:0",
+                    ffmpegPath, "-i", "pipe:0",
                     "-vn",                          // 비디오 스트림 명시적 제외
                     "-ac", "1", "-ar", "16000",
                     "-f", "wav", "-loglevel", "error",

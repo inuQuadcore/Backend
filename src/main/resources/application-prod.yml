@@ -26,8 +26,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 55MB      # 영상/오디오 최대 50MB + 멀티파트 오버헤드 여유
+      max-request-size: 55MB
 
 logging:
   level:
@@ -68,3 +68,6 @@ swagger:
 
 triton:
   base-url: ${TRITON_BASE_URL}
+
+ffmpeg:
+  path: /usr/bin/ffmpeg   # Alpine apk install ffmpeg 기본 설치 경로

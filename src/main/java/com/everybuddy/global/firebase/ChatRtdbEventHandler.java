@@ -14,10 +14,12 @@ import com.everybuddy.domain.message.event.MessageSentEvent;
 import com.everybuddy.domain.message.event.MessageUpdatedEvent;
 import com.everybuddy.global.s3.service.StorageService;
 import com.google.api.core.ApiFuture;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ServerValue;
-import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.MutableData;
+import com.google.firebase.database.Transaction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
 
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -165,7 +168,10 @@ public class ChatRtdbEventHandler {
         Long senderId = event.getMessage().getUser().getUserId();
         Map<String, Object> metadataUpdates = buildMetadataUpdates(event.getMetadata());
 
+        // 메타데이터(lastMessage 등)는 multi-path 단일 호출로 일괄 업데이트
         Map<String, Object> multiPathUpdates = new HashMap<>();
+        List<String> unreadCountPaths = new ArrayList<>();
+
         for (ChatPart chatPart : event.getChatParts()) {
             Long participantId = chatPart.getUser().getUserId();
             String basePath = "users/" + participantId + "/chatrooms/" + chatRoomId;
@@ -173,14 +179,43 @@ public class ChatRtdbEventHandler {
                 multiPathUpdates.put(basePath + "/" + entry.getKey(), entry.getValue());
             }
             if (!participantId.equals(senderId)) {
-                multiPathUpdates.put(basePath + "/unreadCount", incrementBy(1));
+                unreadCountPaths.add(basePath + "/unreadCount");
             }
         }
 
         addFirebaseCallback(
                 firebaseDatabase.getReference().updateChildrenAsync(multiPathUpdates),
-                "메시지 전송 메타데이터 + unreadCount 업데이트 chatRoomId=" + chatRoomId
+                "메시지 전송 메타데이터 업데이트 chatRoomId=" + chatRoomId
         );
+
+        // unreadCount는 서버측 원자적 증가(runTransaction) — multi-path update에 서버값을
+        // 섞으면 firebase-admin 9.x에서 ClassCastException 발생하므로 분리 처리
+        for (String path : unreadCountPaths) {
+            incrementUnreadCount(path);
+        }
+    }
+
+    /**
+     * Firebase Transaction으로 unreadCount를 원자적으로 1 증가시킵니다.
+     * firebase-admin 9.x는 multi-path update에서 서버값 increment를 지원하지 않아
+     * runTransaction을 사용합니다.
+     */
+    private void incrementUnreadCount(String path) {
+        firebaseDatabase.getReference(path).runTransaction(new Transaction.Handler() {
+            @Override
+            public Transaction.Result doTransaction(MutableData mutableData) {
+                Long count = mutableData.getValue(Long.class);
+                mutableData.setValue(count == null ? 1L : count + 1L);
+                return Transaction.successWith(mutableData);
+            }
+
+            @Override
+            public void onComplete(DatabaseError error, boolean committed, DataSnapshot snapshot) {
+                if (error != null) {
+                    log.error("unreadCount 증가 실패 - path={}", path, error.toException());
+                }
+            }
+        });
     }
 
     private void updateChatRoomMetadataInFirebase(Long chatRoomId, List<ChatPart> chatParts, Map<String, Object> updates) {
@@ -207,9 +242,6 @@ public class ChatRtdbEventHandler {
         return updates;
     }
 
-    private static Object incrementBy(int delta) {
-        return ServerValue.increment(delta);
-    }
 
     private void addFirebaseCallback(ApiFuture<Void> future, String context) {
         future.addListener(() -> {

@@ -176,7 +176,9 @@ public class TranslateService {
             boolean finished = process.waitFor(90, TimeUnit.SECONDS);
             stdinWriter.join(5_000);
 
-            if (!finished || process.exitValue() != 0 || wavBytes.length == 0) {
+            // WAV 최소 구조: RIFF(12) + fmt(24) + data 헤더(8) = 44 bytes
+            // 44 bytes 이하면 오디오 데이터가 없는 빈 WAV (오디오 트랙 없는 영상)
+            if (!finished || process.exitValue() != 0 || wavBytes.length <= 44) {
                 process.destroyForcibly();
                 throw new CustomException(ErrorCode.VIDEO_CONVERT_FAILED);
             }

@@ -17,9 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import reactor.core.Disposable;
 
 @RestController
 @RequestMapping("/api/v1/translate")
@@ -69,40 +66,5 @@ public class TranslateController implements TranslateApiSpecification {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 영상 번역 스트리밍 (SSE).
-     * 구간(segment)이 처리될 때마다 즉시 클라이언트로 전송.
-     * Triton gemma_s2tt_stream (Decoupled) 모델 사용.
-     * 프론트엔드는 fetch() + ReadableStream으로 수신 (EventSource API는 POST 미지원).
-     */
-    @PostMapping(value = "/video/stream",
-                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-                 produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter translateVideoStream(
-            @RequestPart MultipartFile file,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-
-        SseEmitter emitter = new SseEmitter(300_000L); // 5분 타임아웃
-
-        Disposable subscription = translateService.translateVideoStream(file, userDetails.getUserId())
-                .subscribe(
-                        json -> {
-                            try {
-                                emitter.send(SseEmitter.event()
-                                        .name("segment")
-                                        .data(json, MediaType.APPLICATION_JSON));
-                            } catch (Exception e) {
-                                emitter.completeWithError(e);
-                            }
-                        },
-                        emitter::completeWithError,
-                        emitter::complete
-                );
-
-        // 클라이언트 연결 종료 시 Triton 스트리밍 취소
-        emitter.onTimeout(subscription::dispose);
-        emitter.onCompletion(subscription::dispose);
-
-        return emitter;
-    }
 }
+

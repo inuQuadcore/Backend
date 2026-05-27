@@ -27,6 +27,7 @@ public class VideoTranslateResponse {
     @AllArgsConstructor
     public static class Segment {
         private int index;
+        private int totalSegments;
         private double startSeconds;
         private double endSeconds;
         private String timestamp;

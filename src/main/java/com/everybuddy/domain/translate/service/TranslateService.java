@@ -2,6 +2,7 @@ package com.everybuddy.domain.translate.service;
 
 import com.everybuddy.domain.translate.client.TritonClient;
 import com.everybuddy.domain.translate.client.TritonClient.SpeechTranslationResult;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.everybuddy.domain.translate.dto.SpeechTranslateResponse;
 import com.everybuddy.domain.translate.dto.TextTranslateRequest;
 import com.everybuddy.domain.translate.dto.TextTranslateResponse;
@@ -22,11 +23,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import reactor.core.publisher.Flux;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -89,8 +89,7 @@ public class TranslateService {
         String targetCode = resolvePrimaryLanguageCode(userId);
 
         // MP4/MOV 원본 바이트를 그대로 Triton에 전송.
-        // Triton 모델 내부 ffmpeg이 magic bytes로 포맷을 자동 감지하므로
-        // Spring에서 별도로 WAV 변환할 필요 없음.
+        // Triton gemma_v2tt 모델 내부 ffmpeg이 magic bytes로 포맷을 자동 감지한다.
         byte[] videoBytes;
         try {
             videoBytes = file.getBytes();
@@ -98,36 +97,34 @@ public class TranslateService {
             throw new CustomException(ErrorCode.MULTIPART_READ_FAILED, e);
         }
 
-        TritonClient.VideoTranslationResult result = tritonClient.translateVideoSpeech(videoBytes, targetCode);
+        // gemma_v2tt는 SEGMENTS_JSON(raw 배열)만 반환. TRANSLATED_TEXT 출력 없음.
+        String segmentsJson = tritonClient.translateVideoSpeech(videoBytes, targetCode);
 
         try {
-            SegmentsJson parsed = VIDEO_OBJECT_MAPPER.readValue(result.segmentsJson(), SegmentsJson.class);
-            List<VideoTranslateResponse.Segment> segments = parsed.segments.stream()
+            List<TritonSegment> tritonSegments = VIDEO_OBJECT_MAPPER.readValue(
+                    segmentsJson, new TypeReference<List<TritonSegment>>() {});
+
+            // 무음 영상: Triton이 [{index:0, total_segments:0, ...}] 더미 세그먼트를 반환 → 필터링
+            List<VideoTranslateResponse.Segment> segments = tritonSegments.stream()
+                    .filter(s -> s.totalSegments > 0)
                     .map(s -> new VideoTranslateResponse.Segment(
-                            s.index, s.startSeconds, s.endSeconds,
+                            s.index, s.totalSegments, s.startSeconds, s.endSeconds,
                             s.timestamp, s.sourceText, s.sourceLanguage,
                             s.translatedText, s.inferenceSeconds))
                     .toList();
-            return VideoTranslateResponse.of(result.translatedText(), segments);
+
+            // translatedText: 세그먼트 번역문을 공백으로 이어붙여 파생
+            String translatedText = segments.stream()
+                    .map(VideoTranslateResponse.Segment::getTranslatedText)
+                    .filter(t -> t != null && !t.isBlank())
+                    .collect(Collectors.joining(" "));
+
+            return VideoTranslateResponse.of(translatedText, segments);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
             throw new CustomException(ErrorCode.MODEL_ERROR, e);
         }
-    }
-
-    public Flux<String> translateVideoStream(MultipartFile file, Long userId) {
-        validateVideoFile(file);
-        String targetCode = resolvePrimaryLanguageCode(userId);
-
-        byte[] videoBytes;
-        try {
-            videoBytes = file.getBytes();
-        } catch (IOException e) {
-            return Flux.error(new CustomException(ErrorCode.MULTIPART_READ_FAILED, e));
-        }
-
-        return tritonClient.translateVideoSpeechStream(videoBytes, targetCode);
     }
 
     private String resolvePrimaryLanguageCode(Long userId) {
@@ -164,15 +161,11 @@ public class TranslateService {
 
     // ── SEGMENTS_JSON 파싱용 내부 클래스 ──────────────────────────────────────
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static class SegmentsJson {
-        List<TritonSegment> segments = List.of();
-    }
-
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class TritonSegment {
         int index;
+        int totalSegments;      // 무음 더미 세그먼트 판별용 (0이면 무음)
         double startSeconds;
         double endSeconds;
         String timestamp;

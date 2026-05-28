@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/v1/translate")
@@ -64,6 +65,16 @@ public class TranslateController implements TranslateApiSpecification {
 
         VideoTranslateResponse response = translateService.translateVideo(file, userDetails.getUserId());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/video/stream",
+                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+                 produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter translateVideoStream(
+            @RequestPart MultipartFile file,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        return translateService.streamTranslateVideo(file, userDetails.getUserId());
     }
 
 }

@@ -2,6 +2,7 @@ package com.everybuddy.domain.translate.client;
 
 import com.everybuddy.global.exception.CustomException;
 import com.everybuddy.global.exception.ErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,16 +30,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+@Slf4j
 @Component
 public class TritonClient {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private static final String T2TT_MODEL         = "/v2/models/gemma_t2tt/infer";
-    private static final String S2TT_MODEL         = "/v2/models/gemma_s2tt/infer";
-    private static final String V2TT_MODEL         = "/v2/models/gemma_v2tt/infer";
-    private static final String TTS_MODEL          = "/v2/models/Supertonic_tts/infer";
+    private static final String T2TT_MODEL          = "/v2/models/gemma_t2tt/infer";
+    private static final String S2TT_MODEL          = "/v2/models/gemma_s2tt/infer";
+    private static final String V2TT_MODEL          = "/v2/models/gemma_v2tt/infer";
+    private static final String TTS_MODEL           = "/v2/models/Supertonic_tts/infer";
+    private static final String V2TT_PREPARE_MODEL  = "/v2/models/gemma_v2tt_prepare/infer";
+    private static final String V2TT_SEGMENT_MODEL  = "/v2/models/gemma_v2tt_segment/infer";
+    private static final String V2TT_CLEANUP_MODEL  = "/v2/models/gemma_v2tt_cleanup/infer";
 
     private static final String OUTPUT_TRANSLATED_TEXT = "TRANSLATED_TEXT";
     private static final String OUTPUT_SOURCE_TEXT = "SOURCE_TEXT";
@@ -143,6 +148,8 @@ public class TritonClient {
 
     public record SpeechTranslationResult(String sourceText, String translatedText) {}
 
+    public record VideoPrepareResult(String jobId, String segmentsJson) {}
+
     /**
      * gemma_v2tt 전용 영상 번역.
      * MP4/MOV 원본 바이트와 목표 언어 코드를 Triton에 전송하고
@@ -186,6 +193,90 @@ public class TritonClient {
         TritonInferResponse response = execute(
                 () -> restTemplate.postForEntity(baseUrl + V2TT_MODEL, entity, TritonInferResponse.class));
         return response.getOutputValue("SEGMENTS_JSON");
+    }
+
+    // ── V2TT 스트리밍 3종 엔드포인트 ────────────────────────────────────────────
+
+    /**
+     * gemma_v2tt_prepare: 영상 bytes → ffmpeg decode + VAD → job_id + timestamps 반환.
+     * VIDEO_BYTES가 최대 50 MB이므로 기존 translateVideoSpeech와 동일한 binary HTTP extension 사용.
+     */
+    public VideoPrepareResult prepareVideo(byte[] videoBytes) {
+        int videoPayloadSize = 4 + videoBytes.length;
+
+        String jsonHeader = String.format(
+                "{\"inputs\":[" +
+                "{\"name\":\"VIDEO_BYTES\",\"shape\":[1],\"datatype\":\"BYTES\",\"parameters\":{\"binary_data_size\":%d}}" +
+                "],\"outputs\":[" +
+                "{\"name\":\"JOB_ID\",\"parameters\":{\"binary_data\":false}}," +
+                "{\"name\":\"SEGMENTS_JSON\",\"parameters\":{\"binary_data\":false}}" +
+                "]}",
+                videoPayloadSize);
+
+        byte[] jsonBytes = jsonHeader.getBytes(StandardCharsets.UTF_8);
+
+        ByteBuffer binary = ByteBuffer.allocate(videoPayloadSize).order(ByteOrder.LITTLE_ENDIAN);
+        binary.putInt(videoBytes.length);
+        binary.put(videoBytes);
+
+        byte[] body = new byte[jsonBytes.length + binary.capacity()];
+        System.arraycopy(jsonBytes, 0, body, 0, jsonBytes.length);
+        System.arraycopy(binary.array(), 0, body, jsonBytes.length, binary.capacity());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.set("Inference-Header-Content-Length", String.valueOf(jsonBytes.length));
+
+        HttpEntity<byte[]> entity = new HttpEntity<>(body, headers);
+        TritonInferResponse response = execute(
+                () -> restTemplate.postForEntity(baseUrl + V2TT_PREPARE_MODEL, entity, TritonInferResponse.class));
+
+        return new VideoPrepareResult(
+                response.getOutputValue("JOB_ID"),
+                response.getOutputValue("SEGMENTS_JSON"));
+    }
+
+    /**
+     * gemma_v2tt_segment: job_id + 구간 정보 → 단일 segment ASR + 번역 결과(SEGMENT_JSON) 반환.
+     * 입력이 모두 소용량 문자열이므로 일반 JSON 경로 사용.
+     * sourceLang 이 null 이거나 blank 이면 입력에서 제외 → Gemma 자동 감지.
+     */
+    public String translateSegment(String jobId, String segmentIndex,
+                                   String startSeconds, String endSeconds,
+                                   String targetLang, String sourceLang) {
+        List<TritonInferRequest.Input> inputs = new ArrayList<>();
+        inputs.add(textInput("JOB_ID", jobId));
+        inputs.add(textInput("SEGMENT_INDEX", segmentIndex));
+        inputs.add(textInput("START_SECONDS", startSeconds));
+        inputs.add(textInput("END_SECONDS", endSeconds));
+        inputs.add(textInput("TARGET_LANGUAGE", targetLang));
+        if (sourceLang != null && !sourceLang.isBlank()) {
+            inputs.add(textInput("SOURCE_LANGUAGE", sourceLang));
+        }
+
+        TritonInferRequest request = TritonInferRequest.builder()
+                .inputs(inputs)
+                .outputs(List.of(output("SEGMENT_JSON")))
+                .build();
+
+        TritonInferResponse response = call(V2TT_SEGMENT_MODEL, request);
+        return response.getOutputValue("SEGMENT_JSON");
+    }
+
+    /**
+     * gemma_v2tt_cleanup: job_id 에 해당하는 임시 오디오 파일 삭제.
+     * cleanup 실패는 치명적이지 않으므로 예외를 전파하지 않고 경고 로그만 남긴다.
+     */
+    public void cleanupJob(String jobId) {
+        try {
+            TritonInferRequest request = TritonInferRequest.builder()
+                    .inputs(List.of(textInput("JOB_ID", jobId)))
+                    .outputs(List.of(output("STATUS")))
+                    .build();
+            call(V2TT_CLEANUP_MODEL, request);
+        } catch (Exception e) {
+            log.warn("[v2tt] cleanup failed for job {}: {}", jobId, e.getMessage());
+        }
     }
 
     // Triton binary HTTP extension: JSON header + raw bytes payload (gemma_s2tt 음성 번역 전용)

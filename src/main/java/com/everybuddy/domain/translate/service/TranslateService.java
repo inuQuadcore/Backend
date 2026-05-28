@@ -171,7 +171,7 @@ public class TranslateService {
         }
 
         SseEmitter emitter = new SseEmitter(180_000L);
-        v2ttExecutor.submit(() -> processVideoStream(videoBytes, userId, emitter));
+        v2ttExecutor.execute(() -> processVideoStream(videoBytes, userId, emitter));
         return emitter;
     }
 
